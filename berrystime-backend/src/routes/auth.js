@@ -48,25 +48,25 @@ module.exports = async function authRoutes(fastify) {
   })
 
   fastify.post('/api/auth/login', async (request, reply) => {
-    const { email, password } = request.body
+    const { work_number, password } = request.body
 
-    if (!email || !password) {
-      return reply.status(400).send({ error: 'Email and password are required' })
+    if (!work_number || !password) {
+      return reply.status(400).send({ error: 'Work number and password are required' })
     }
 
     const result = await db.query(
-      'SELECT * FROM workers WHERE email = $1 AND is_active = true',
-      [email]
+      'SELECT * FROM workers WHERE work_number = $1 AND is_active = true',
+      [work_number]
     )
     if (!result.rows[0]) {
-      return reply.status(401).send({ error: 'Invalid email or password' })
+      return reply.status(401).send({ error: 'Invalid work number or password' })
     }
 
     const worker = result.rows[0]
 
     const valid = await bcrypt.compare(password, worker.password_hash)
     if (!valid) {
-      return reply.status(401).send({ error: 'Invalid email or password' })
+      return reply.status(401).send({ error: 'Invalid work number or password' })
     }
 
     const token = fastify.jwt.sign(
