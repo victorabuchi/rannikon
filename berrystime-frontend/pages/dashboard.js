@@ -296,10 +296,14 @@ export default function Dashboard() {
 
         <div style={{ background: '#f5f5f5', borderBottom: '1px solid #ccc', padding: '8px', display: 'flex', flexDirection: 'row', gap: '6px', flexWrap: 'wrap' }}>
           <p style={{ fontSize: '11px', fontWeight: '700', color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Papers</p>
-          {navBtn('white', 'White Paper', 'Work paid by hour')}
-          {navBtn('orange', 'Orange Paper', 'Extrawork')}
-          {navBtn('weekly', 'Weekly Summary', 'Mon to Sun totals')}
-          {navBtn('green', 'Green Paper', 'Berry picking')}
+          <div style={{display:'flex',flexDirection:'row',gap:'6px',flexWrap:'wrap',alignItems:'center'}}>
+            {[['white','White Paper','Work paid by hour'],['orange','Orange Paper','Extrawork'],['weekly','Weekly Summary','Mon to Sun totals'],['green','Green Paper','Berry picking']].map(([tab,label,sub])=>(
+              <div key={tab} style={{display:'flex',flexDirection:'column',gap:'2px'}}>
+                {navBtn(tab,label,sub)}
+                <button onClick={()=>downloadPDF(tab)} style={{padding:'3px 8px',fontSize:'10px',fontWeight:'600',background:'#f5f5f0',border:'1px solid #ddd',borderRadius:'4px',cursor:'pointer',color:'#555',whiteSpace:'nowrap'}}>Download PDF</button>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div style={{ flex: 1, padding: '16px', overflowX: 'auto' }}>
@@ -538,6 +542,56 @@ export default function Dashboard() {
         </div>
       </div>
     )
+  }
+
+  function downloadPDF(tab) {
+    const { jsPDF } = require('jspdf')
+    require('jspdf-autotable')
+    const doc = new jsPDF({ orientation: tab === 'weekly' ? 'landscape' : 'portrait' })
+    const daysCount = getDaysInMonth(month, year)
+    const monthName = MONTHS[month - 1] + ' ' + year
+
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+
+    if (tab === 'white') {
+      doc.text('WORK PAID BY THE HOUR', 14, 16)
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal')
+      doc.text('8 HOURS PER DAY / 40 HOURS PER WEEK', 14, 22)
+      doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 28)
+      const rows = Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; return [d, e ? e.white_start?.slice(0,5) : '', e ? e.white_finish?.slice(0,5) : '', '30 min', '', e ? '7:30' : '', e ? e.what_work : ''] })
+      doc.autoTable({ startY: 32, head: [['Date','Start','Finish','Eating break','Extra breaks','Hours minus breaks','What work']], body: rows, styles: { fontSize: 9 }, headStyles: { fillColor: [220,220,220], textColor: 0 } })
+      doc.save('white-paper-' + monthName + '-' + (worker?.work_number || '') + '.pdf')
+    }
+    if (tab === 'orange') {
+      doc.text('EXTRAWORK PAID BY THE HOUR', 14, 16)
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal')
+      doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 22)
+      const rows = Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; return [d, e ? e.orange_start?.slice(0,5) : '', e ? e.orange_finish?.slice(0,5) : '', e ? '0:15' : '', e ? e.orange_hours : '', e ? e.what_work : '', ''] })
+      doc.autoTable({ startY: 26, head: [['Date','Start','Finish','Break','Hours minus breaks','What work','Signature']], body: rows, styles: { fontSize: 9 }, headStyles: { fillColor: [255,224,160], textColor: 0 } })
+      doc.save('orange-paper-' + monthName + '-' + (worker?.work_number || '') + '.pdf')
+    }
+    if (tab === 'weekly') {
+      doc.text('WEEKLY SUMMARY', 14, 16)
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal')
+      doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 22)
+      const toHHMM = m => m > 0 ? Math.floor(m/60) + ':' + String(m%60).padStart(2,'0') : ''
+      Array.from({ length: Math.ceil(daysCount/7) }, (_, wi) => {
+        const ws = wi*7+1; const wd = Array.from({length:7},(_,i)=>ws+i).filter(d=>d<=daysCount)
+        const tw = wd.filter(d=>entries[d]).length*450
+        const te = wd.reduce((s,d)=>{ if(!entries[d]?.orange_hours) return s; const p=entries[d].orange_hours.split(':'); return s+parseInt(p[0])*60+parseInt(p[1]) },0)
+        doc.autoTable({ startY: wi===0?26:doc.lastAutoTable.finalY+6, head: [['Type',...wd.map(d=>'Day '+d),...Array(7-wd.length).fill(''),'Total']], body: [['Working hrs',...wd.map(d=>entries[d]?'7:30':''),...Array(7-wd.length).fill(''),toHHMM(tw)],['Extra hrs',...wd.map(d=>entries[d]?entries[d].orange_hours:''),...Array(7-wd.length).fill(''),toHHMM(te)],['Total',...wd.map(d=>entries[d]?entries[d].total_hours:''),...Array(7-wd.length).fill(''),toHHMM(tw+te)]], styles:{fontSize:8}, headStyles:{fillColor:[187,222,251],textColor:0} })
+      })
+      doc.save('weekly-summary-' + monthName + '-' + (worker?.work_number || '') + '.pdf')
+    }
+    if (tab === 'green') {
+      doc.text('TIME USED FOR PICKUP — SALARY PAID BY KILOS', 14, 16)
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal')
+      doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 22)
+      const rows = Array.from({ length: daysCount }, (_, i) => [i+1, '', '', '1 hour', '', '', ''])
+      doc.autoTable({ startY: 26, head: [['Date','Start','Finish','Eating break','Extra breaks','Hours minus breaks','What was picked up']], body: rows, styles:{fontSize:9}, headStyles:{fillColor:[200,230,201],textColor:0} })
+      doc.save('green-paper-' + monthName + '-' + (worker?.work_number || '') + '.pdf')
+    }
   }
 
   return (
