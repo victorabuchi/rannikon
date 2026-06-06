@@ -37,7 +37,7 @@ fastify.register(require('@fastify/oauth2'), {
   },
   startRedirectPath: '/api/auth/google',
   callbackUri: process.env.NODE_ENV === 'production'
-    ? 'https://berrystime-backend.onrender.com/api/auth/google/callback'
+    ? 'https://api.rannikon.com/api/auth/google/callback'
     : 'http://localhost:4003/api/auth/google/callback'
 })
 
