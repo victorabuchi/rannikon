@@ -642,7 +642,6 @@ export default function Dashboard() {
                         {hasEntry && confirmDelete === day && (
                           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <div style={{ background: '#fff', borderRadius: '12px', padding: '28px 32px', maxWidth: '340px', width: '90%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-                              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🗑️</div>
                               <h3 style={{ fontSize: '17px', fontWeight: '700', marginBottom: '8px' }}>Delete Day {day}?</h3>
                               <p style={{ fontSize: '14px', color: '#666', lineHeight: '1.5', marginBottom: '20px' }}>This will permanently remove this entry from all papers.</p>
                               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
