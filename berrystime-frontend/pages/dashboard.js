@@ -560,36 +560,95 @@ export default function Dashboard() {
       doc.text('8 HOURS PER DAY / 40 HOURS PER WEEK', 14, 22)
       doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 28)
       const rows = Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; return [d, e ? e.white_start?.slice(0,5) : '', e ? e.white_finish?.slice(0,5) : '', '30 min', '', e ? '7:30' : '', e ? e.what_work : ''] })
-      autoTable(doc, { startY: 32, head: [['Date','Start','Finish','Eating break','Extra breaks','Hours minus breaks','What work']], body: rows, styles: { fontSize: 9 }, headStyles: { fillColor: [220,220,220], textColor: 0 } })
+      autoTable(doc, {
+        startY: 32,
+        head: [['Date','Start','Finish','Eating break','Extra breaks','Hours minus breaks','What work']],
+        body: rows,
+        styles: { fontSize: 9, lineColor: [51,51,51], lineWidth: 0.3 },
+        headStyles: { fillColor: [224,224,224], textColor: 0, fontStyle: 'bold' },
+        bodyStyles: { fillColor: [255,255,255] },
+        didParseCell: (data) => {
+          if (data.section === 'body' && entries[rows[data.row.index][0]]) data.cell.styles.fillColor = [250,250,250]
+        }
+      })
       doc.save('white-paper-' + monthName + '-' + (worker?.work_number || '') + '.pdf')
     }
+
     if (tab === 'orange') {
+      doc.setTextColor(180, 83, 9)
       doc.text('EXTRAWORK PAID BY THE HOUR', 14, 16)
+      doc.setTextColor(0)
       doc.setFontSize(10); doc.setFont('helvetica', 'normal')
       doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 22)
       const rows = Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; return [d, e ? e.orange_start?.slice(0,5) : '', e ? e.orange_finish?.slice(0,5) : '', e ? '0:15' : '', e ? e.orange_hours : '', e ? e.what_work : '', ''] })
-      autoTable(doc, { startY: 26, head: [['Date','Start','Finish','Break','Hours minus breaks','What work','Signature']], body: rows, styles: { fontSize: 9 }, headStyles: { fillColor: [255,224,160], textColor: 0 } })
+      autoTable(doc, {
+        startY: 26,
+        head: [['Date','Start','Finish','Break','Hours minus breaks','What work','Signature']],
+        body: rows,
+        styles: { fontSize: 9, lineColor: [201,125,0], lineWidth: 0.3 },
+        headStyles: { fillColor: [255,224,160], textColor: 0, fontStyle: 'bold' },
+        bodyStyles: { fillColor: [255,251,240] },
+        didParseCell: (data) => {
+          if (data.section === 'body' && entries[rows[data.row.index][0]]) data.cell.styles.fillColor = [255,248,225]
+        }
+      })
       doc.save('orange-paper-' + monthName + '-' + (worker?.work_number || '') + '.pdf')
     }
+
     if (tab === 'weekly') {
       doc.text('WEEKLY SUMMARY', 14, 16)
       doc.setFontSize(10); doc.setFont('helvetica', 'normal')
       doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 22)
       const toHHMM = m => m > 0 ? Math.floor(m/60) + ':' + String(m%60).padStart(2,'0') : ''
       Array.from({ length: Math.ceil(daysCount/7) }, (_, wi) => {
-        const ws = wi*7+1; const wd = Array.from({length:7},(_,i)=>ws+i).filter(d=>d<=daysCount)
+        const ws = wi*7+1
+        const wd = Array.from({length:7},(_,i)=>ws+i).filter(d=>d<=daysCount)
         const tw = wd.filter(d=>entries[d]).length*450
         const te = wd.reduce((s,d)=>{ if(!entries[d]?.orange_hours) return s; const p=entries[d].orange_hours.split(':'); return s+parseInt(p[0])*60+parseInt(p[1]) },0)
-        autoTable(doc, { startY: wi===0?26:(doc.lastAutoTable?.finalY||26)+6, head: [['Type',...wd.map(d=>'Day '+d),...Array(7-wd.length).fill(''),'Total']], body: [['Working hrs',...wd.map(d=>entries[d]?'7:30':''),...Array(7-wd.length).fill(''),toHHMM(tw)],['Extra hrs',...wd.map(d=>entries[d]?entries[d].orange_hours:''),...Array(7-wd.length).fill(''),toHHMM(te)],['Total',...wd.map(d=>entries[d]?entries[d].total_hours:''),...Array(7-wd.length).fill(''),toHHMM(tw+te)]], styles:{fontSize:8}, headStyles:{fillColor:[187,222,251],textColor:0} })
+        const startY = wi===0 ? 30 : (doc.lastAutoTable?.finalY||30)+10
+        doc.setFontSize(9); doc.setFont('helvetica', 'bold')
+        doc.setTextColor(0)
+        doc.text('Week ' + (wi+1), 14, startY - 2)
+        autoTable(doc, {
+          startY,
+          head: [['', ...wd.map(d=>'Day '+d), ...Array(7-wd.length).fill(''), 'Total']],
+          body: [
+            ['pickup hours', ...wd.map(()=>''), ...Array(7-wd.length).fill(''), ''],
+            ['working hrs', ...wd.map(d=>entries[d]?'7:30':''), ...Array(7-wd.length).fill(''), toHHMM(tw)],
+            ['extra hrs', ...wd.map(d=>entries[d]?entries[d].orange_hours:''), ...Array(7-wd.length).fill(''), toHHMM(te)],
+            ['yes, I want to work extra hours   Signature: _______________________', ...Array(8).fill('')]
+          ],
+          styles: { fontSize: 8, halign: 'center', lineWidth: 0.3 },
+          headStyles: { fillColor: [208,208,208], textColor: 0, fontStyle: 'bold' },
+          columnStyles: { 0: { halign: 'left', cellWidth: 34 } },
+          didParseCell: (data) => {
+            if (data.section === 'body') {
+              if (data.row.index === 0) { data.cell.styles.fillColor = [232,245,233]; data.cell.styles.textColor = [45,106,45]; if (data.column.index === 0) data.cell.styles.fontStyle = 'bold' }
+              else if (data.row.index === 1) { data.cell.styles.fillColor = [250,250,250]; if (data.column.index === 0) data.cell.styles.fontStyle = 'bold' }
+              else if (data.row.index === 2) { data.cell.styles.fillColor = [255,243,224]; data.cell.styles.textColor = [180,83,9]; if (data.column.index === 0) data.cell.styles.fontStyle = 'bold' }
+              else if (data.row.index === 3) { data.cell.styles.fillColor = [255,255,255]; data.cell.styles.textColor = [0,0,0]; if (data.column.index === 0) data.cell.styles.colSpan = 9 }
+            }
+          }
+        })
       })
       doc.save('weekly-summary-' + monthName + '-' + (worker?.work_number || '') + '.pdf')
     }
+
     if (tab === 'green') {
+      doc.setTextColor(45, 106, 45)
       doc.text('TIME USED FOR PICKUP — SALARY PAID BY KILOS', 14, 16)
+      doc.setTextColor(0)
       doc.setFontSize(10); doc.setFont('helvetica', 'normal')
       doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 22)
       const rows = Array.from({ length: daysCount }, (_, i) => [i+1, '', '', '1 hour', '', '', ''])
-      autoTable(doc, { startY: 26, head: [['Date','Start','Finish','Eating break','Extra breaks','Hours minus breaks','What was picked up']], body: rows, styles:{fontSize:9}, headStyles:{fillColor:[200,230,201],textColor:0} })
+      autoTable(doc, {
+        startY: 26,
+        head: [['Date','Start','Finish','Eating break','Extra breaks','Hours minus breaks','What was picked up']],
+        body: rows,
+        styles: { fontSize: 9, lineColor: [45,106,45], lineWidth: 0.3 },
+        headStyles: { fillColor: [232,245,233], textColor: [45,106,45], fontStyle: 'bold' },
+        bodyStyles: { fillColor: [255,255,255] }
+      })
       doc.save('green-paper-' + monthName + '-' + (worker?.work_number || '') + '.pdf')
     }
   }
