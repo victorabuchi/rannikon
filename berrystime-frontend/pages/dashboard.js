@@ -352,49 +352,101 @@ export default function Dashboard() {
 
           {activeTab === 'weekly' && (
             <div>
-              <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '4px' }}>WEEKLY SUMMARY</p>
-              <p style={{ fontSize: '11px', color: '#333', marginBottom: '10px' }}>Name: <b>{worker?.full_name}</b> &nbsp;&nbsp; Work number: <b>{worker?.work_number}</b></p>
+              <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '2px' }}>WEEKLY SUMMARY</p>
+              <p style={{ fontSize: '11px', color: '#333', marginBottom: '12px' }}>Name: <b>{worker?.full_name}</b> &nbsp;&nbsp; Work number: <b>{worker?.work_number}</b></p>
               {Array.from({ length: Math.ceil(days / 7) }, (_, weekIdx) => {
                 const weekStart = weekIdx * 7 + 1
                 const weekDays = Array.from({ length: 7 }, (_, i) => weekStart + i).filter(d => d <= days)
-                const weekEntries = weekDays.map(d => entries[d]).filter(Boolean)
-                const totalWorking = weekEntries.length * 450
-                const totalExtra = weekEntries.reduce((sum, e) => {
-                  if (!e.orange_hours) return sum
-                  const p = e.orange_hours.split(':')
+                const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+                const dayInfos = Array.from({ length: 7 }, (_, i) => {
+                  const d = weekStart + i
+                  const dow = d <= days ? new Date(year, month - 1, d).getDay() : null
+                  return { d, exists: d <= days, dow, name: dow !== null ? DAY_NAMES[dow] : '', isSun: dow === 0, isSat: dow === 6 }
+                })
+                const validDays = dayInfos.filter(x => x.exists)
+                const totalWorking = validDays.filter(x => entries[x.d] && !x.isSun).length * 450
+                const totalExtra = validDays.reduce((sum, x) => {
+                  if (!entries[x.d]?.orange_hours || x.isSun) return sum
+                  const p = entries[x.d].orange_hours.split(':')
                   return sum + parseInt(p[0]) * 60 + parseInt(p[1])
                 }, 0)
+                const thW2 = (extra) => ({ border: '1px solid #333', padding: '5px 6px', textAlign: 'center', background: '#e0e0e0', fontSize: '11px', fontWeight: '700', ...extra })
+                const tdW2 = (extra) => ({ border: '1px solid #333', padding: '5px 6px', fontSize: '11px', textAlign: 'center', ...extra })
+                const tdO2 = (extra) => ({ border: '1px solid #c97d00', padding: '5px 6px', fontSize: '11px', textAlign: 'center', background: '#fffbf0', ...extra })
+                const tdG2 = (extra) => ({ border: '1px solid #2d6a2d', padding: '5px 6px', fontSize: '11px', textAlign: 'center', background: '#f6fff6', ...extra })
                 return (
-                  <div key={weekIdx} style={{ marginBottom: '24px' }}>
-                    <p style={{ fontWeight: '700', fontSize: '12px', marginBottom: '6px', color: '#1565c0' }}>Week {weekIdx + 1} (Days {weekStart} to {weekDays[weekDays.length-1]})</p>
+                  <div key={weekIdx} style={{ marginBottom: '20px' }}>
+                    <p style={{ fontWeight: '800', fontSize: '12px', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Week {weekIdx + 1}</p>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '12px', background: '#f0f7ff' }}>
+                      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '11px' }}>
                         <thead>
                           <tr>
-                            <th style={thB({ textAlign: 'left', minWidth: '150px' })}>Type</th>
-                            {weekDays.map(d => <th key={d} style={thB({ minWidth: '55px' })}>Day {d}</th>)}
-                            {weekDays.length < 7 && Array.from({ length: 7 - weekDays.length }, (_, i) => <th key={'e'+i} style={thB()}></th>)}
-                            <th style={thB()}>Total</th>
+                            <th style={thW2({ textAlign: 'left', minWidth: '130px', background: '#d0d0d0' })}></th>
+                            {dayInfos.map(({ d, name, exists, isSun, isSat }) => (
+                              <th key={d} style={thW2({ minWidth: '44px', background: isSun ? '#e8e8e8' : '#e0e0e0', color: isSun ? '#999' : '#1a1a18' })}>
+                                {name || ''}<br/>
+                                {exists && !isSun && <span style={{ fontSize: '9px', fontWeight: '400', color: '#666' }}>{isSat ? 'max 11' : 'max 3'}</span>}
+                              </th>
+                            ))}
+                            <th style={thW2({ minWidth: '60px', background: '#d0d0d0' })}>
+                              total<br/><span style={{ fontSize: '9px', fontWeight: '400' }}>hours</span>
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
+                          {/* Green row — pickup hours */}
                           <tr>
-                            <td style={tdB({ textAlign: 'left', fontWeight: '600' })}>Working hours (max 8)</td>
-                            {weekDays.map(d => <td key={d} style={tdB({ fontWeight: '700', color: entries[d] ? '#2d6a2d' : '#ddd' })}>{entries[d] ? '7:30' : ''}</td>)}
-                            {weekDays.length < 7 && Array.from({ length: 7 - weekDays.length }, (_, i) => <td key={'e'+i} style={tdB()}></td>)}
-                            <td style={tdB({ fontWeight: '700', color: '#2d6a2d' })}>{minsToHHMM(totalWorking)}</td>
+                            <td style={tdG2({ textAlign: 'left', fontWeight: '700', color: '#2d6a2d', background: '#e8f5e9' })}>
+                              <span style={{ display: 'inline-block', width: '9px', height: '9px', background: '#2d6a2d', borderRadius: '2px', marginRight: '5px', verticalAlign: 'middle' }}/>
+                              pickup hours
+                            </td>
+                            {dayInfos.map(({ d, isSun, exists }) => (
+                              <td key={d} style={tdG2({ color: isSun ? '#bbb' : '#2d6a2d', background: '#e8f5e9', fontWeight: '700' })}>
+                                {isSun ? 'X' : ''}
+                              </td>
+                            ))}
+                            <td style={tdG2({ fontWeight: '700', color: '#2d6a2d', background: '#e8f5e9' })}>
+                              <div style={{ fontSize: '9px', color: '#888', fontWeight: '400' }}>max 40</div>
+                            </td>
                           </tr>
+                          {/* White row — working hours */}
                           <tr>
-                            <td style={tdB({ textAlign: 'left', fontWeight: '600' })}>Extra hours (max 3)</td>
-                            {weekDays.map(d => <td key={d} style={tdB({ fontWeight: '700', color: entries[d] ? '#b45309' : '#ddd' })}>{entries[d] ? entries[d].orange_hours : ''}</td>)}
-                            {weekDays.length < 7 && Array.from({ length: 7 - weekDays.length }, (_, i) => <td key={'e'+i} style={tdB()}></td>)}
-                            <td style={tdB({ fontWeight: '700', color: '#b45309' })}>{minsToHHMM(totalExtra)}</td>
+                            <td style={tdW2({ textAlign: 'left', fontWeight: '700', background: '#fafafa' })}>
+                              <span style={{ display: 'inline-block', width: '9px', height: '9px', background: '#ccc', border: '1px solid #999', borderRadius: '2px', marginRight: '5px', verticalAlign: 'middle' }}/>
+                              working hours
+                              <div style={{ fontSize: '9px', color: '#888', fontWeight: '400' }}>max 8</div>
+                            </td>
+                            {dayInfos.map(({ d, isSun, exists }) => (
+                              <td key={d} style={tdW2({ fontWeight: entries[d] ? '700' : '400', background: '#fafafa', color: isSun ? '#bbb' : (entries[d] ? '#1a1a18' : '#ccc') })}>
+                                {isSun ? 'X' : (entries[d] ? '7:30' : '')}
+                              </td>
+                            ))}
+                            <td style={tdW2({ fontWeight: '700', background: '#fafafa' })}>
+                              {minsToHHMM(totalWorking)}
+                              <div style={{ fontSize: '9px', color: '#888', fontWeight: '400' }}>max 40</div>
+                            </td>
                           </tr>
-                          <tr style={{ background: '#e3f2fd' }}>
-                            <td style={tdB({ textAlign: 'left', fontWeight: '700' })}>Total hours</td>
-                            {weekDays.map(d => <td key={d} style={tdB({ fontWeight: '700', color: entries[d] ? '#1565c0' : '#ddd' })}>{entries[d] ? entries[d].total_hours : ''}</td>)}
-                            {weekDays.length < 7 && Array.from({ length: 7 - weekDays.length }, (_, i) => <td key={'e'+i} style={tdB()}></td>)}
-                            <td style={tdB({ fontWeight: '700', color: '#1565c0', fontSize: '13px' })}>{minsToHHMM(totalWorking + totalExtra)}</td>
+                          {/* Orange row — extra hours */}
+                          <tr>
+                            <td style={tdO2({ textAlign: 'left', fontWeight: '700', color: '#b45309', background: '#fff3e0' })}>
+                              <span style={{ display: 'inline-block', width: '9px', height: '9px', background: '#f59e0b', borderRadius: '2px', marginRight: '5px', verticalAlign: 'middle' }}/>
+                              extra hours / lisatyö
+                            </td>
+                            {dayInfos.map(({ d, isSun, exists, isSat }) => (
+                              <td key={d} style={tdO2({ fontWeight: entries[d] ? '700' : '400', background: '#fff3e0', color: isSun ? '#bbb' : (entries[d] ? '#b45309' : '#ccc') })}>
+                                {isSun ? 'X' : (entries[d] ? entries[d].orange_hours : '')}
+                              </td>
+                            ))}
+                            <td style={tdO2({ fontWeight: '700', color: '#b45309', background: '#fff3e0' })}>
+                              {minsToHHMM(totalExtra)}
+                              <div style={{ fontSize: '9px', color: '#888', fontWeight: '400' }}>max 17/week</div>
+                            </td>
+                          </tr>
+                          {/* Yes / Signature row */}
+                          <tr>
+                            <td colSpan={9} style={{ border: '1px solid #333', padding: '6px 10px', fontSize: '11px', background: '#fff' }}>
+                              yes, I want to work extra hours &nbsp;☐&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Signature: _______________________
+                            </td>
                           </tr>
                         </tbody>
                       </table>
