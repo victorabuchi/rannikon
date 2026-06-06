@@ -51,6 +51,7 @@ fastify.decorate('authenticate', async function (request, reply) {
 
 fastify.register(require('./routes/auth'))
 fastify.register(require('./routes/timesheet'))
+fastify.register(require('./routes/admin'))
 
 fastify.get('/health', async (request, reply) => {
   return {
