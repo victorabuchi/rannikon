@@ -5,6 +5,7 @@ import api from '../lib/api'
 import { getWorker, isLoggedIn, clearAuth, saveAuth } from '../lib/auth'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import * as XLSX from 'xlsx'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const VALID = ['09:00','09:15','09:30','09:45']
@@ -344,10 +345,14 @@ export default function Dashboard() {
               </div>
               <p style={{ fontSize: '11px', color: '#555', marginTop: '8px', fontStyle: 'italic' }}>When you have worked 4 hours, You need to have an eating break, minimum of 30 mins.</p>
               <p style={{ fontSize: '11px', color: '#555', fontStyle: 'italic' }}>START WORK 9:00, 9:15, 9:30 or 9:45. WORK DOES NOT START 9:05, 9:10, 9:20, 9:25 etc.</p>
-              <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '12px' }}>
+              <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '12px', display: 'flex', gap: '8px' }}>
                 <button onClick={() => downloadPDF('white')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
                   <img src="/adobepdf.svg" alt="PDF" style={{ width: '14px', height: '14px' }} />
                   Download PDF
+                </button>
+                <button onClick={() => downloadExcel('white')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
+                  <img src="/excel.svg" alt="Excel" style={{ width: '14px', height: '14px' }} />
+                  Download Excel
                 </button>
               </div>
             </div>
@@ -391,10 +396,14 @@ export default function Dashboard() {
                 </table>
               </div>
               <p style={{ fontSize: '11px', color: '#555', marginTop: '8px', fontStyle: 'italic' }}>Start work 9:00, 9:15, 9:30 or 9:45. Work does not start 9:05, 9:10, 9:20, 9:25 etc.</p>
-              <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '12px' }}>
+              <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '12px', display: 'flex', gap: '8px' }}>
                 <button onClick={() => downloadPDF('orange')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
                   <img src="/adobepdf.svg" alt="PDF" style={{ width: '14px', height: '14px' }} />
                   Download PDF
+                </button>
+                <button onClick={() => downloadExcel('orange')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
+                  <img src="/excel.svg" alt="Excel" style={{ width: '14px', height: '14px' }} />
+                  Download Excel
                 </button>
               </div>
             </div>
@@ -404,7 +413,7 @@ export default function Dashboard() {
             <div>
               <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '2px' }}>WEEKLY SUMMARY</p>
               <p style={{ fontSize: '11px', color: '#333', marginBottom: '12px' }}>Name: <b>{worker?.full_name}</b> &nbsp;&nbsp; Work number: <b>{worker?.work_number}</b></p>
-              {Array.from({ length: Math.ceil(days / 7) }, (_, weekIdx) => {
+              {Array.from({ length: Math.min(Math.ceil(days / 7), 4) }, (_, weekIdx) => {
                 const weekStart = weekIdx * 7 + 1
                 const weekDays = Array.from({ length: 7 }, (_, i) => weekStart + i).filter(d => d <= days)
                 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -504,10 +513,14 @@ export default function Dashboard() {
                   </div>
                 )
               })}
-              <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '12px' }}>
+              <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '12px', display: 'flex', gap: '8px' }}>
                 <button onClick={() => downloadPDF('weekly')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
                   <img src="/adobepdf.svg" alt="PDF" style={{ width: '14px', height: '14px' }} />
                   Download PDF
+                </button>
+                <button onClick={() => downloadExcel('weekly')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
+                  <img src="/excel.svg" alt="Excel" style={{ width: '14px', height: '14px' }} />
+                  Download Excel
                 </button>
               </div>
             </div>
@@ -552,10 +565,14 @@ export default function Dashboard() {
               </div>
               <p style={{ fontSize: '11px', color: '#555', marginTop: '8px', fontStyle: 'italic' }}>When you have worked 4 hours, You need to have an eating break, minimum of 30 mins.</p>
               <p style={{ fontSize: '11px', color: '#555', fontStyle: 'italic' }}>START WORK 9:00, 9:15, 9:30 or 9:45. WORK DOES NOT START 9:05, 9:10, 9:20, 9:25 etc.</p>
-              <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '12px' }}>
+              <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '12px', display: 'flex', gap: '8px' }}>
                 <button onClick={() => downloadPDF('green')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
                   <img src="/adobepdf.svg" alt="PDF" style={{ width: '14px', height: '14px' }} />
                   Download PDF
+                </button>
+                <button onClick={() => downloadExcel('green')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
+                  <img src="/excel.svg" alt="Excel" style={{ width: '14px', height: '14px' }} />
+                  Download Excel
                 </button>
               </div>
             </div>
@@ -620,7 +637,7 @@ export default function Dashboard() {
       doc.setFontSize(10); doc.setFont('helvetica', 'normal')
       doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 22)
       const toHHMM = m => m > 0 ? Math.floor(m/60) + ':' + String(m%60).padStart(2,'0') : ''
-      Array.from({ length: Math.ceil(daysCount/7) }, (_, wi) => {
+      Array.from({ length: Math.min(Math.ceil(daysCount/7), 4) }, (_, wi) => {
         const ws = wi*7+1
         const wd = Array.from({length:7},(_,i)=>ws+i).filter(d=>d<=daysCount)
         const tw = wd.filter(d=>entries[d]).length*450
@@ -670,6 +687,73 @@ export default function Dashboard() {
         bodyStyles: { fillColor: [255,255,255] }
       })
       doc.save('green-paper-' + monthName + '-' + (worker?.work_number || '') + '.pdf')
+    }
+  }
+
+  function downloadExcel(tab) {
+    const daysCount = getDaysInMonth(month, year)
+    const monthName = MONTHS[month - 1] + ' ' + year
+    const wb = XLSX.utils.book_new()
+    const toHHMM = m => m > 0 ? Math.floor(m/60) + ':' + String(m%60).padStart(2,'0') : ''
+
+    if (tab === 'white') {
+      const data = [
+        ['WORK PAID BY THE HOUR'],
+        ['8 HOURS PER DAY / 40 HOURS PER WEEK'],
+        ['Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName],
+        [],
+        ['Date', 'Start', 'Finish', 'Eating break', 'Extra breaks', 'Hours minus breaks', 'What work'],
+        ...Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; return [d, e ? e.white_start?.slice(0,5) : '', e ? e.white_finish?.slice(0,5) : '', '30 min', '', e ? '7:30' : '', e ? e.what_work : ''] })
+      ]
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'White Paper')
+      XLSX.writeFile(wb, 'white-paper-' + monthName + '-' + (worker?.work_number || '') + '.xlsx')
+    }
+
+    if (tab === 'orange') {
+      const data = [
+        ['EXTRAWORK PAID BY THE HOUR'],
+        ['Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName],
+        [],
+        ['Date', 'Start', 'Finish', 'Break', 'Hours minus breaks', 'What work', 'Signature'],
+        ...Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; return [d, e ? e.orange_start?.slice(0,5) : '', e ? e.orange_finish?.slice(0,5) : '', e ? '0:15' : '', e ? e.orange_hours : '', e ? e.what_work : '', ''] })
+      ]
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Orange Paper')
+      XLSX.writeFile(wb, 'orange-paper-' + monthName + '-' + (worker?.work_number || '') + '.xlsx')
+    }
+
+    if (tab === 'weekly') {
+      Array.from({ length: Math.min(Math.ceil(daysCount/7), 4) }, (_, wi) => {
+        const ws = wi*7+1
+        const wd = Array.from({length:7},(_,i)=>ws+i).filter(d=>d<=daysCount)
+        const tw = wd.filter(d=>entries[d]).length*450
+        const te = wd.reduce((s,d)=>{ if(!entries[d]?.orange_hours) return s; const p=entries[d].orange_hours.split(':'); return s+parseInt(p[0])*60+parseInt(p[1]) },0)
+        const data = [
+          wi === 0 ? ['WEEKLY SUMMARY'] : [],
+          wi === 0 ? ['Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName] : [],
+          wi === 0 ? [] : [],
+          ['Week ' + (wi+1)],
+          ['', ...wd.map(d=>'Day '+d), ...Array(7-wd.length).fill(''), 'Total'],
+          ['pickup hours', ...wd.map(()=>''), ...Array(7-wd.length).fill(''), ''],
+          ['working hrs', ...wd.map(d=>entries[d]?'7:30':''), ...Array(7-wd.length).fill(''), toHHMM(tw)],
+          ['extra hrs', ...wd.map(d=>entries[d]?entries[d].orange_hours:''), ...Array(7-wd.length).fill(''), toHHMM(te)],
+          ['yes, I want to work extra hours   Signature: _______________________'],
+          []
+        ]
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Week ' + (wi+1))
+      })
+      XLSX.writeFile(wb, 'weekly-summary-' + monthName + '-' + (worker?.work_number || '') + '.xlsx')
+    }
+
+    if (tab === 'green') {
+      const data = [
+        ['TIME USED FOR PICKUP — SALARY PAID BY KILOS'],
+        ['Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName],
+        [],
+        ['Date', 'Start', 'Finish', 'Eating break', 'Extra breaks', 'Hours minus breaks', 'What was picked up'],
+        ...Array.from({ length: daysCount }, (_, i) => [i+1, '', '', '1 hour', '', '', ''])
+      ]
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Green Paper')
+      XLSX.writeFile(wb, 'green-paper-' + monthName + '-' + (worker?.work_number || '') + '.xlsx')
     }
   }
 
