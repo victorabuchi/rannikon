@@ -3,6 +3,8 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import api from '../lib/api'
 import { getWorker, isLoggedIn, clearAuth, saveAuth } from '../lib/auth'
+import { jsPDF } from 'jspdf'
+import 'jspdf-autotable'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const VALID = ['09:00','09:15','09:30','09:45']
@@ -545,8 +547,6 @@ export default function Dashboard() {
   }
 
   function downloadPDF(tab) {
-    const { jsPDF } = require('jspdf')
-    require('jspdf-autotable')
     const doc = new jsPDF({ orientation: tab === 'weekly' ? 'landscape' : 'portrait' })
     const daysCount = getDaysInMonth(month, year)
     const monthName = MONTHS[month - 1] + ' ' + year
