@@ -621,6 +621,18 @@ export default function Dashboard() {
                           style={{ padding: '5px 12px', background: hasEntry ? '#fff' : '#2d6a2d', border: hasEntry ? '1px solid #ccc' : 'none', borderRadius: '6px', fontSize: '12px', color: hasEntry ? '#333' : '#fff', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>
                           {editDay === day ? 'Close' : hasEntry ? 'Edit' : '+ Add'}
                         </button>
+                        {hasEntry && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Delete entry for Day ' + day + '? This will remove it from all papers.')) {
+                                const dateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0')
+                                api.delete('/api/timesheet/entry/' + dateStr).then(() => loadEntries()).catch(err => alert('Failed to delete'))
+                              }
+                            }}
+                            style={{ padding: '5px 10px', background: '#fdecea', border: '1px solid #ffc1c0', borderRadius: '6px', fontSize: '12px', color: '#c0392b', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </div>
 
