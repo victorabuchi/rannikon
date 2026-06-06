@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [workNumInput, setWorkNumInput] = useState('')
   const [workNumError, setWorkNumError] = useState('')
   const [workNumSaving, setWorkNumSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/login'); return }
@@ -81,6 +82,17 @@ export default function Dashboard() {
       setWorkNumError(err.response?.data?.error || 'Failed to update work number')
     } finally {
       setWorkNumSaving(false)
+    }
+  }
+
+  async function deleteEntry(day) {
+    const dateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0') + 'T12:00:00.000Z'
+    try {
+      await api.delete('/api/timesheet/entry/' + dateStr)
+      await loadEntries()
+      setConfirmDelete(null)
+    } catch (err) {
+      alert('Failed to delete entry')
     }
   }
 
@@ -621,17 +633,30 @@ export default function Dashboard() {
                           style={{ padding: '5px 12px', background: hasEntry ? '#fff' : '#2d6a2d', border: hasEntry ? '1px solid #ccc' : 'none', borderRadius: '6px', fontSize: '12px', color: hasEntry ? '#333' : '#fff', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>
                           {editDay === day ? 'Close' : hasEntry ? 'Edit' : '+ Add'}
                         </button>
-                        {hasEntry && (
-                          <button
-                            onClick={() => {
-                              if (window.confirm('Delete entry for Day ' + day + '? This will remove it from all papers.')) {
-                                const dateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0')
-                                api.delete('/api/timesheet/entry/' + dateStr).then(() => loadEntries()).catch(err => alert('Failed to delete'))
-                              }
-                            }}
+                        {hasEntry && confirmDelete !== day && (
+                          <button onClick={() => setConfirmDelete(day)}
                             style={{ padding: '5px 10px', background: '#fdecea', border: '1px solid #ffc1c0', borderRadius: '6px', fontSize: '12px', color: '#c0392b', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>
                             Delete
                           </button>
+                        )}
+                        {hasEntry && confirmDelete === day && (
+                          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ background: '#fff', borderRadius: '12px', padding: '28px 32px', maxWidth: '340px', width: '90%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+                              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🗑️</div>
+                              <h3 style={{ fontSize: '17px', fontWeight: '700', marginBottom: '8px' }}>Delete Day {day}?</h3>
+                              <p style={{ fontSize: '14px', color: '#666', lineHeight: '1.5', marginBottom: '20px' }}>This will permanently remove this entry from all papers.</p>
+                              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                                <button onClick={() => setConfirmDelete(null)}
+                                  style={{ padding: '10px 24px', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
+                                  Cancel
+                                </button>
+                                <button onClick={() => deleteEntry(day)}
+                                  style={{ padding: '10px 24px', background: '#c0392b', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#fff' }}>
+                                  Yes, delete
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
