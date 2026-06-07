@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Rannikon</string>
+    <string name="title_activity_main">Rannikon</string>
+    <string name="package_name">com.rannikon.app</string>
+    <string name="custom_url_scheme">com.rannikon.app</string>
+</resources>
