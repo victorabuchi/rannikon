@@ -43,7 +43,10 @@ export default function Login() {
     try {
       const res = await api.post('/api/auth/login', { work_number: workNumber, password })
       saveAuth(res.data.token, res.data.worker)
-      router.push('/dashboard')
+      const role = res.data.worker?.role
+      if (role === 'admin') router.push('/admin')
+      else if (role === 'supervisor') router.push('/supervisor')
+      else router.push('/dashboard')
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Please try again.')
     } finally {

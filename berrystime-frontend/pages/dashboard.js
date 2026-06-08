@@ -109,7 +109,11 @@ export default function Dashboard() {
     if (!isLoggedIn()) { router.push('/login'); return }
     loadEntries()
     api.get('/api/auth/me')
-      .then(res => setWorker(res.data.worker))
+      .then(res => {
+        const w = res.data.worker
+        if (w?.role === 'supervisor') { router.push('/supervisor'); return }
+        setWorker(w)
+      })
       .catch(() => setWorker(getWorker()))
   }, [month, year])
 
