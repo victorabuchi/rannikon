@@ -413,7 +413,7 @@ export default function Register() {
           <p style={{ fontSize: '11px', color: '#8c959f', marginTop: '14px', lineHeight: '1.7' }}>
             By creating an account, you agree to the{' '}
             <a href="#" style={{ color: '#2d6a2d' }}>Terms of Service</a>.{' '}
-            See our <a href="#" style={{ color: '#2d6a2d' }}>Privacy Statement</a> for details.{' '}
+            See our <a href="/privacy" style={{ color: '#2d6a2d' }}>Privacy Statement</a> for details.{' '}
             We&apos;ll occasionally send you account-related emails.
           </p>
 
@@ -426,7 +426,7 @@ export default function Register() {
           <p style={{ marginBottom: '10px', lineHeight: '1.6' }}>
             We use cookies to improve your experience.{' '}
             <a href="#">Manage preferences</a>{' · '}
-            <a href="#">Privacy Statement</a>{' · '}
+            <a href="/privacy">Privacy Statement</a>{' · '}
             <a href="#">Third-Party Cookies</a>
           </p>
           <div style={{ display: 'flex', gap: '8px' }}>
