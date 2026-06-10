@@ -510,7 +510,7 @@ export default function SupervisorPage() {
             </div>
             <div style={{ marginBottom: '14px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>Start time</label>
-              <input type="time" style={inp()} value={batchStart} onChange={e => setBatchStart(e.target.value)} />
+              <input style={inp()} placeholder="HH:MM e.g. 7:00" value={batchStart} onChange={e => setBatchStart(e.target.value)} />
             </div>
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>What work <span style={{ color: '#888', fontWeight: '400' }}>(optional)</span></label>
@@ -576,7 +576,7 @@ export default function SupervisorPage() {
             <p style={{ fontSize: '13px', color: '#666', marginBottom: '18px' }}>This applies to all workers in this batch.</p>
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Finish time</label>
-              <input type="time" style={inp({ fontSize: '20px', textAlign: 'center' })} value={finishTime} onChange={e => setFinishTime(e.target.value)} />
+              <input style={inp({ fontSize: '20px', textAlign: 'center' })} placeholder="HH:MM e.g. 16:00" value={finishTime} onChange={e => setFinishTime(e.target.value)} />
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button className="btn btn-outline" onClick={() => setFinishBatchId(null)} style={{ flex: 1 }}>Cancel</button>
