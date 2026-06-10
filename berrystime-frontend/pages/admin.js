@@ -1,263 +1,567 @@
-'use strict'
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
+import Head from 'next/head'
+import api from '../lib/api'
+import { clearAuth } from '../lib/auth'
 
-const db = require('../db/index')
+const HOUSE_GROUPS = ['Kivilinna/Salo', 'Karton Cambodia', 'Karton International', 'Vassila', 'Suppala', 'Salo/Turku']
 
-const HOUSE_GROUPS = [
-  'Kivilinna/Salo',
-  'Karton Cambodia',
-  'Karton International',
-  'Vassila',
-  'Suppala',
-  'Salo/Turku'
-]
-
-function getHouseGroup(workNumber) {
-  const n = parseInt(workNumber)
-  if (n >= 100 && n <= 199) return 'Kivilinna/Salo'
-  if (n >= 200 && n <= 299) return 'Karton Cambodia'
-  if (n >= 300 && n <= 399) return 'Karton International'
-  if (n >= 400 && n <= 499) return 'Vassila'
-  if (n >= 500 && n <= 599) return 'Suppala'
-  if (n >= 600) return 'Salo/Turku'
-  return 'Unknown'
+const GROUP_COLORS = {
+  'Kivilinna/Salo':      { bg: '#e8f5e9', text: '#1b5e20', border: '#a5d6a7' },
+  'Karton Cambodia':     { bg: '#e3f2fd', text: '#0d47a1', border: '#90caf9' },
+  'Karton International':{ bg: '#fff3e0', text: '#e65100', border: '#ffcc80' },
+  'Vassila':             { bg: '#fce4ec', text: '#880e4f', border: '#f48fb1' },
+  'Suppala':             { bg: '#f3e5f5', text: '#4a148c', border: '#ce93d8' },
+  'Salo/Turku':          { bg: '#e0f7fa', text: '#006064', border: '#80deea' },
 }
 
-module.exports = async function adminRoutes(fastify) {
+const ROLE_STYLE = {
+  worker:      { bg: '#f5f5f5', text: '#555',     border: '#ddd' },
+  supervisor:  { bg: '#e3f2fd', text: '#1565c0',  border: '#90caf9' },
+  housemaster: { bg: '#f3e5f5', text: '#7b1fa2',  border: '#ce93d8' },
+  admin:       { bg: '#e8f5e9', text: '#2d6a2d',  border: '#a5d6a7' },
+}
 
-  async function isAdmin(request, reply) {
+function RoleBadge({ role }) {
+  const s = ROLE_STYLE[role] || ROLE_STYLE.worker
+  return (
+    <span style={{ background: s.bg, color: s.text, border: `1px solid ${s.border}`, padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '700', whiteSpace: 'nowrap' }}>
+      {role}
+    </span>
+  )
+}
+
+function GroupPill({ group }) {
+  const c = GROUP_COLORS[group]
+  if (!c) return <span style={{ color: '#888', fontSize: '12px' }}>{group || '—'}</span>
+  return (
+    <span style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}`, padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap' }}>
+      {group}
+    </span>
+  )
+}
+
+function StatCard({ label, value, accent }) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '12px', padding: '14px 18px', minWidth: '110px', flex: 1 }}>
+      <div style={{ fontSize: '10px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>{label}</div>
+      <div style={{ fontSize: '26px', fontWeight: '800', color: accent || '#1a1a18' }}>{value ?? '—'}</div>
+    </div>
+  )
+}
+
+export default function AdminPage() {
+  const router = useRouter()
+  const [me, setMe] = useState(null)
+  const [tab, setTab] = useState('workers')
+  const [stats, setStats] = useState(null)
+
+  // Workers
+  const [workers, setWorkers] = useState([])
+  const [search, setSearch] = useState('')
+  const [updatingId, setUpdatingId] = useState(null)
+
+  // Invite modal
+  const [showInvite, setShowInvite] = useState(false)
+  const [inviteForm, setInviteForm] = useState({ email: '', work_number: '', role: 'worker', house_group: '' })
+  const [inviteSaving, setInviteSaving] = useState(false)
+  const [inviteUrl, setInviteUrl] = useState('')
+  const [inviteError, setInviteError] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  // Supervisor logs
+  const [logsDate, setLogsDate] = useState(new Date().toISOString().split('T')[0])
+  const [grouped, setGrouped] = useState({})
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [sentGroups, setSentGroups] = useState({})
+  const [sendingGroup, setSendingGroup] = useState('')
+
+  // Invitations
+  const [invitations, setInvitations] = useState([])
+  const [invLoading, setInvLoading] = useState(false)
+
+  useEffect(() => {
+    api.get('/api/auth/me').then(res => {
+      const w = res.data.worker
+      if (w?.role !== 'admin') { router.push('/dashboard'); return }
+      setMe(w)
+      loadStats()
+      loadWorkers()
+    }).catch(() => router.push('/login'))
+  }, [])
+
+  async function loadStats() {
     try {
-      await request.jwtVerify()
+      const res = await api.get('/api/admin/stats')
+      setStats(res.data)
+    } catch {}
+  }
+
+  async function loadWorkers() {
+    try {
+      const res = await api.get('/api/admin/workers')
+      setWorkers(res.data.workers || [])
+    } catch {}
+  }
+
+  async function loadLogs(date) {
+    setLogsLoading(true)
+    try {
+      const res = await api.get('/api/admin/supervisor-logs/' + date)
+      const g = {}
+      HOUSE_GROUPS.forEach(grp => { g[grp] = res.data.grouped?.[grp] || [] })
+      setGrouped(g)
+      setSentGroups({})
     } catch {
-      return reply.status(401).send({ error: 'Unauthorized' })
-    }
-    const result = await db.query('SELECT role FROM workers WHERE id = $1', [request.user.id])
-    if (!result.rows[0] || result.rows[0].role !== 'admin') {
-      return reply.status(403).send({ error: 'Admin access required' })
+      setGrouped({})
+    } finally {
+      setLogsLoading(false)
     }
   }
 
-  fastify.get('/api/admin/workers', { onRequest: [isAdmin] }, async (request, reply) => {
-    const result = await db.query(
-      `SELECT id, work_number, full_name, email, role, is_active, house_group, created_at
-       FROM workers ORDER BY
-       CASE WHEN work_number ~ '^[0-9]+$' THEN work_number::int ELSE 9999 END ASC`
-    )
-    return reply.send({ workers: result.rows })
-  })
-
-  fastify.get('/api/admin/workers/:id/timesheet/:month/:year', { onRequest: [isAdmin] }, async (request, reply) => {
-    const { id, month, year } = request.params
-    const result = await db.query(
-      `SELECT * FROM timesheet_entries
-       WHERE worker_id = $1 AND EXTRACT(MONTH FROM entry_date) = $2 AND EXTRACT(YEAR FROM entry_date) = $3
-       ORDER BY entry_date ASC`,
-      [id, month, year]
-    )
-    return reply.send({ entries: result.rows })
-  })
-
-  fastify.patch('/api/admin/workers/:id', { onRequest: [isAdmin] }, async (request, reply) => {
-    const { role, is_active, house_group } = request.body
-    const updates = []
-    const values = []
-    let idx = 1
-    if (role !== undefined) { updates.push(`role = $${idx++}`); values.push(role) }
-    if (is_active !== undefined) { updates.push(`is_active = $${idx++}`); values.push(is_active) }
-    if (house_group !== undefined) { updates.push(`house_group = $${idx++}`); values.push(house_group) }
-    if (!updates.length) return reply.status(400).send({ error: 'Nothing to update' })
-    values.push(request.params.id)
-    await db.query(`UPDATE workers SET ${updates.join(', ')} WHERE id = $${idx}`, values)
-    return reply.send({ success: true })
-  })
-
-  fastify.get('/api/admin/stats', { onRequest: [isAdmin] }, async (request, reply) => {
-    const workers = await db.query('SELECT COUNT(*) FROM workers')
-    const active = await db.query("SELECT COUNT(*) FROM workers WHERE is_active = true")
-    const entries = await db.query('SELECT COUNT(*) FROM timesheet_entries')
-    const today = await db.query('SELECT COUNT(*) FROM timesheet_entries WHERE entry_date = CURRENT_DATE')
-    const supervisors = await db.query("SELECT COUNT(*) FROM workers WHERE role = 'supervisor'")
-    const housemasters = await db.query("SELECT COUNT(*) FROM workers WHERE role = 'housemaster'")
-    return reply.send({
-      total_workers: parseInt(workers.rows[0].count),
-      active_workers: parseInt(active.rows[0].count),
-      total_entries: parseInt(entries.rows[0].count),
-      entries_today: parseInt(today.rows[0].count),
-      total_supervisors: parseInt(supervisors.rows[0].count),
-      total_housemasters: parseInt(housemasters.rows[0].count)
-    })
-  })
-
-  fastify.post('/api/admin/invite', { onRequest: [isAdmin] }, async (request, reply) => {
-    const { email, work_number, role } = request.body
-    if (!role) return reply.status(400).send({ error: 'Role is required' })
-    if (!email && !work_number) return reply.status(400).send({ error: 'Email or work number required' })
-
-    const crypto = require('crypto')
-    const token = crypto.randomBytes(32).toString('hex')
-
-    await db.query(
-      'INSERT INTO invitations (email, work_number, role, invited_by, token) VALUES ($1, $2, $3, $4, $5)',
-      [email || null, work_number || null, role, request.user.id, token]
-    )
-
-    const frontendUrl = process.env.FRONTEND_URL || 'https://www.rannikon.com'
-    const registerUrl = `${frontendUrl}/register?token=${token}&role=${role}${work_number ? '&work_number=' + work_number : ''}`
-
-    const roleLabels = {
-      worker: 'work at Rannikon Puutarha',
-      supervisor: 'supervise at Rannikon Puutarha',
-      housemaster: 'as a housemaster at Rannikon Puutarha',
-      admin: 'as an administrator at Rannikon Puutarha'
+  async function loadInvitations() {
+    setInvLoading(true)
+    try {
+      const res = await api.get('/api/admin/invitations')
+      setInvitations(res.data.invitations || [])
+    } catch {} finally {
+      setInvLoading(false)
     }
+  }
 
-    if (email) {
-      const { Resend } = require('resend')
-      const resend = new Resend(process.env.RESEND_API_KEY)
-      await resend.emails.send({
-        from: process.env.RESEND_FROM,
-        to: email,
-        subject: `You have been invited to ${roleLabels[role] || role}`,
-        html: `
-          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
-            <img src="https://www.rannikon.com/rannikkopuutarhalogo.png" alt="Rannikon Puutarha" style="height:48px;margin-bottom:24px"/>
-            <h2 style="font-size:20px;font-weight:700;color:#1a1a18;margin-bottom:12px">
-              You have been invited to ${roleLabels[role] || role}
-            </h2>
-            <p style="font-size:15px;color:#555;line-height:1.6;margin-bottom:8px">
-              You have been invited to join the Rannikon Puutarha timesheet system.
-            </p>
-            ${work_number ? `<p style="font-size:15px;color:#555;margin-bottom:24px">Your work number is: <b>${work_number}</b></p>` : ''}
-            <a href="${registerUrl}" style="display:inline-block;padding:12px 28px;background:#2d6a2d;color:#fff;font-size:15px;font-weight:700;border-radius:8px;text-decoration:none">
-              Create your account
-            </a>
-            <p style="font-size:13px;color:#999;margin-top:24px">
-              This link expires in 7 days. If you did not expect this, ignore this email.
-            </p>
+  function handleTabChange(t) {
+    setTab(t)
+    if (t === 'logs' && Object.keys(grouped).length === 0) loadLogs(logsDate)
+    if (t === 'invitations' && invitations.length === 0) loadInvitations()
+  }
+
+  async function updateWorker(id, patch) {
+    setUpdatingId(id)
+    try {
+      await api.patch('/api/admin/workers/' + id, patch)
+      await loadWorkers()
+      await loadStats()
+    } catch {} finally {
+      setUpdatingId(null)
+    }
+  }
+
+  async function sendInvite() {
+    setInviteError('')
+    if (!inviteForm.role) { setInviteError('Role is required'); return }
+    if (!inviteForm.email && !inviteForm.work_number) { setInviteError('Email or work number is required'); return }
+    setInviteSaving(true)
+    try {
+      const body = { ...inviteForm }
+      if (inviteForm.role !== 'housemaster') delete body.house_group
+      const res = await api.post('/api/admin/invite', body)
+      setInviteUrl(res.data.register_url || '')
+      setCopied(false)
+    } catch (e) {
+      setInviteError(e.response?.data?.error || 'Failed to send invitation')
+    } finally {
+      setInviteSaving(false)
+    }
+  }
+
+  function resetInviteModal() {
+    setInviteForm({ email: '', work_number: '', role: 'worker', house_group: '' })
+    setInviteUrl('')
+    setInviteError('')
+    setCopied(false)
+    setShowInvite(false)
+  }
+
+  async function sendToHousemaster(group) {
+    const logs = grouped[group] || []
+    if (!logs.length) return
+    setSendingGroup(group)
+    try {
+      await api.post('/api/admin/send-to-housemaster', { house_group: group, date: logsDate, logs })
+      setSentGroups(s => ({ ...s, [group]: true }))
+    } catch (e) {
+      alert(e.response?.data?.error || 'Failed to send')
+    } finally {
+      setSendingGroup('')
+    }
+  }
+
+  const filteredWorkers = workers.filter(w => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return (
+      w.full_name?.toLowerCase().includes(q) ||
+      w.work_number?.toLowerCase().includes(q) ||
+      w.email?.toLowerCase().includes(q)
+    )
+  })
+
+  const inp = { width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #ddd', borderRadius: '8px', fontFamily: 'inherit', boxSizing: 'border-box' }
+
+  if (!me) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif' }}>
+        <p style={{ color: '#555' }}>Loading...</p>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <Head>
+        <title>Admin | Rannikon</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
+      </Head>
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'DM Sans', sans-serif; background: #f5f5f0; -webkit-font-smoothing: antialiased; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; transition: all 0.15s; }
+        .btn-green { background: #2d6a2d; color: #fff; }
+        .btn-green:hover { background: #235223; }
+        .btn-outline { background: #fff; color: #333; border: 1px solid #ddd !important; }
+        .btn-outline:hover { background: #f5f5f0; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .card { background: #fff; border: 1px solid #e8e8e3; border-radius: 14px; padding: 20px; }
+        .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .modal { background: #fff; border-radius: 16px; padding: 28px; width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
+        input:focus, select:focus { outline: none; border-color: #2d6a2d !important; box-shadow: 0 0 0 3px rgba(45,106,45,0.1); }
+        select { appearance: auto; }
+        @media (max-width: 600px) { .admin-badge { display: none !important; } }
+        .tbl-scroll { overflow-x: auto; }
+        .tbl { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 640px; }
+        .tbl th { padding: 9px 12px; text-align: left; font-weight: 700; font-size: 11px; color: #555; border-bottom: 2px solid #e8e8e3; white-space: nowrap; background: #fafafa; }
+        .tbl td { padding: 9px 12px; border-bottom: 1px solid #f0f0ec; vertical-align: middle; }
+        .tbl tbody tr:hover { background: #fafaf8; }
+        .tab-btn { padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid #ddd; font-family: inherit; transition: all 0.15s; white-space: nowrap; }
+        .tab-active { background: #2d6a2d; color: #fff; border-color: #2d6a2d; }
+        .tab-inactive { background: #fff; color: #555; }
+        .tab-inactive:hover { background: #f5f5f0; }
+      `}</style>
+
+      {/* NAV */}
+      <div style={{ background: '#fff', borderBottom: '1px solid #ddd', padding: '6px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div onClick={() => router.push('/dashboard')} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <img src="/rannikkopuutarhalogo.png" alt="Rannikon" style={{ height: '46px', width: 'auto' }} />
+            <span style={{ fontFamily: 'Dancing Script, cursive', fontWeight: '700', fontSize: '22px', color: '#2d6a2d', lineHeight: 1 }}>Rannikon Puutarha</span>
           </div>
-        `
-      })
-    }
-
-    return reply.send({ success: true, register_url: registerUrl })
-  })
-
-  fastify.get('/api/admin/invitations', { onRequest: [isAdmin] }, async (request, reply) => {
-    const result = await db.query(
-      `SELECT i.*, w.full_name as invited_by_name FROM invitations i
-       LEFT JOIN workers w ON w.id = i.invited_by ORDER BY i.created_at DESC LIMIT 50`
-    )
-    return reply.send({ invitations: result.rows })
-  })
-
-  fastify.get('/api/admin/supervisor-logs/:date', { onRequest: [isAdmin] }, async (request, reply) => {
-    const result = await db.query(
-      `SELECT sl.*, w.full_name as supervisor_name, ss.total_break_mins as session_break, ss.session_date
-       FROM supervisor_logs sl
-       JOIN supervisor_sessions ss ON ss.id = sl.session_id
-       JOIN workers w ON w.id = ss.supervisor_id
-       WHERE ss.session_date = $1
-       ORDER BY sl.house_group, sl.start_time, sl.worker_number`,
-      [request.params.date]
-    )
-
-    const grouped = {}
-    HOUSE_GROUPS.forEach(g => { grouped[g] = [] })
-    result.rows.forEach(r => {
-      const g = r.house_group || 'Unknown'
-      if (!grouped[g]) grouped[g] = []
-      grouped[g].push(r)
-    })
-
-    return reply.send({ logs: result.rows, grouped })
-  })
-
-  fastify.post('/api/admin/send-to-housemaster', { onRequest: [isAdmin] }, async (request, reply) => {
-    const { house_group, date, logs } = request.body
-    if (!house_group || !logs?.length) return reply.status(400).send({ error: 'house_group and logs required' })
-
-    await db.query(
-      'INSERT INTO housemaster_worklogs (house_group, session_date, sent_by, logs) VALUES ($1, $2, $3, $4)',
-      [house_group, date || new Date().toISOString().split('T')[0], request.user.id, JSON.stringify(logs)]
-    )
-
-    const hmResult = await db.query(
-      "SELECT email, full_name FROM workers WHERE role = 'housemaster' AND house_group = $1",
-      [house_group]
-    )
-
-    if (!hmResult.rows[0]) {
-      return reply.send({ success: true, warning: 'No housemaster found for this group — saved to app only' })
-    }
-
-    const hm = hmResult.rows[0]
-    const dateLabel = new Date(date || new Date()).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
-
-    const tableRows = logs.map(r =>
-      `<tr style="border-bottom:1px solid #f0f0f0">
-        <td style="padding:6px 10px;font-weight:700">${r.worker_number}</td>
-        <td style="padding:6px 10px">${r.worker_name || ''}</td>
-        <td style="padding:6px 10px">${r.start_time?.slice(0,5) || ''}</td>
-        <td style="padding:6px 10px">${r.finish_time?.slice(0,5) || ''}</td>
-        <td style="padding:6px 10px">${r.total_break_mins || 0} min</td>
-        <td style="padding:6px 10px;font-weight:700;color:#2d6a2d">${r.total_hours || ''}</td>
-        <td style="padding:6px 10px;color:#555">${r.what_work || ''}</td>
-      </tr>`
-    ).join('')
-
-    const { Resend } = require('resend')
-    const resend = new Resend(process.env.RESEND_API_KEY)
-
-    await resend.emails.send({
-      from: process.env.RESEND_FROM,
-      to: hm.email,
-      subject: `Work log — ${house_group} — ${dateLabel}`,
-      html: `
-        <div style="font-family:sans-serif;max-width:700px;margin:0 auto;padding:24px">
-          <img src="https://www.rannikon.com/rannikkopuutarhalogo.png" alt="Rannikon" style="height:40px;margin-bottom:16px"/>
-          <h2 style="color:#2d6a2d;margin:0 0 4px">${house_group} — Work Log</h2>
-          <p style="color:#555;margin:0 0 20px;font-size:14px">${dateLabel} &nbsp;|&nbsp; ${logs.length} workers</p>
-          <table style="width:100%;border-collapse:collapse;font-size:13px">
-            <thead>
-              <tr style="background:#2d6a2d;color:#fff">
-                <th style="padding:8px 10px;text-align:left">Work#</th>
-                <th style="padding:8px 10px;text-align:left">Name</th>
-                <th style="padding:8px 10px;text-align:left">Start</th>
-                <th style="padding:8px 10px;text-align:left">Finish</th>
-                <th style="padding:8px 10px;text-align:left">Break</th>
-                <th style="padding:8px 10px;text-align:left">Total hrs</th>
-                <th style="padding:8px 10px;text-align:left">Work done</th>
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-          </table>
-          <p style="font-size:12px;color:#999;margin-top:20px">
-            Log in to Rannikon to view and download this worklog:
-            <a href="https://www.rannikon.com" style="color:#2d6a2d">www.rannikon.com</a>
-          </p>
+          <span className="admin-badge" style={{ background: '#2d6a2d', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.5px' }}>ADMIN</span>
         </div>
-      `
-    })
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '13px', color: '#444', fontWeight: '500' }}>#{me.work_number} {me.full_name}</span>
+          <button className="btn btn-outline" onClick={() => router.push('/dashboard')} style={{ fontSize: '12px', padding: '5px 12px' }}>My timesheet</button>
+          <button className="btn btn-outline" onClick={() => { clearAuth(); router.push('/login') }} style={{ fontSize: '12px', padding: '5px 12px' }}>Sign out</button>
+        </div>
+      </div>
 
-    return reply.send({ success: true, sent_to: hm.email })
-  })
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 16px' }}>
 
-  fastify.get('/api/admin/housemaster-worklogs', { onRequest: [fastify.authenticate] }, async (request, reply) => {
-    const worker = await db.query('SELECT role, house_group FROM workers WHERE id = $1', [request.user.id])
-    const w = worker.rows[0]
-    if (!w || !['housemaster', 'admin'].includes(w.role)) {
-      return reply.status(403).send({ error: 'Access denied' })
-    }
-    let result
-    if (w.role === 'admin') {
-      result = await db.query('SELECT * FROM housemaster_worklogs ORDER BY sent_at DESC LIMIT 50')
-    } else {
-      result = await db.query(
-        'SELECT * FROM housemaster_worklogs WHERE house_group = $1 ORDER BY sent_at DESC LIMIT 50',
-        [w.house_group]
-      )
-      await db.query('UPDATE housemaster_worklogs SET viewed = true WHERE house_group = $1', [w.house_group])
-    }
-    return reply.send({ worklogs: result.rows })
-  })
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
+          <div>
+            <h1 style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '-0.4px', marginBottom: '2px' }}>Admin panel</h1>
+            <p style={{ fontSize: '13px', color: '#888' }}>Manage workers, view logs, send invitations</p>
+          </div>
+          <button className="btn btn-green" onClick={() => { setInviteUrl(''); setInviteError(''); setShowInvite(true) }} style={{ fontSize: '13px', padding: '9px 20px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Invite
+          </button>
+        </div>
 
+        {/* STATS BAR */}
+        {stats && (
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', flexWrap: 'wrap' }}>
+            <StatCard label="Total workers" value={stats.total_workers} />
+            <StatCard label="Active" value={stats.active_workers} accent="#2d6a2d" />
+            <StatCard label="Supervisors" value={stats.total_supervisors} accent="#1565c0" />
+            <StatCard label="Housemasters" value={stats.total_housemasters} accent="#7b1fa2" />
+            <StatCard label="Entries today" value={stats.entries_today} accent="#b45309" />
+          </div>
+        )}
+
+        {/* TAB NAV */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          {[['workers', 'Workers'], ['logs', 'Supervisor Logs'], ['invitations', 'Invitations']].map(([t, l]) => (
+            <button key={t} className={`tab-btn ${tab === t ? 'tab-active' : 'tab-inactive'}`} onClick={() => handleTabChange(t)}>{l}</button>
+          ))}
+        </div>
+
+        {/* WORKERS TAB */}
+        {tab === 'workers' && (
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0ec', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                style={{ ...inp, maxWidth: '340px', flex: 1, padding: '9px 12px' }}
+                placeholder="Search by name, work number, or email..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              <span style={{ fontSize: '13px', color: '#888' }}>{filteredWorkers.length} shown</span>
+            </div>
+            <div className="tbl-scroll">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Work#</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Group</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredWorkers.length === 0 && (
+                    <tr><td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: '#888' }}>No workers found</td></tr>
+                  )}
+                  {filteredWorkers.map(w => (
+                    <tr key={w.id}>
+                      <td style={{ fontWeight: '700', fontFamily: 'monospace' }}>#{w.work_number}</td>
+                      <td style={{ fontWeight: '600' }}>{w.full_name}</td>
+                      <td style={{ color: '#666', fontSize: '12px' }}>{w.email || '—'}</td>
+                      <td><RoleBadge role={w.role} /></td>
+                      <td><GroupPill group={w.house_group} /></td>
+                      <td>
+                        <span style={{ background: w.is_active ? '#e8f5e9' : '#fdecea', color: w.is_active ? '#2d6a2d' : '#c0392b', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '700', border: `1px solid ${w.is_active ? '#a5d6a7' : '#ffc1c0'}` }}>
+                          {w.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <select
+                            value={w.role}
+                            disabled={updatingId === w.id}
+                            onChange={e => updateWorker(w.id, { role: e.target.value })}
+                            style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid #ddd', borderRadius: '6px', fontFamily: 'inherit', cursor: 'pointer', color: '#333', background: '#fff' }}
+                          >
+                            <option value="worker">worker</option>
+                            <option value="supervisor">supervisor</option>
+                            <option value="housemaster">housemaster</option>
+                            <option value="admin">admin</option>
+                          </select>
+                          <button
+                            disabled={updatingId === w.id}
+                            onClick={() => updateWorker(w.id, { is_active: !w.is_active })}
+                            style={{ padding: '4px 10px', fontSize: '12px', fontWeight: '600', borderRadius: '6px', cursor: 'pointer', border: '1px solid #ddd', background: w.is_active ? '#fdecea' : '#e8f5e9', color: w.is_active ? '#c0392b' : '#2d6a2d', whiteSpace: 'nowrap', fontFamily: 'inherit' }}
+                          >
+                            {w.is_active ? 'Deactivate' : 'Activate'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* SUPERVISOR LOGS TAB */}
+        {tab === 'logs' && (
+          <div>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#555', marginBottom: '4px' }}>Date</label>
+                <input
+                  type="date"
+                  value={logsDate}
+                  onChange={e => { setLogsDate(e.target.value); loadLogs(e.target.value) }}
+                  style={{ padding: '8px 12px', fontSize: '14px', border: '1px solid #ddd', borderRadius: '8px', fontFamily: 'inherit' }}
+                />
+              </div>
+              <button className="btn btn-outline" onClick={() => loadLogs(logsDate)} style={{ marginTop: '20px' }}>Reload</button>
+            </div>
+
+            {logsLoading && <p style={{ color: '#888', fontSize: '14px' }}>Loading...</p>}
+
+            {!logsLoading && HOUSE_GROUPS.map(group => {
+              const rows = grouped[group] || []
+              const isSending = sendingGroup === group
+              const isSent = sentGroups[group]
+              return (
+                <div key={group} className="card" style={{ marginBottom: '16px', padding: 0 }}>
+                  <div style={{ padding: '14px 20px', borderBottom: '1px solid #f0f0ec', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <GroupPill group={group} />
+                      <span style={{ fontSize: '13px', color: '#888', fontWeight: '600' }}>{rows.length} worker{rows.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {isSent && (
+                        <span style={{ background: '#e8f5e9', color: '#2d6a2d', padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', border: '1px solid #c8e6c9', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          Sent
+                        </span>
+                      )}
+                      {!isSent && rows.length > 0 && (
+                        <button className="btn btn-green" disabled={isSending} onClick={() => sendToHousemaster(group)} style={{ fontSize: '12px', padding: '6px 14px' }}>
+                          {isSending ? 'Sending...' : 'Send to housemaster'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {rows.length === 0 ? (
+                    <p style={{ padding: '20px', color: '#bbb', fontSize: '13px', textAlign: 'center' }}>No logs for this group</p>
+                  ) : (
+                    <div className="tbl-scroll">
+                      <table className="tbl">
+                        <thead>
+                          <tr>
+                            <th>Work#</th>
+                            <th>Name</th>
+                            <th>Start</th>
+                            <th>Finish</th>
+                            <th>Break</th>
+                            <th>Total hrs</th>
+                            <th>Work done</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.map((r, i) => (
+                            <tr key={r.id || i}>
+                              <td style={{ fontWeight: '700', fontFamily: 'monospace' }}>#{r.worker_number}</td>
+                              <td>{r.worker_name || <span style={{ color: '#ccc' }}>Unknown</span>}</td>
+                              <td style={{ fontFamily: 'monospace' }}>{r.start_time?.slice(0,5) || ''}</td>
+                              <td style={{ fontFamily: 'monospace' }}>{r.finish_time?.slice(0,5) || <span style={{ color: '#ccc' }}>pending</span>}</td>
+                              <td style={{ color: '#b45309' }}>{r.total_break_mins > 0 ? r.total_break_mins + ' min' : ''}</td>
+                              <td style={{ fontWeight: '700', color: '#2d6a2d' }}>{r.total_hours || ''}</td>
+                              <td style={{ color: '#555' }}>{r.what_work || ''}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* INVITATIONS TAB */}
+        {tab === 'invitations' && (
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #f0f0ec', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '15px', fontWeight: '700' }}>Pending invitations</h2>
+              <button className="btn btn-outline" onClick={loadInvitations} style={{ fontSize: '12px', padding: '5px 12px' }}>Refresh</button>
+            </div>
+            {invLoading ? (
+              <p style={{ padding: '24px', color: '#888', textAlign: 'center' }}>Loading...</p>
+            ) : (
+              <div className="tbl-scroll">
+                <table className="tbl">
+                  <thead>
+                    <tr>
+                      <th>Email</th>
+                      <th>Work#</th>
+                      <th>Role</th>
+                      <th>Invited by</th>
+                      <th>Created</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invitations.length === 0 && (
+                      <tr><td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: '#888' }}>No invitations yet</td></tr>
+                    )}
+                    {invitations.map(inv => (
+                      <tr key={inv.id}>
+                        <td style={{ color: '#555' }}>{inv.email || <span style={{ color: '#ccc' }}>—</span>}</td>
+                        <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{inv.work_number || <span style={{ color: '#ccc' }}>—</span>}</td>
+                        <td><RoleBadge role={inv.role} /></td>
+                        <td style={{ color: '#666' }}>{inv.invited_by_name || '—'}</td>
+                        <td style={{ color: '#888', fontSize: '12px' }}>{inv.created_at ? new Date(inv.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                        <td>
+                          <span style={{ background: inv.accepted ? '#e8f5e9' : '#fff3e0', color: inv.accepted ? '#2d6a2d' : '#b45309', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '700', border: `1px solid ${inv.accepted ? '#a5d6a7' : '#ffcc80'}` }}>
+                            {inv.accepted ? 'Accepted' : 'Pending'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+      </div>
+
+      {/* INVITE MODAL */}
+      {showInvite && (
+        <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget) resetInviteModal() }}>
+          <div className="modal">
+            {!inviteUrl ? (
+              <>
+                <h3 style={{ fontSize: '17px', fontWeight: '800', marginBottom: '20px' }}>Invite someone</h3>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Email address <span style={{ color: '#aaa', fontWeight: '400' }}>(optional)</span></label>
+                  <input style={inp} type="email" placeholder="worker@example.com" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Work number <span style={{ color: '#aaa', fontWeight: '400' }}>(optional)</span></label>
+                  <input style={inp} type="text" placeholder="e.g. 334" value={inviteForm.work_number} onChange={e => setInviteForm(f => ({ ...f, work_number: e.target.value }))} />
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Role</label>
+                  <select style={{ ...inp }} value={inviteForm.role} onChange={e => setInviteForm(f => ({ ...f, role: e.target.value, house_group: '' }))}>
+                    <option value="worker">Worker</option>
+                    <option value="supervisor">Supervisor</option>
+                    <option value="housemaster">Housemaster</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                {inviteForm.role === 'housemaster' && (
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>House group</label>
+                    <select style={{ ...inp }} value={inviteForm.house_group} onChange={e => setInviteForm(f => ({ ...f, house_group: e.target.value }))}>
+                      <option value="">Select house group</option>
+                      {HOUSE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {inviteError && (
+                  <div style={{ background: '#fdecea', border: '1px solid #ffc1c0', color: '#c0392b', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', marginBottom: '14px' }}>
+                    {inviteError}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="btn btn-outline" onClick={resetInviteModal} style={{ flex: 1 }}>Cancel</button>
+                  <button className="btn btn-green" onClick={sendInvite} disabled={inviteSaving} style={{ flex: 2 }}>
+                    {inviteSaving ? 'Sending...' : 'Create invitation'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                  <div style={{ width: '36px', height: '36px', background: '#e8f5e9', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <h3 style={{ fontSize: '16px', fontWeight: '800' }}>Invitation created</h3>
+                </div>
+                <p style={{ fontSize: '13px', color: '#555', marginBottom: '12px' }}>Share this registration link with the person you are inviting:</p>
+                <div style={{ background: '#f5f5f0', border: '1px solid #e0e0db', borderRadius: '8px', padding: '10px 12px', fontSize: '12px', wordBreak: 'break-all', color: '#333', marginBottom: '12px', fontFamily: 'monospace' }}>
+                  {inviteUrl}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                  <button className="btn btn-outline" style={{ flex: 1, fontSize: '12px' }} onClick={() => { navigator.clipboard?.writeText(inviteUrl); setCopied(true) }}>
+                    {copied ? 'Copied!' : 'Copy link'}
+                  </button>
+                </div>
+                <button className="btn btn-green" style={{ width: '100%' }} onClick={resetInviteModal}>Done</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
