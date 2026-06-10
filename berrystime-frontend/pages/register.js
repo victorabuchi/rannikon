@@ -412,7 +412,7 @@ export default function Register() {
 
           <p style={{ fontSize: '11px', color: '#8c959f', marginTop: '14px', lineHeight: '1.7' }}>
             By creating an account, you agree to the{' '}
-            <a href="#" style={{ color: '#2d6a2d' }}>Terms of Service</a>.{' '}
+            <a href="/terms" style={{ color: '#2d6a2d' }}>Terms of Service</a>.{' '}
             See our <a href="/privacy" style={{ color: '#2d6a2d' }}>Privacy Statement</a> for details.{' '}
             We&apos;ll occasionally send you account-related emails.
           </p>

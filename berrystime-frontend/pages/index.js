@@ -755,7 +755,7 @@ export default function Home() {
             },
             {
               title: 'Support',
-              links: [['Help center', '#'], ['Contact us', '#'], ['Privacy policy', '/privacy'], ['Terms of service', '#'], ['Cookie policy', '#']]
+              links: [['Help center', '#'], ['Contact us', '#'], ['Privacy policy', '/privacy'], ['Terms of service', '/terms'], ['Cookie policy', '#']]
             },
             {
               title: 'Company',
@@ -780,7 +780,7 @@ export default function Home() {
         <div style={{ maxWidth: '1080px', margin: '0 auto', padding: '24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <p style={{ fontSize: '12px', color: '#7d8590' }}>
             {'© ' + new Date().getFullYear() + ' Rannikon Puutarha · '}
-            <a href="#" style={{ color: '#7d8590' }} onMouseEnter={e => e.target.style.color = '#c9d1d9'} onMouseLeave={e => e.target.style.color = '#7d8590'}>Terms</a>
+            <a href="/terms" style={{ color: '#7d8590' }} onMouseEnter={e => e.target.style.color = '#c9d1d9'} onMouseLeave={e => e.target.style.color = '#7d8590'}>Terms</a>
             {' · '}
             <a href="/privacy" style={{ color: '#7d8590' }} onMouseEnter={e => e.target.style.color = '#c9d1d9'} onMouseLeave={e => e.target.style.color = '#7d8590'}>Privacy</a>
             {' · '}
