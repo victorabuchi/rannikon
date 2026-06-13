@@ -80,7 +80,7 @@ module.exports = async function timesheetRoutes(fastify) {
   fastify.post('/api/timesheet/entry', {
     onRequest: [fastify.authenticate]
   }, async (request, reply) => {
-    const { entry_date, actual_start, actual_finish, what_work, break_mins, kg_picked } = request.body
+    const { entry_date, actual_start, actual_finish, what_work, break_mins } = request.body
 
     if (!entry_date || !actual_start || !actual_finish) {
       return reply.status(400).send({ error: 'Date, start time and finish time are required' })
@@ -90,20 +90,20 @@ module.exports = async function timesheetRoutes(fastify) {
 
     const result = await db.query(
       `INSERT INTO timesheet_entries
-       (worker_id, entry_date, actual_start, actual_finish, what_work, break_mins, kg_picked,
+       (worker_id, entry_date, actual_start, actual_finish, what_work, break_mins,
         white_start, white_finish, white_hours,
         orange_start, orange_finish, orange_hours, total_hours)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        ON CONFLICT (worker_id, entry_date)
        DO UPDATE SET
-         actual_start = $3, actual_finish = $4, what_work = $5, break_mins = $6, kg_picked = $7,
-         white_start = $8, white_finish = $9, white_hours = $10,
-         orange_start = $11, orange_finish = $12, orange_hours = $13,
-         total_hours = $14, updated_at = now()
+         actual_start = $3, actual_finish = $4, what_work = $5, break_mins = $6,
+         white_start = $7, white_finish = $8, white_hours = $9,
+         orange_start = $10, orange_finish = $11, orange_hours = $12,
+         total_hours = $13, updated_at = now()
        RETURNING *`,
       [
         request.user.id, entry_date, actual_start, actual_finish,
-        what_work || '', break_mins ?? 0, kg_picked || null,
+        what_work || '', break_mins ?? 0,
         calc.white_start, calc.white_finish, calc.white_hours,
         calc.orange_start, calc.orange_finish, calc.orange_hours, calc.total_hours
       ]
@@ -121,7 +121,7 @@ module.exports = async function timesheetRoutes(fastify) {
     const allowed = [
       'white_start', 'white_finish', 'white_hours',
       'orange_start', 'orange_finish', 'orange_hours',
-      'total_hours', 'what_work', 'actual_start', 'actual_finish', 'kg_picked'
+      'total_hours', 'what_work', 'actual_start', 'actual_finish'
     ]
 
     if (!allowed.includes(field)) {

@@ -54,6 +54,8 @@ fastify.register(require('./routes/auth'))
 fastify.register(require('./routes/timesheet'))
 fastify.register(require('./routes/admin'))
 fastify.register(require('./routes/supervisor'))
+fastify.register(require('./routes/green'))
+
 
 fastify.get('/health', async (request, reply) => {
   return {

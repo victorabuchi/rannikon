@@ -9,7 +9,7 @@ import * as XLSX from 'xlsx'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const VALID = ['09:00','09:15','09:30','09:45']
-const BERRY_SEASON = false
+const BERRY_SEASON = true
 
 function getDaysInMonth(m, y) {
   return new Date(y, m, 0).getDate()
@@ -33,6 +33,11 @@ function addMins(t, add) {
   const total = toMins(t) + add
   return String(Math.floor(total / 60) % 24).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0')
 }
+function greenHours(ge) {
+  if (!ge?.start_time || !ge?.finish_time) return ''
+  return toHHMM(Math.max(0, toMins(ge.finish_time) - toMins(ge.start_time) - 60))
+}
+
 function computeEntry(e) {
   if (!e?.actual_start || !e?.actual_finish) return e
   const totalBreak = Math.max(0, e.break_mins || 0)
@@ -92,11 +97,13 @@ export default function Dashboard() {
   const router = useRouter()
   const [worker, setWorker] = useState(null)
   const [entries, setEntries] = useState({})
+  const [greenEntries, setGreenEntries] = useState({})
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [year, setYear] = useState(new Date().getFullYear())
   const [editDay, setEditDay] = useState(null)
   const [viewDay, setViewDay] = useState(null)
-  const [form, setForm] = useState({ start: '', finish: '', work: '', break_mins: 30, kg_picked: '' })
+  const [form, setForm] = useState({ start: '', finish: '', work: '', break_mins: 30 })
+  const [greenForm, setGreenForm] = useState({ start: '', finish: '', kg: '', what: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('white')
@@ -110,6 +117,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/login'); return }
     loadEntries()
+    loadGreenEntries()
     api.get('/api/auth/me')
       .then(res => {
         const w = res.data.worker
@@ -133,6 +141,18 @@ export default function Dashboard() {
     }
   }
 
+  async function loadGreenEntries() {
+    try {
+      const res = await api.get('/api/green/' + month + '/' + year)
+      const map = {}
+      res.data.entries.forEach(e => {
+        const day = parseInt(e.entry_date.split('T')[0].split('-')[2])
+        map[day] = e
+      })
+      setGreenEntries(map)
+    } catch (err) { console.error(err) }
+  }
+
   async function saveField(field, value, entryDate) {
     try {
       await api.patch('/api/timesheet/entry/' + entryDate + '/field', { field, value })
@@ -142,15 +162,25 @@ export default function Dashboard() {
     }
   }
 
+  async function saveGreenField(field, value, entryDate) {
+    try {
+      await api.patch('/api/green/entry/' + entryDate + '/field', { field, value })
+      await loadGreenEntries()
+    } catch (err) {
+      console.error('Failed to save green field', err)
+    }
+  }
+
   function openEdit(day) {
     const e = entries[day]
     setForm({
       start: e ? e.actual_start?.slice(0,5) || '' : '',
       finish: e ? e.actual_finish?.slice(0,5) || '' : '',
       work: e ? e.what_work || '' : '',
-      break_mins: e ? (e.break_mins ?? 0) : 0,
-      kg_picked: e ? (e.kg_picked || '') : ''
+      break_mins: e ? (e.break_mins ?? 0) : 0
     })
+    const ge = greenEntries[day]
+    setGreenForm({ start: ge?.start_time?.slice(0,5) || '', finish: ge?.finish_time?.slice(0,5) || '', kg: ge?.kg_picked || '', what: ge?.what_picked || '' })
     setEditDay(day)
     setViewDay(null)
   }
@@ -176,7 +206,10 @@ export default function Dashboard() {
     const dateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0')
     try {
       await api.delete('/api/timesheet/entry/' + dateStr)
+      const greenDateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0') + 'T12:00:00.000Z'
+      try { await api.delete('/api/green/entry/' + greenDateStr) } catch {}
       await loadEntries()
+      await loadGreenEntries()
       setConfirmDelete(null)
     } catch (err) {
       const msg = err?.response?.data?.error || err?.response?.status || err?.message || 'unknown'
@@ -195,10 +228,20 @@ export default function Dashboard() {
         actual_start: form.start,
         actual_finish: form.finish,
         what_work: form.work,
-        break_mins: parseInt(form.break_mins) ?? 0,
-        kg_picked: form.kg_picked ? parseFloat(form.kg_picked) : null
+        break_mins: parseInt(form.break_mins) ?? 0
       })
       await loadEntries()
+      if (greenForm.start || greenForm.finish || greenForm.kg || greenForm.what) {
+        const greenDateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(editDay).padStart(2,'0') + 'T12:00:00.000Z'
+        await api.post('/api/green/entry', {
+          entry_date: greenDateStr,
+          start_time: greenForm.start || null,
+          finish_time: greenForm.finish || null,
+          kg_picked: greenForm.kg ? parseFloat(greenForm.kg) : null,
+          what_picked: greenForm.what || ''
+        })
+        await loadGreenEntries()
+      }
       setEditDay(null)
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save')
@@ -225,7 +268,7 @@ export default function Dashboard() {
   function thG(extra) { return { border: '1px solid #2d6a2d', padding: '7px 8px', textAlign: 'left', whiteSpace: 'nowrap', background: '#e8f5e9', fontSize: '12px', fontWeight: '700', ...extra } }
   function tdG(extra) { return { border: '1px solid #2d6a2d', padding: '6px 8px', fontSize: '12px', ...extra } }
 
-  function InlineDayView({ day, entry }) {
+  function InlineDayView({ day, entry, ge }) {
     return (
       <div style={{ marginTop: '12px', borderTop: '1px solid #eee', paddingTop: '12px', overflowX: 'auto' }}>
 
@@ -344,13 +387,13 @@ export default function Dashboard() {
             <tbody>
               <tr>
                 <td style={tdG()}><b>{day}</b></td>
-                <td style={tdG()}>{entry.actual_start?.slice(0,5)}</td>
-                <td style={tdG()}>{entry.actual_finish?.slice(0,5)}</td>
+                <td style={tdG()}>{ge?.start_time?.slice(0,5)}</td>
+                <td style={tdG()}>{ge?.finish_time?.slice(0,5)}</td>
                 <td style={tdG({ textAlign: 'center' })}>1 hour</td>
-                <td style={tdG({ textAlign: 'center' })}>{entry.orange_break && entry.orange_break !== '0:00' ? entry.orange_break : ''}</td>
-                <td style={tdG({ fontWeight: '700', color: '#2d6a2d' })}>{entry.white_hours}</td>
-                <td style={tdG()}>{entry.what_work}</td>
-                <td style={tdG({ fontWeight: '700', color: '#2d6a2d' })}>{entry.kg_picked != null ? entry.kg_picked : ''}</td>
+                <td style={tdG({ textAlign: 'center' })}></td>
+                <td style={tdG({ fontWeight: '700', color: '#2d6a2d' })}>{greenHours(ge)}</td>
+                <td style={tdG()}>{ge?.what_picked}</td>
+                <td style={tdG({ fontWeight: '700', color: '#2d6a2d' })}>{ge?.kg_picked != null ? ge.kg_picked : ''}</td>
               </tr>
             </tbody>
           </table>
@@ -611,8 +654,7 @@ export default function Dashboard() {
 
           {activeTab === 'green' && (
             <div>
-              <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '2px', color: '#2d6a2d' }}>TIME USED FOR PICKUP, SALARY IS PAID BY KILOS</p>
-              <p style={{ fontSize: '12px', fontWeight: '700', marginBottom: '2px' }}>8 HOURS PER DAY / 40 HOURS PER WEEK</p>
+              <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '2px', color: '#2d6a2d' }}>GREEN PAPER — TIME USED FOR PICKUP, SALARY IS PAID BY KILOS</p>
               <p style={{ fontSize: '12px', fontWeight: '700', marginBottom: '2px', color: '#c0392b' }}>HOX, NEED TO PICKUP 10 KILO PER HOUR!</p>
               <p style={{ fontSize: '11px', color: '#333', marginBottom: '10px' }}>Name: <b>{worker?.full_name}</b> &nbsp;&nbsp; Work number: <b>{worker?.work_number}</b></p>
               <div style={{ overflowX: 'auto' }}>
@@ -631,17 +673,18 @@ export default function Dashboard() {
                   </thead>
                   <tbody>
                     {Array.from({ length: days }, (_, i) => i + 1).map(day => {
-                      const entry = entries[day]
+                      const ge = greenEntries[day]
+                      const dateStr = year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')
                       return (
-                        <tr key={day} style={{ background: entry ? '#f6fff6' : '#fff' }}>
+                        <tr key={day} style={{ background: ge ? '#f6fff6' : '#fff' }}>
                           <td style={tdG()}><b>{day}</b></td>
-                          <td style={tdG()}>{entry ? <EditableCell value={entry.actual_start?.slice(0,5)} field="actual_start" entryDate={year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')} onSave={saveField} /> : ''}</td>
-                          <td style={tdG()}>{entry ? <EditableCell value={entry.actual_finish?.slice(0,5)} field="actual_finish" entryDate={year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')} onSave={saveField} /> : ''}</td>
+                          <td style={tdG()}><EditableCell value={ge?.start_time?.slice(0,5)} field="start_time" entryDate={dateStr} onSave={saveGreenField} /></td>
+                          <td style={tdG()}><EditableCell value={ge?.finish_time?.slice(0,5)} field="finish_time" entryDate={dateStr} onSave={saveGreenField} /></td>
                           <td style={tdG({ textAlign: 'center', color: '#888' })}>1 hour</td>
-                          <td style={tdG({ textAlign: 'center' })}>{entry ? (entry.orange_break && entry.orange_break !== '0:00' ? entry.orange_break : '') : ''}</td>
-                          <td style={tdG({ fontWeight: '700', color: entry ? '#2d6a2d' : '' })}>{entry ? <EditableCell value={entry.white_hours} field="white_hours" entryDate={year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')} onSave={saveField} /> : ''}</td>
-                          <td style={tdG()}>{entry ? <EditableCell value={entry.what_work} field="what_work" entryDate={year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')} onSave={saveField} /> : ''}</td>
-                          <td style={tdG({ fontWeight: '700', color: entry?.kg_picked ? '#2d6a2d' : '' })}>{entry ? <EditableCell value={entry.kg_picked != null ? String(entry.kg_picked) : ''} field="kg_picked" entryDate={year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')} onSave={saveField} /> : ''}</td>
+                          <td style={tdG({ textAlign: 'center' })}></td>
+                          <td style={tdG({ fontWeight: '700', color: ge ? '#2d6a2d' : '' })}>{greenHours(ge)}</td>
+                          <td style={tdG()}><EditableCell value={ge?.what_picked} field="what_picked" entryDate={dateStr} onSave={saveGreenField} /></td>
+                          <td style={tdG({ fontWeight: '700', color: ge?.kg_picked ? '#2d6a2d' : '' })}><EditableCell value={ge?.kg_picked != null ? String(ge.kg_picked) : ''} field="kg_picked" entryDate={dateStr} onSave={saveGreenField} /></td>
                         </tr>
                       )
                     })}
@@ -649,7 +692,6 @@ export default function Dashboard() {
                 </table>
               </div>
               <p style={{ fontSize: '11px', color: '#555', marginTop: '8px', fontStyle: 'italic' }}>When you have worked 4 hours, You need to have an eating break, minimum of 30 mins.</p>
-              <p style={{ fontSize: '11px', color: '#555', fontStyle: 'italic' }}>START WORK 9:00, 9:15, 9:30 or 9:45. WORK DOES NOT START 9:05, 9:10, 9:20, 9:25 etc.</p>
               <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '12px', display: 'flex', gap: '8px' }}>
                 <button onClick={() => downloadPDF('green')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="14" height="14" rx="2" fill="#E53935"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial,sans-serif" fill="white">PDF</text></svg>
@@ -758,11 +800,11 @@ export default function Dashboard() {
 
     if (tab === 'green') {
       doc.setTextColor(45, 106, 45)
-      doc.text('TIME USED FOR PICKUP, SALARY PAID BY KILOS', 14, 16)
+      doc.text('GREEN PAPER - TIME USED FOR PICKUP, SALARY IS PAID BY KILOS', 14, 16)
       doc.setTextColor(0)
       doc.setFontSize(10); doc.setFont('helvetica', 'normal')
       doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 22)
-      const rows = Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; return [d, e ? e.actual_start?.slice(0,5) : '', e ? e.actual_finish?.slice(0,5) : '', '1 hour', e ? (e.orange_break && e.orange_break !== '0:00' ? e.orange_break : '') : '', e ? (e.white_hours || '') : '', e ? e.what_work : '', e?.kg_picked != null ? e.kg_picked : ''] })
+      const rows = Array.from({ length: daysCount }, (_, i) => { const d = i+1; const ge = greenEntries[d]; return [d, ge?.start_time?.slice(0,5) || '', ge?.finish_time?.slice(0,5) || '', '1 hour', '', greenHours(ge), ge?.what_picked || '', ge?.kg_picked != null ? ge.kg_picked : ''] })
       autoTable(doc, {
         startY: 26,
         head: [['Date','Start','Finish','Eating break','Extra breaks','Hours minus breaks','What was picked up','Kg picked']],
@@ -771,7 +813,7 @@ export default function Dashboard() {
         headStyles: { fillColor: [232,245,233], textColor: [45,106,45], fontStyle: 'bold' },
         bodyStyles: { fillColor: [255,255,255] },
         didParseCell: (data) => {
-          if (data.section === 'body' && entries[rows[data.row.index][0]]) data.cell.styles.fillColor = [246,255,246]
+          if (data.section === 'body' && greenEntries[rows[data.row.index][0]]) data.cell.styles.fillColor = [246,255,246]
         }
       })
       doc.save('green-paper-' + monthName + '-' + (worker?.work_number || '') + '.pdf')
@@ -834,11 +876,11 @@ export default function Dashboard() {
 
     if (tab === 'green') {
       const data = [
-        ['TIME USED FOR PICKUP, SALARY PAID BY KILOS'],
+        ['GREEN PAPER - TIME USED FOR PICKUP, SALARY IS PAID BY KILOS'],
         ['Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName],
         [],
         ['Date', 'Start', 'Finish', 'Eating break', 'Extra breaks', 'Hours minus breaks', 'What was picked up', 'Kg picked'],
-        ...Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; return [d, e ? e.actual_start?.slice(0,5) : '', e ? e.actual_finish?.slice(0,5) : '', '1 hour', e ? (e.orange_break && e.orange_break !== '0:00' ? e.orange_break : '') : '', e ? (e.white_hours || '') : '', e ? e.what_work : '', e?.kg_picked != null ? e.kg_picked : ''] })
+        ...Array.from({ length: daysCount }, (_, i) => { const d = i+1; const ge = greenEntries[d]; return [d, ge?.start_time?.slice(0,5) || '', ge?.finish_time?.slice(0,5) || '', '1 hour', '', greenHours(ge), ge?.what_picked || '', ge?.kg_picked != null ? ge.kg_picked : ''] })
       ]
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Green Paper')
       XLSX.writeFile(wb, 'green-paper-' + monthName + '-' + (worker?.work_number || '') + '.xlsx')
@@ -920,7 +962,11 @@ export default function Dashboard() {
                             <span style={{ fontSize: '11px', fontWeight: '700', background: '#f0f0f0', color: '#555', padding: '2px 8px', borderRadius: '4px' }}>W: {entry.white_hours}</span>
                             <span style={{ fontSize: '11px', fontWeight: '700', background: '#fff3e0', color: '#b45309', padding: '2px 8px', borderRadius: '4px' }}>O: {entry.orange_hours}</span>
                             <span style={{ fontSize: '11px', fontWeight: '700', background: '#e3f2fd', color: '#1565c0', padding: '2px 8px', borderRadius: '4px' }}>Total: {entry.total_hours}</span>
-                            {entry.kg_picked && <span style={{ fontSize: '11px', fontWeight: '700', background: '#e8f5e9', color: '#2d6a2d', padding: '2px 8px', borderRadius: '4px', border: '1px solid #c8e6c9' }}>KG: {entry.kg_picked}</span>}
+                            {greenEntries[day]?.kg_picked && (
+                              <span style={{ fontSize: '11px', fontWeight: '700', background: '#e8f5e9', color: '#2d6a2d', padding: '2px 8px', borderRadius: '4px', border: '1px solid #c8e6c9' }}>
+                                KG: {greenEntries[day].kg_picked}
+                              </span>
+                            )}
                             {entry.what_work && <span style={{ fontSize: '11px', color: '#888' }}>{entry.what_work}</span>}
                           </div>
                         ) : (
@@ -989,13 +1035,32 @@ export default function Dashboard() {
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>What work</label>
                             <input style={inp} placeholder="e.g. cleaning, planting" value={form.work} onChange={e => setForm({...form, work: e.target.value})} />
                           </div>
-                          {BERRY_SEASON && (
-                            <div style={{ flex: 1, minWidth: '130px' }}>
-                              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#2d6a2d' }}>Kg picked (optional)</label>
-                              <input style={inp} type="number" step="0.1" min="0" placeholder="e.g. 24.5" value={form.kg_picked} onChange={e => setForm({...form, kg_picked: e.target.value})} />
-                            </div>
-                          )}
                         </div>
+
+                        {BERRY_SEASON && (
+                          <div style={{ borderTop: '2px solid #e8f5e9', marginTop: '16px', paddingTop: '16px' }}>
+                            <p style={{ fontSize: '13px', fontWeight: '800', color: '#2d6a2d', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Berry picking (Green paper)</p>
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                              <div style={{ flex: 1, minWidth: '120px' }}>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>Start time</label>
+                                <input style={inp} placeholder="HH:MM" value={greenForm.start} onChange={e => setGreenForm({...greenForm, start: e.target.value})} />
+                              </div>
+                              <div style={{ flex: 1, minWidth: '120px' }}>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>Finish time</label>
+                                <input style={inp} placeholder="HH:MM" value={greenForm.finish} onChange={e => setGreenForm({...greenForm, finish: e.target.value})} />
+                              </div>
+                              <div style={{ flex: 1, minWidth: '120px' }}>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>Kg picked</label>
+                                <input style={inp} type="number" step="0.1" min="0" placeholder="e.g. 24.5" value={greenForm.kg} onChange={e => setGreenForm({...greenForm, kg: e.target.value})} />
+                              </div>
+                              <div style={{ flex: 2, minWidth: '180px' }}>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>What was picked</label>
+                                <input style={inp} placeholder="e.g. blueberries" value={greenForm.what} onChange={e => setGreenForm({...greenForm, what: e.target.value})} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button onClick={saveEntry} disabled={saving} style={{ flex: 1, padding: '10px', background: saving ? '#aaa' : '#2d6a2d', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '700', cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Saving...' : 'Save'}</button>
                           <button onClick={() => { setEditDay(null); setError('') }} style={{ padding: '10px 20px', background: '#fff', color: '#333', border: '1px solid #ccc', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
@@ -1003,7 +1068,7 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    {viewDay === day && hasEntry && InlineDayView({ day, entry })}
+                    {viewDay === day && hasEntry && InlineDayView({ day, entry, ge: greenEntries[day] })}
                   </div>
                 )
               })}
