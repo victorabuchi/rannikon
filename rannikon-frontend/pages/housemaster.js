@@ -19,7 +19,7 @@ function formatDate(d) {
   return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
-function WorklogCard({ wl }) {
+function WorklogCard({ wl, onDelete }) {
   const logs = Array.isArray(wl.logs) ? wl.logs : (typeof wl.logs === 'string' ? JSON.parse(wl.logs) : [])
   const dateLabel = formatDate(wl.session_date)
 
@@ -110,6 +110,13 @@ function WorklogCard({ wl }) {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             Share
           </button>
+          <button
+            onClick={() => onDelete(wl.id)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', fontSize: '12px', fontWeight: '600', background: '#fff', border: '1px solid #f5c2c2', borderRadius: '7px', cursor: 'pointer', fontFamily: 'inherit', color: '#c0392b' }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c0392b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Delete
+          </button>
         </div>
       </div>
 
@@ -175,6 +182,16 @@ export default function HousemasterPage() {
     }
   }
 
+  async function deleteWorklog(id) {
+    if (!confirm('Delete this work log? This cannot be undone.')) return
+    try {
+      await api.delete(`/api/admin/housemaster-worklogs/${id}`)
+      setWorklogs(prev => prev.filter(wl => wl.id !== id))
+    } catch {
+      alert('Could not delete work log. Please try again.')
+    }
+  }
+
   if (loading || !me) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif' }}>
@@ -236,7 +253,7 @@ export default function HousemasterPage() {
             <p style={{ fontSize: '13px', color: '#bbb', marginTop: '6px' }}>When the admin sends a work log to your group, it will appear here.</p>
           </div>
         ) : (
-          worklogs.map(wl => <WorklogCard key={wl.id} wl={wl} />)
+          worklogs.map(wl => <WorklogCard key={wl.id} wl={wl} onDelete={deleteWorklog} />)
         )}
 
       </div>
