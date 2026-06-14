@@ -912,12 +912,12 @@ export default function Dashboard() {
       <Head><title>Rannikon</title><meta name="viewport" content="width=device-width, initial-scale=1" /></Head>
       <div style={{ background: '#f5f5f5', minHeight: '100vh' }}>
 
-        <div style={{ background: '#fff', borderBottom: '1px solid #ddd', padding: '6px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+        <div style={{ background: '#fff', borderBottom: '1px solid #ddd', padding: '6px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div onClick={() => window.location.reload()} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             <img src="/rannikkopuutarhalogo.png" alt="Rannikon Puutarha" style={{ height: '46px', width: 'auto', display: 'block' }} />
             <span style={{ fontFamily: "'Dancing Script', cursive", fontWeight: '700', fontSize: '22px', color: '#2d6a2d', lineHeight: 1 }}>Rannikon Puutarha</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {worker && (
               <button onClick={() => { setWorkNumInput(worker.work_number || ''); setWorkNumError(''); setWorkNumModal(true) }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -931,7 +931,8 @@ export default function Dashboard() {
               <button onClick={() => router.push('/admin')} style={{ padding: '6px 14px', background: '#fff', border: '1px solid #2d6a2d', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', color: '#2d6a2d', fontWeight: '600' }}>{t('housemaster.adminBtn')}</button>
             )}
             <button onClick={logout} style={{ padding: '6px 14px', background: '#2d6a2d', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', color: '#fff', fontWeight: '600' }}>{t('nav.signOut')}</button>
-            <LanguageSelector />
+            <LanguageSelector className="lang-full" />
+            <LanguageSelector compact className="lang-compact" />
           </div>
         </div>
 

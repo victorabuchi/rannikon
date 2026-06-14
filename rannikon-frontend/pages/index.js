@@ -683,10 +683,15 @@ export default function Home() {
           .hero-visual{display:flex!important;justify-content:center;margin-top:36px}
           .footer-cols{flex-direction:column!important;gap:32px!important}
         }
+        @media(max-width:480px){
+          .nav-bar{padding:0 12px!important}
+          .nav-actions{gap:6px!important}
+          .nav-action-btn{padding:7px 10px!important;font-size:13px!important}
+        }
       `}</style>
 
       {/* NAV */}
-      <nav style={{ background: 'rgba(250,250,249,0.96)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e8e8e3', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200, padding: '0 24px' }}>
+      <nav className="nav-bar" style={{ background: '#fff', borderBottom: '1px solid #e8e8e3', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200, padding: '0 24px' }}>
         <div style={{ maxWidth: '1080px', margin: '0 auto', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <img src="/rannikkopuutarhalogo.png" alt="Rannikon Puutarha" style={{ height: '40px', width: 'auto', flexShrink: 0, borderRadius: '6px' }} />
@@ -701,10 +706,11 @@ export default function Home() {
                 onMouseEnter={e => e.target.style.color = '#2d6a2d'} onMouseLeave={e => e.target.style.color = '#555'}>{l.label}</a>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <button className="nav-btn" onClick={() => router.push('/login')} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', color: '#333', transition: 'background 0.15s' }}>{t('auth.login')}</button>
-            <button className="cta-btn" onClick={() => router.push('/register')} style={{ padding: '8px 16px', background: '#2d6a2d', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#fff' }}>{t('home.getStarted')}</button>
-            <LanguageSelector />
+          <div className="nav-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button className="nav-btn nav-action-btn" onClick={() => router.push('/login')} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', color: '#333', whiteSpace: 'nowrap', flexShrink: 0, transition: 'background 0.15s' }}>{t('auth.login')}</button>
+            <button className="cta-btn nav-action-btn" onClick={() => router.push('/register')} style={{ padding: '8px 16px', background: '#2d6a2d', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#fff', whiteSpace: 'nowrap', flexShrink: 0 }}>{t('home.getStarted')}</button>
+            <LanguageSelector className="lang-full" />
+            <LanguageSelector compact className="lang-compact" />
           </div>
         </div>
       </nav>

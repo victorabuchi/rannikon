@@ -40,3 +40,16 @@ a {
     color-scheme: dark;
   }
 }
+
+.lang-compact {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .lang-full {
+    display: none;
+  }
+  .lang-compact {
+    display: inline-block;
+  }
+}
