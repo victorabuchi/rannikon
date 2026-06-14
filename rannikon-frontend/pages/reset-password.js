@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import api from '../lib/api'
+import { useLanguage } from '@/lib/i18n'
+import LanguageSelector from '@/components/LanguageSelector'
 
 function EyeIcon({ open }) {
   return open ? (
@@ -18,6 +20,7 @@ function EyeIcon({ open }) {
 
 export default function ResetPassword() {
   const router = useRouter()
+  const { t } = useLanguage()
   const { token } = router.query
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -31,11 +34,11 @@ export default function ResetPassword() {
     e.preventDefault()
     setError('')
     if (password !== confirm) {
-      setError('Passwords do not match')
+      setError(t('auth.passwordsDoNotMatch'))
       return
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters')
+      setError(t('auth.passwordMinLength'))
       return
     }
     setLoading(true)
@@ -44,7 +47,7 @@ export default function ResetPassword() {
       setSuccess(true)
       setTimeout(() => router.push('/login'), 3000)
     } catch (err) {
-      setError(err.response?.data?.error || 'Reset failed. The link may have expired.')
+      setError(err.response?.data?.error || t('auth.resetFailed'))
     } finally {
       setLoading(false)
     }
@@ -52,7 +55,7 @@ export default function ResetPassword() {
 
   return (
     <>
-      <Head><title>Reset Password | Rannikon</title><meta name="viewport" content="width=device-width, initial-scale=1" /></Head>
+      <Head><title>{t('auth.setNewPassword')} | Rannikon</title><meta name="viewport" content="width=device-width, initial-scale=1" /></Head>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
         body{font-family:'DM Sans',sans-serif;background:#fff;color:#1a1a18;-webkit-font-smoothing:antialiased}
@@ -70,28 +73,28 @@ export default function ResetPassword() {
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#fff' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '40px', marginBottom: '16px' }}>
           <img src="/rannikkopuutarhalogo.png" alt="Rannikon Puutarha" style={{ height: '48px', width: 'auto', marginBottom: '14px', borderRadius: '8px' }} />
-          <h1 style={{ fontSize: '24px', fontWeight: '300', letterSpacing: '-0.3px', color: '#1a1a18' }}>Set a new password</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: '300', letterSpacing: '-0.3px', color: '#1a1a18' }}>{t('auth.setNewPassword')}</h1>
         </div>
 
         <div style={{ width: '100%', maxWidth: '340px', border: '1px solid #d0d7de', borderRadius: '6px', padding: '20px', background: '#fff' }}>
           {success ? (
             <div className="success-box">
               <div style={{ fontSize: '32px', marginBottom: '8px' }}>&#10003;</div>
-              <p style={{ fontWeight: '700', marginBottom: '4px' }}>Password updated</p>
-              <p style={{ fontSize: '13px', color: '#555' }}>Redirecting you to sign in...</p>
+              <p style={{ fontWeight: '700', marginBottom: '4px' }}>{t('auth.passwordUpdated')}</p>
+              <p style={{ fontSize: '13px', color: '#555' }}>{t('auth.redirectingToSignIn')}</p>
             </div>
           ) : (
             <form onSubmit={handleReset} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {error && <div className="error-box">{error}</div>}
 
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>New password</label>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>{t('auth.newPassword')}</label>
                 <div className="gh-input-wrap">
                   <input
                     className="gh-input"
                     style={{ paddingRight: '36px' }}
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Min 8 characters"
+                    placeholder={t('auth.min8Chars')}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     required
@@ -103,13 +106,13 @@ export default function ResetPassword() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>Confirm new password</label>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>{t('auth.confirmNewPassword')}</label>
                 <div className="gh-input-wrap">
                   <input
                     className="gh-input"
                     style={{ paddingRight: '36px' }}
                     type={showConfirm ? 'text' : 'password'}
-                    placeholder="Repeat your password"
+                    placeholder={t('auth.repeatPassword')}
                     value={confirm}
                     onChange={e => setConfirm(e.target.value)}
                     required
@@ -121,19 +124,23 @@ export default function ResetPassword() {
               </div>
 
               <button type="submit" className="gh-btn-green" disabled={loading || !token}>
-                {loading ? 'Updating password...' : 'Set new password'}
+                {loading ? t('auth.updatingPassword') : t('auth.setNewPasswordBtn')}
               </button>
             </form>
           )}
         </div>
 
         <p style={{ marginTop: '16px', fontSize: '14px', color: '#666' }}>
-          <a href="/login" style={{ color: '#2d6a2d', fontWeight: '500' }}>Back to sign in</a>
+          <a href="/login" style={{ color: '#2d6a2d', fontWeight: '500' }}>{t('auth.backToSignIn')}</a>
         </p>
 
+        <div style={{ marginTop: '20px' }}>
+          <LanguageSelector />
+        </div>
+
         <div style={{ marginTop: 'auto', paddingTop: '32px', paddingBottom: '24px', display: 'flex', flexWrap: 'wrap', gap: '10px 16px', justifyContent: 'center' }}>
-          {[['Terms', '#'], ['Privacy', '#'], ['Contact support', '#']].map(([l, h]) => (
-            <a key={l} href={h} style={{ color: '#0969da', fontSize: '11px' }}>{l}</a>
+          {['terms', 'privacy', 'contactSupport'].map(k => (
+            <a key={k} href="#" style={{ color: '#0969da', fontSize: '11px' }}>{t(`footer.${k}`)}</a>
           ))}
         </div>
       </div>

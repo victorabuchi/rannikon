@@ -6,6 +6,8 @@ import { getWorker, isLoggedIn, clearAuth, saveAuth } from '../lib/auth'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
+import { useLanguage } from '@/lib/i18n'
+import LanguageSelector from '@/components/LanguageSelector'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const VALID = ['09:00','09:15','09:30','09:45']
@@ -54,6 +56,7 @@ function hasOrangeWork(entry) {
 }
 
 function EditableCell({ value, field, entryDate, onSave, style }) {
+  const { t } = useLanguage()
   const [editing, setEditing] = React.useState(false)
   const [val, setVal] = React.useState(value || '')
 
@@ -82,7 +85,7 @@ function EditableCell({ value, field, entryDate, onSave, style }) {
   return (
     <span
       onClick={() => setEditing(true)}
-      title="Click to edit"
+      title={t('dashboard.clickToEdit')}
       style={{ cursor: 'pointer', display: 'block', minWidth: '40px', minHeight: '18px', padding: '1px 2px', borderRadius: '3px', transition: 'background 0.15s', ...style }}
       onMouseEnter={e => e.currentTarget.style.background = '#f0f7f0'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -93,6 +96,7 @@ function EditableCell({ value, field, entryDate, onSave, style }) {
 }
 
 export default function Dashboard() {
+  const { t } = useLanguage()
   const router = useRouter()
   const [worker, setWorker] = useState(null)
   const [entries, setEntries] = useState({})
@@ -186,7 +190,7 @@ export default function Dashboard() {
 
   async function saveWorkNumber() {
     setWorkNumError('')
-    if (!workNumInput.trim()) { setWorkNumError('Work number is required'); return }
+    if (!workNumInput.trim()) { setWorkNumError(t('dashboard.workNumberRequired')); return }
     setWorkNumSaving(true)
     try {
       const res = await api.patch('/api/auth/work-number', { work_number: workNumInput.trim() })
@@ -195,7 +199,7 @@ export default function Dashboard() {
       setWorkNumModal(false)
       setWorkNumInput('')
     } catch (err) {
-      setWorkNumError(err.response?.data?.error || 'Failed to update work number')
+      setWorkNumError(err.response?.data?.error || t('dashboard.failedUpdateWorkNumber'))
     } finally {
       setWorkNumSaving(false)
     }
@@ -211,13 +215,13 @@ export default function Dashboard() {
       await loadGreenEntries()
       setConfirmDelete(null)
     } catch (err) {
-      const msg = err?.response?.data?.error || err?.response?.status || err?.message || 'unknown'
-      alert('Delete failed: ' + msg)
+      const msg = err?.response?.data?.error || err?.response?.status || err?.message || t('housemaster.unknown')
+      alert(t('dashboard.deleteFailedPrefix') + msg)
     }
   }
 
   async function saveEntry() {
-    if (!form.start || !form.finish) { setError('Start and finish time are required'); return }
+    if (!form.start || !form.finish) { setError(t('dashboard.startFinishRequired')); return }
     setSaving(true)
     setError('')
     try {
@@ -243,7 +247,7 @@ export default function Dashboard() {
       }
       setEditDay(null)
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save')
+      setError(err.response?.data?.error || t('dashboard.failedToSave'))
     } finally {
       setSaving(false)
     }
@@ -271,18 +275,18 @@ export default function Dashboard() {
     return (
       <div style={{ marginTop: '12px', borderTop: '1px solid #eee', paddingTop: '12px', overflowX: 'auto' }}>
 
-        <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '2px' }}>WHITE PAPER: WORK PAID BY THE HOUR</p>
-        <p style={{ fontSize: '11px', color: '#555', marginBottom: '6px' }}>8 HOURS PER DAY / 40 HOURS PER WEEK</p>
+        <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '2px' }}>{t('papers.whitePaper').toUpperCase()}: {t('papers.workPaidByHour')}</p>
+        <p style={{ fontSize: '11px', color: '#555', marginBottom: '6px' }}>{t('papers.hoursPerDayWeek')}</p>
         <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
           <table style={{ borderCollapse: 'collapse', minWidth: '540px', width: '100%', fontSize: '12px' }}>
             <thead>
               <tr>
-                <th style={thW()}>Date</th>
-                <th style={thW()}>Start</th>
-                <th style={thW()}>Finish</th>
-                <th style={thW()}>Must have Eating break</th>
-                <th style={thW()}>Hours minus breaks</th>
-                <th style={thW()}>What work</th>
+                <th style={thW()}>{t('papers.date')}</th>
+                <th style={thW()}>{t('papers.start')}</th>
+                <th style={thW()}>{t('papers.finish')}</th>
+                <th style={thW()}>{t('papers.eatingBreak')}</th>
+                <th style={thW()}>{t('papers.hoursMinusBreaks')}</th>
+                <th style={thW()}>{t('papers.whatWork')}</th>
               </tr>
             </thead>
             <tbody>
@@ -290,28 +294,28 @@ export default function Dashboard() {
                 <td style={tdW()}><b>{day}</b></td>
                 <td style={tdW()}>{entry.white_start?.slice(0,5)}</td>
                 <td style={tdW()}>{entry.white_finish?.slice(0,5)}</td>
-                <td style={tdW({ textAlign: 'center' })}>30 min</td>
+                <td style={tdW({ textAlign: 'center' })}>{t('papers.thirtyMin')}</td>
                 <td style={tdW({ fontWeight: '700', color: '#2d6a2d' })}>{entry.white_hours}</td>
                 <td style={tdW()}>{entry.what_work}</td>
               </tr>
             </tbody>
           </table>
         </div>
-        <p style={{ fontSize: '11px', color: '#555', marginBottom: '16px', fontStyle: 'italic' }}>When you have worked 4 hours, You need to have an eating break, minimum of 30 mins. START WORK 9:00, 9:15, 9:30 or 9:45.</p>
+        <p style={{ fontSize: '11px', color: '#555', marginBottom: '16px', fontStyle: 'italic' }}>{t('papers.eatingBreakFull')}</p>
 
-        <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '2px', color: '#b45309' }}>ORANGE PAPER: EXTRAWORK PAID BY THE HOUR</p>
-        <p style={{ fontSize: '11px', color: '#555', marginBottom: '6px' }}>MAXIMUM 3 HOURS PER DAY (MONDAY-FRIDAY) | MAXIMUM 11 HOURS PER DAY (SATURDAY)</p>
+        <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '2px', color: '#b45309' }}>{t('papers.orangePaper').toUpperCase()}: {t('papers.extraWorkPaidByHour')}</p>
+        <p style={{ fontSize: '11px', color: '#555', marginBottom: '6px' }}>{t('papers.maxHoursWeekday')} | {t('papers.maxHoursSaturday')}</p>
         <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
           <table style={{ borderCollapse: 'collapse', minWidth: '540px', width: '100%', fontSize: '12px' }}>
             <thead>
               <tr>
-                <th style={thO()}>Date</th>
-                <th style={thO()}>Start</th>
-                <th style={thO()}>Finish</th>
-                <th style={thO()}>Break</th>
-                <th style={thO()}>Hours minus breaks</th>
-                <th style={thO()}>What work</th>
-                <th style={thO()}>Signature</th>
+                <th style={thO()}>{t('papers.date')}</th>
+                <th style={thO()}>{t('papers.start')}</th>
+                <th style={thO()}>{t('papers.finish')}</th>
+                <th style={thO()}>{t('housemaster.breakShort')}</th>
+                <th style={thO()}>{t('papers.hoursMinusBreaks')}</th>
+                <th style={thO()}>{t('papers.whatWork')}</th>
+                <th style={thO()}>{t('papers.signature')}</th>
               </tr>
             </thead>
             <tbody>
@@ -327,45 +331,45 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
-        <p style={{ fontSize: '11px', color: '#555', marginBottom: '16px', fontStyle: 'italic' }}>Start work 9:00, 9:15, 9:30 or 9:45. Work does not start 9:05, 9:10, 9:20, 9:25 etc.</p>
+        <p style={{ fontSize: '11px', color: '#555', marginBottom: '16px', fontStyle: 'italic' }}>{t('papers.startWorkNote')}</p>
 
-        <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '6px', color: '#1565c0' }}>WEEKLY SUMMARY</p>
+        <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '6px', color: '#1565c0' }}>{t('papers.weeklySummary').toUpperCase()}</p>
         <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
           <table style={{ borderCollapse: 'collapse', minWidth: '540px', width: '100%', fontSize: '12px' }}>
             <thead>
               <tr>
-                <th style={thB({ textAlign: 'left', minWidth: '140px' })}>Type</th>
-                <th style={thB()}>Mon</th>
-                <th style={thB()}>Tue</th>
-                <th style={thB()}>Wed</th>
-                <th style={thB()}>Thur</th>
-                <th style={thB()}>Fri</th>
-                <th style={thB()}>Sat (max 11)</th>
-                <th style={thB()}>Sun</th>
-                <th style={thB()}>Total hours</th>
+                <th style={thB({ textAlign: 'left', minWidth: '140px' })}>{t('papers.type')}</th>
+                <th style={thB()}>{t('papers.daysShort')[1]}</th>
+                <th style={thB()}>{t('papers.daysShort')[2]}</th>
+                <th style={thB()}>{t('papers.daysShort')[3]}</th>
+                <th style={thB()}>{t('papers.daysShort')[4]}</th>
+                <th style={thB()}>{t('papers.daysShort')[5]}</th>
+                <th style={thB()}>{t('papers.daysShort')[6]} ({t('papers.max11')})</th>
+                <th style={thB()}>{t('papers.daysShort')[0]}</th>
+                <th style={thB()}>{t('papers.totalHours')}</th>
               </tr>
             </thead>
             <tbody>
               <tr style={{ background: '#e8f5e9' }}>
-                <td style={tdG({ textAlign: 'left', fontWeight: '700' })}>Berry picking (kg)</td>
+                <td style={tdG({ textAlign: 'left', fontWeight: '700' })}>{t('days.berryPicking')} (kg)</td>
                 <td style={tdG()}></td><td style={tdG()}></td><td style={tdG()}></td><td style={tdG()}></td><td style={tdG()}></td><td style={tdG()}></td>
                 <td style={tdG({ color: '#999' })}>X</td>
                 <td style={tdG({ fontWeight: '700', color: '#2d6a2d' })}>{ge?.kg_picked != null ? ge.kg_picked : ''}</td>
               </tr>
               <tr>
-                <td style={tdB({ textAlign: 'left', fontWeight: '600' })}>Working hours (max 8)</td>
+                <td style={tdB({ textAlign: 'left', fontWeight: '600' })}>{t('papers.regHrs')} ({t('papers.max8')})</td>
                 <td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td>
                 <td style={tdB({ color: '#999' })}>X</td>
                 <td style={tdB({ fontWeight: '700', color: '#2d6a2d' })}>{entry.white_hours}</td>
               </tr>
               <tr>
-                <td style={tdB({ textAlign: 'left', fontWeight: '600' })}>Extra hours (max 3)</td>
+                <td style={tdB({ textAlign: 'left', fontWeight: '600' })}>{t('papers.extraHrs')} ({t('papers.max3')})</td>
                 <td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td>
                 <td style={tdB({ color: '#999' })}>X</td>
                 <td style={tdB({ fontWeight: '700', color: '#b45309' })}>{entry.orange_hours}</td>
               </tr>
               <tr style={{ background: '#e3f2fd' }}>
-                <td style={tdB({ textAlign: 'left', fontWeight: '700' })}>Total</td>
+                <td style={tdB({ textAlign: 'left', fontWeight: '700' })}>{t('papers.total')}</td>
                 <td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td>
                 <td style={tdB({ color: '#999' })}>X</td>
                 <td style={tdB({ fontWeight: '700', color: '#1565c0', fontSize: '13px' })}>{entry.total_hours}</td>
@@ -374,19 +378,19 @@ export default function Dashboard() {
           </table>
         </div>
 
-        <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '2px', color: '#2d6a2d' }}>GREEN PAPER: TIME USED FOR PICKUP (SALARY PAID BY KILOS)</p>
+        <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '2px', color: '#2d6a2d' }}>{t('papers.greenPaperTitle')}</p>
         <div style={{ overflowX: 'auto', marginBottom: '8px' }}>
           <table style={{ borderCollapse: 'collapse', minWidth: '580px', width: '100%', fontSize: '12px' }}>
             <thead>
               <tr>
-                <th style={thG()}>Date</th>
-                <th style={thG()}>Start</th>
-                <th style={thG()}>Finish</th>
-                <th style={thG()}>Must have Eating break</th>
-                <th style={thG()}>Extra Breaks</th>
-                <th style={thG()}>Hours minus breaks</th>
-                <th style={thG()}>What was picked up</th>
-                <th style={thG()}>Kg picked</th>
+                <th style={thG()}>{t('papers.date')}</th>
+                <th style={thG()}>{t('papers.start')}</th>
+                <th style={thG()}>{t('papers.finish')}</th>
+                <th style={thG()}>{t('papers.eatingBreak')}</th>
+                <th style={thG()}>{t('papers.extraBreaks')}</th>
+                <th style={thG()}>{t('papers.hoursMinusBreaks')}</th>
+                <th style={thG()}>{t('days.whatPicked')}</th>
+                <th style={thG()}>{t('days.kgPicked')}</th>
               </tr>
             </thead>
             <tbody>
@@ -394,7 +398,7 @@ export default function Dashboard() {
                 <td style={tdG()}><b>{day}</b></td>
                 <td style={tdG()}>{ge?.start_time?.slice(0,5)}</td>
                 <td style={tdG()}>{ge?.finish_time?.slice(0,5)}</td>
-                <td style={tdG({ textAlign: 'center' })}>1 hour</td>
+                <td style={tdG({ textAlign: 'center' })}>{t('papers.oneHour')}</td>
                 <td style={tdG({ textAlign: 'center' })}></td>
                 <td style={tdG()}></td>
                 <td style={tdG()}>{ge?.what_picked}</td>
@@ -403,7 +407,7 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
-        <p style={{ fontSize: '11px', color: '#555', fontStyle: 'italic' }}>HOX, NEED TO PICKUP 10 KILO PER HOUR!</p>
+        <p style={{ fontSize: '11px', color: '#555', fontStyle: 'italic' }}>{t('papers.kiloPerHourNote')}</p>
       </div>
     )
   }
@@ -431,30 +435,30 @@ export default function Dashboard() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0', border: '1px solid #ccc', borderRadius: '8px', overflow: 'hidden', background: '#fff' }}>
 
         <div style={{ background: '#f5f5f5', borderBottom: '1px solid #ccc', padding: '8px', display: 'flex', flexDirection: 'row', gap: '6px', flexWrap: 'wrap' }}>
-          <p style={{ fontSize: '11px', fontWeight: '700', color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Papers</p>
-          {navBtn('white', 'White Paper', 'Work paid by hour')}
-          {navBtn('orange', 'Orange Paper', 'Extrawork')}
-          {navBtn('weekly', 'Weekly Summary', 'Mon to Sun totals')}
-          {navBtn('green', 'Green Paper', 'Berry picking')}
+          <p style={{ fontSize: '11px', fontWeight: '700', color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('dashboard.papersLabel')}</p>
+          {navBtn('white', t('papers.whitePaper'), t('dashboard.whitePaperSub'))}
+          {navBtn('orange', t('papers.orangePaper'), t('dashboard.orangePaperSub'))}
+          {navBtn('weekly', t('papers.weeklySummary'), t('dashboard.weeklySub'))}
+          {navBtn('green', t('papers.greenPaper'), t('days.berryPicking'))}
         </div>
 
         <div style={{ flex: 1, padding: '16px', overflowX: 'auto' }}>
 
           {activeTab === 'white' && (
             <div>
-              <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '2px' }}>WORK PAID BY THE HOUR</p>
-              <p style={{ fontSize: '12px', fontWeight: '700', marginBottom: '2px' }}>8 HOURS PER DAY / 40 HOURS PER WEEK</p>
-              <p style={{ fontSize: '11px', color: '#333', marginBottom: '10px' }}>Name: <b>{worker?.full_name}</b> &nbsp;&nbsp; Work number: <b>{worker?.work_number}</b></p>
+              <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '2px' }}>{t('papers.workPaidByHour')}</p>
+              <p style={{ fontSize: '12px', fontWeight: '700', marginBottom: '2px' }}>{t('papers.hoursPerDayWeek')}</p>
+              <p style={{ fontSize: '11px', color: '#333', marginBottom: '10px' }}>{t('housemaster.name')}: <b>{worker?.full_name}</b> &nbsp;&nbsp; {t('auth.workNumber')}: <b>{worker?.work_number}</b></p>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ borderCollapse: 'collapse', minWidth: '600px', width: '100%', fontSize: '12px' }}>
                   <thead>
                     <tr>
-                      <th style={thW()}>Date</th>
-                      <th style={thW()}>Start</th>
-                      <th style={thW()}>Finish</th>
-                      <th style={thW()}>Must have Eating break</th>
-                      <th style={thW()}>Hours minus breaks</th>
-                      <th style={thW()}>What work</th>
+                      <th style={thW()}>{t('papers.date')}</th>
+                      <th style={thW()}>{t('papers.start')}</th>
+                      <th style={thW()}>{t('papers.finish')}</th>
+                      <th style={thW()}>{t('papers.eatingBreak')}</th>
+                      <th style={thW()}>{t('papers.hoursMinusBreaks')}</th>
+                      <th style={thW()}>{t('papers.whatWork')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -465,7 +469,7 @@ export default function Dashboard() {
                           <td style={tdW()}><b>{day}</b></td>
                           <td style={tdW()}>{entry ? <EditableCell value={entry.white_start?.slice(0,5)} field="white_start" entryDate={year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')} onSave={saveField} /> : ''}</td>
                           <td style={tdW()}>{entry ? <EditableCell value={entry.white_finish?.slice(0,5)} field="white_finish" entryDate={year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')} onSave={saveField} /> : ''}</td>
-                          <td style={tdW({ textAlign: 'center' })}>30 min</td>
+                          <td style={tdW({ textAlign: 'center' })}>{t('papers.thirtyMin')}</td>
                           <td style={tdW({ fontWeight: '700', color: entry ? '#2d6a2d' : '' })}>{entry ? <EditableCell value={entry.white_hours || '8:00'} field="white_hours" entryDate={year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')} onSave={saveField} /> : ''}</td>
                           <td style={tdW()}>{entry ? <EditableCell value={entry.what_work} field="what_work" entryDate={year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')} onSave={saveField} /> : ''}</td>
                         </tr>
@@ -474,16 +478,16 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
-              <p style={{ fontSize: '11px', color: '#555', marginTop: '8px', fontStyle: 'italic' }}>When you have worked 4 hours, You need to have an eating break, minimum of 30 mins.</p>
-              <p style={{ fontSize: '11px', color: '#555', fontStyle: 'italic' }}>START WORK 9:00, 9:15, 9:30 or 9:45. WORK DOES NOT START 9:05, 9:10, 9:20, 9:25 etc.</p>
+              <p style={{ fontSize: '11px', color: '#555', marginTop: '8px', fontStyle: 'italic' }}>{t('papers.eatingBreakShort')}</p>
+              <p style={{ fontSize: '11px', color: '#555', fontStyle: 'italic' }}>{t('papers.startWorkCaps')}</p>
               <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '12px', display: 'flex', gap: '8px' }}>
                 <button onClick={() => downloadPDF('white')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="14" height="14" rx="2" fill="#E53935"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial,sans-serif" fill="white">PDF</text></svg>
-                  Download PDF
+                  {t('papers.downloadPDF')}
                 </button>
                 <button onClick={() => downloadExcel('white')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="14" height="14" rx="2" fill="#217346"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial,sans-serif" fill="white">XLS</text></svg>
-                  Download Excel
+                  {t('papers.downloadExcel')}
                 </button>
               </div>
             </div>
@@ -491,21 +495,21 @@ export default function Dashboard() {
 
           {activeTab === 'orange' && (
             <div>
-              <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '2px', color: '#b45309' }}>EXTRAWORK PAID BY THE HOUR</p>
-              <p style={{ fontSize: '12px', fontWeight: '700', marginBottom: '2px' }}>MAXIMUM 3 HOURS PER DAY (MONDAY-FRIDAY)</p>
-              <p style={{ fontSize: '12px', fontWeight: '700', marginBottom: '2px' }}>MAXIMUM 11 HOURS PER DAY (SATURDAY)</p>
-              <p style={{ fontSize: '11px', color: '#333', marginBottom: '10px' }}>Name: <b>{worker?.full_name}</b> &nbsp;&nbsp; Work number: <b>{worker?.work_number}</b></p>
+              <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '2px', color: '#b45309' }}>{t('papers.extraWorkPaidByHour')}</p>
+              <p style={{ fontSize: '12px', fontWeight: '700', marginBottom: '2px' }}>{t('papers.maxHoursWeekday')}</p>
+              <p style={{ fontSize: '12px', fontWeight: '700', marginBottom: '2px' }}>{t('papers.maxHoursSaturday')}</p>
+              <p style={{ fontSize: '11px', color: '#333', marginBottom: '10px' }}>{t('housemaster.name')}: <b>{worker?.full_name}</b> &nbsp;&nbsp; {t('auth.workNumber')}: <b>{worker?.work_number}</b></p>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ borderCollapse: 'collapse', minWidth: '600px', width: '100%', fontSize: '12px', background: '#fffbf0' }}>
                   <thead>
                     <tr>
-                      <th style={thO()}>Date</th>
-                      <th style={thO()}>Start</th>
-                      <th style={thO()}>Finish</th>
-                      <th style={thO()}>Break</th>
-                      <th style={thO()}>Hours minus breaks</th>
-                      <th style={thO()}>What work</th>
-                      <th style={thO()}>Signature</th>
+                      <th style={thO()}>{t('papers.date')}</th>
+                      <th style={thO()}>{t('papers.start')}</th>
+                      <th style={thO()}>{t('papers.finish')}</th>
+                      <th style={thO()}>{t('housemaster.breakShort')}</th>
+                      <th style={thO()}>{t('papers.hoursMinusBreaks')}</th>
+                      <th style={thO()}>{t('papers.whatWork')}</th>
+                      <th style={thO()}>{t('papers.signature')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -527,15 +531,15 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
-              <p style={{ fontSize: '11px', color: '#555', marginTop: '8px', fontStyle: 'italic' }}>Start work 9:00, 9:15, 9:30 or 9:45. Work does not start 9:05, 9:10, 9:20, 9:25 etc.</p>
+              <p style={{ fontSize: '11px', color: '#555', marginTop: '8px', fontStyle: 'italic' }}>{t('papers.startWorkNote')}</p>
               <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '12px', display: 'flex', gap: '8px' }}>
                 <button onClick={() => downloadPDF('orange')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="14" height="14" rx="2" fill="#E53935"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial,sans-serif" fill="white">PDF</text></svg>
-                  Download PDF
+                  {t('papers.downloadPDF')}
                 </button>
                 <button onClick={() => downloadExcel('orange')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="14" height="14" rx="2" fill="#217346"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial,sans-serif" fill="white">XLS</text></svg>
-                  Download Excel
+                  {t('papers.downloadExcel')}
                 </button>
               </div>
             </div>
@@ -543,12 +547,12 @@ export default function Dashboard() {
 
           {activeTab === 'weekly' && (
             <div>
-              <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '2px' }}>WEEKLY SUMMARY</p>
-              <p style={{ fontSize: '11px', color: '#333', marginBottom: '12px' }}>Name: <b>{worker?.full_name}</b> &nbsp;&nbsp; Work number: <b>{worker?.work_number}</b></p>
+              <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '2px' }}>{t('papers.weeklySummary').toUpperCase()}</p>
+              <p style={{ fontSize: '11px', color: '#333', marginBottom: '12px' }}>{t('housemaster.name')}: <b>{worker?.full_name}</b> &nbsp;&nbsp; {t('auth.workNumber')}: <b>{worker?.work_number}</b></p>
               {Array.from({ length: Math.min(Math.ceil(days / 7), 4) }, (_, weekIdx) => {
                 const weekStart = weekIdx * 7 + 1
                 const weekDays = Array.from({ length: 7 }, (_, i) => weekStart + i).filter(d => d <= days)
-                const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+                const DAY_NAMES = t('papers.daysShort')
                 const dayInfos = Array.from({ length: 7 }, (_, i) => {
                   const d = weekStart + i
                   const dow = d <= days ? new Date(year, month - 1, d).getDay() : null
@@ -572,7 +576,7 @@ export default function Dashboard() {
                 const tdG2 = (extra) => ({ border: '1px solid #2d6a2d', padding: '5px 6px', fontSize: '11px', textAlign: 'center', background: '#f6fff6', ...extra })
                 return (
                   <div key={weekIdx} style={{ marginBottom: '20px' }}>
-                    <p style={{ fontWeight: '800', fontSize: '12px', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Week {weekIdx + 1}</p>
+                    <p style={{ fontWeight: '800', fontSize: '12px', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('papers.week')} {weekIdx + 1}</p>
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '11px' }}>
                         <thead>
@@ -581,11 +585,11 @@ export default function Dashboard() {
                             {dayInfos.map(({ d, name, exists, isSun, isSat }) => (
                               <th key={d} style={thW2({ minWidth: '44px', background: isSun ? '#e8e8e8' : '#e0e0e0', color: isSun ? '#999' : '#1a1a18' })}>
                                 {name || ''}<br/>
-                                {exists && !isSun && <span style={{ fontSize: '9px', fontWeight: '400', color: '#666' }}>{isSat ? 'max 11' : 'max 3'}</span>}
+                                {exists && !isSun && <span style={{ fontSize: '9px', fontWeight: '400', color: '#666' }}>{isSat ? t('papers.max11') : t('papers.max3')}</span>}
                               </th>
                             ))}
                             <th style={thW2({ minWidth: '60px', background: '#d0d0d0' })}>
-                              total<br/><span style={{ fontSize: '9px', fontWeight: '400' }}>hours</span>
+                              {t('papers.total').toLowerCase()}<br/><span style={{ fontSize: '9px', fontWeight: '400' }}>{t('papers.hours').toLowerCase()}</span>
                             </th>
                           </tr>
                         </thead>
@@ -594,7 +598,7 @@ export default function Dashboard() {
                           <tr>
                             <td style={tdG2({ textAlign: 'left', fontWeight: '700', color: '#2d6a2d', background: '#e8f5e9' })}>
                               <span style={{ display: 'inline-block', width: '9px', height: '9px', background: '#2d6a2d', borderRadius: '2px', marginRight: '5px', verticalAlign: 'middle' }}/>
-                              Berry picking (kg)
+                              {t('days.berryPicking')} (kg)
                             </td>
                             {dayInfos.map(({ d, isSun, exists }) => (
                               <td key={d} style={tdG2({ color: isSun ? '#bbb' : '#2d6a2d', background: '#e8f5e9', fontWeight: '700' })}>
@@ -610,8 +614,8 @@ export default function Dashboard() {
                           <tr>
                             <td style={tdW2({ textAlign: 'left', fontWeight: '700', background: '#fafafa' })}>
                               <span style={{ display: 'inline-block', width: '9px', height: '9px', background: '#ccc', border: '1px solid #999', borderRadius: '2px', marginRight: '5px', verticalAlign: 'middle' }}/>
-                              working hours
-                              <div style={{ fontSize: '9px', color: '#888', fontWeight: '400' }}>max 8</div>
+                              {t('papers.regHrs')}
+                              <div style={{ fontSize: '9px', color: '#888', fontWeight: '400' }}>{t('papers.max8')}</div>
                             </td>
                             {dayInfos.map(({ d, isSun, exists }) => (
                               <td key={d} style={tdW2({ fontWeight: entries[d] ? '700' : '400', background: '#fafafa', color: isSun ? '#bbb' : (entries[d] ? '#1a1a18' : '#ccc') })}>
@@ -620,14 +624,14 @@ export default function Dashboard() {
                             ))}
                             <td style={tdW2({ fontWeight: '700', background: '#fafafa' })}>
                               {minsToHHMM(totalWorking)}
-                              <div style={{ fontSize: '9px', color: '#888', fontWeight: '400' }}>max 40</div>
+                              <div style={{ fontSize: '9px', color: '#888', fontWeight: '400' }}>{t('papers.max40')}</div>
                             </td>
                           </tr>
                           {/* Orange row — extra hours */}
                           <tr>
                             <td style={tdO2({ textAlign: 'left', fontWeight: '700', color: '#b45309', background: '#fff3e0' })}>
                               <span style={{ display: 'inline-block', width: '9px', height: '9px', background: '#f59e0b', borderRadius: '2px', marginRight: '5px', verticalAlign: 'middle' }}/>
-                              extra hours / lisatyö
+                              {t('papers.extraHrs')} / lisatyö
                             </td>
                             {dayInfos.map(({ d, isSun, exists, isSat }) => (
                               <td key={d} style={tdO2({ fontWeight: entries[d] ? '700' : '400', background: '#fff3e0', color: isSun ? '#bbb' : (entries[d] ? '#b45309' : '#ccc') })}>
@@ -636,13 +640,13 @@ export default function Dashboard() {
                             ))}
                             <td style={tdO2({ fontWeight: '700', color: '#b45309', background: '#fff3e0' })}>
                               {minsToHHMM(totalExtra)}
-                              <div style={{ fontSize: '9px', color: '#888', fontWeight: '400' }}>max 17/week</div>
+                              <div style={{ fontSize: '9px', color: '#888', fontWeight: '400' }}>{t('papers.max17Week')}</div>
                             </td>
                           </tr>
                           {/* Yes / Signature row */}
                           <tr>
                             <td colSpan={9} style={{ border: '1px solid #333', padding: '6px 10px', fontSize: '11px', background: '#fff' }}>
-                              yes, I want to work extra hours &nbsp;☐&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Signature: _______________________
+                              {t('papers.yesWantExtraHours')} &nbsp;☐&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {t('papers.signature')}: _______________________
                             </td>
                           </tr>
                         </tbody>
@@ -654,11 +658,11 @@ export default function Dashboard() {
               <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '12px', display: 'flex', gap: '8px' }}>
                 <button onClick={() => downloadPDF('weekly')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="14" height="14" rx="2" fill="#E53935"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial,sans-serif" fill="white">PDF</text></svg>
-                  Download PDF
+                  {t('papers.downloadPDF')}
                 </button>
                 <button onClick={() => downloadExcel('weekly')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="14" height="14" rx="2" fill="#217346"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial,sans-serif" fill="white">XLS</text></svg>
-                  Download Excel
+                  {t('papers.downloadExcel')}
                 </button>
               </div>
             </div>
@@ -666,21 +670,21 @@ export default function Dashboard() {
 
           {activeTab === 'green' && (
             <div>
-              <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '2px', color: '#2d6a2d' }}>GREEN PAPER — TIME USED FOR PICKUP, SALARY IS PAID BY KILOS</p>
-              <p style={{ fontSize: '12px', fontWeight: '700', marginBottom: '2px', color: '#c0392b' }}>HOX, NEED TO PICKUP 10 KILO PER HOUR!</p>
-              <p style={{ fontSize: '11px', color: '#333', marginBottom: '10px' }}>Name: <b>{worker?.full_name}</b> &nbsp;&nbsp; Work number: <b>{worker?.work_number}</b></p>
+              <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '2px', color: '#2d6a2d' }}>{t('papers.greenPaperTitle')}</p>
+              <p style={{ fontSize: '12px', fontWeight: '700', marginBottom: '2px', color: '#c0392b' }}>{t('papers.kiloPerHourNote')}</p>
+              <p style={{ fontSize: '11px', color: '#333', marginBottom: '10px' }}>{t('housemaster.name')}: <b>{worker?.full_name}</b> &nbsp;&nbsp; {t('auth.workNumber')}: <b>{worker?.work_number}</b></p>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ borderCollapse: 'collapse', minWidth: '640px', width: '100%', fontSize: '12px' }}>
                   <thead>
                     <tr>
-                      <th style={thG()}>Date</th>
-                      <th style={thG()}>Start</th>
-                      <th style={thG()}>Finish</th>
-                      <th style={thG()}>Must have Eating break</th>
-                      <th style={thG()}>Extra Breaks</th>
-                      <th style={thG()}>Hours minus breaks</th>
-                      <th style={thG()}>What was picked up</th>
-                      <th style={thG()}>Kg picked</th>
+                      <th style={thG()}>{t('papers.date')}</th>
+                      <th style={thG()}>{t('papers.start')}</th>
+                      <th style={thG()}>{t('papers.finish')}</th>
+                      <th style={thG()}>{t('papers.eatingBreak')}</th>
+                      <th style={thG()}>{t('papers.extraBreaks')}</th>
+                      <th style={thG()}>{t('papers.hoursMinusBreaks')}</th>
+                      <th style={thG()}>{t('days.whatPicked')}</th>
+                      <th style={thG()}>{t('days.kgPicked')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -692,7 +696,7 @@ export default function Dashboard() {
                           <td style={tdG()}><b>{day}</b></td>
                           <td style={tdG()}><EditableCell value={ge?.start_time?.slice(0,5)} field="start_time" entryDate={dateStr} onSave={saveGreenField} /></td>
                           <td style={tdG()}><EditableCell value={ge?.finish_time?.slice(0,5)} field="finish_time" entryDate={dateStr} onSave={saveGreenField} /></td>
-                          <td style={tdG({ textAlign: 'center', color: '#888' })}>1 hour</td>
+                          <td style={tdG({ textAlign: 'center', color: '#888' })}>{t('papers.oneHour')}</td>
                           <td style={tdG({ textAlign: 'center' })}></td>
                           <td style={tdG()}></td>
                           <td style={tdG()}><EditableCell value={ge?.what_picked} field="what_picked" entryDate={dateStr} onSave={saveGreenField} /></td>
@@ -703,15 +707,15 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
-              <p style={{ fontSize: '11px', color: '#555', marginTop: '8px', fontStyle: 'italic' }}>When you have worked 4 hours, You need to have an eating break, minimum of 30 mins.</p>
+              <p style={{ fontSize: '11px', color: '#555', marginTop: '8px', fontStyle: 'italic' }}>{t('papers.eatingBreakShort')}</p>
               <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '12px', display: 'flex', gap: '8px' }}>
                 <button onClick={() => downloadPDF('green')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="14" height="14" rx="2" fill="#E53935"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial,sans-serif" fill="white">PDF</text></svg>
-                  Download PDF
+                  {t('papers.downloadPDF')}
                 </button>
                 <button onClick={() => downloadExcel('green')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer', color: '#333' }}>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="14" height="14" rx="2" fill="#217346"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial,sans-serif" fill="white">XLS</text></svg>
-                  Download Excel
+                  {t('papers.downloadExcel')}
                 </button>
               </div>
             </div>
@@ -726,19 +730,20 @@ export default function Dashboard() {
     const doc = new jsPDF({ orientation: tab === 'weekly' ? 'landscape' : 'portrait' })
     const daysCount = getDaysInMonth(month, year)
     const monthName = MONTHS[month - 1] + ' ' + year
+    const localizedMonth = t('months')[month - 1] + ' ' + year
 
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
 
     if (tab === 'white') {
-      doc.text('WORK PAID BY THE HOUR', 14, 16)
+      doc.text(t('papers.workPaidByHour'), 14, 16)
       doc.setFontSize(10); doc.setFont('helvetica', 'normal')
-      doc.text('8 HOURS PER DAY / 40 HOURS PER WEEK', 14, 22)
-      doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 28)
-      const rows = Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; return [d, e ? e.white_start?.slice(0,5) : '', e ? e.white_finish?.slice(0,5) : '', '30 min', e ? (e.white_hours || '8:00') : '', e ? e.what_work : ''] })
+      doc.text(t('papers.hoursPerDayWeek'), 14, 22)
+      doc.text(t('housemaster.name') + ': ' + (worker?.full_name || '') + '   ' + t('auth.workNumber') + ': ' + (worker?.work_number || '') + '   ' + localizedMonth, 14, 28)
+      const rows = Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; return [d, e ? e.white_start?.slice(0,5) : '', e ? e.white_finish?.slice(0,5) : '', t('papers.thirtyMin'), e ? (e.white_hours || '8:00') : '', e ? e.what_work : ''] })
       autoTable(doc, {
         startY: 32,
-        head: [['Date','Start','Finish','Eating break','Hours minus breaks','What work']],
+        head: [[t('papers.date'), t('papers.start'), t('papers.finish'), t('papers.eatingBreak'), t('papers.hoursMinusBreaks'), t('papers.whatWork')]],
         body: rows,
         styles: { fontSize: 9, lineColor: [51,51,51], lineWidth: 0.3 },
         headStyles: { fillColor: [224,224,224], textColor: 0, fontStyle: 'bold' },
@@ -752,14 +757,14 @@ export default function Dashboard() {
 
     if (tab === 'orange') {
       doc.setTextColor(180, 83, 9)
-      doc.text('EXTRAWORK PAID BY THE HOUR', 14, 16)
+      doc.text(t('papers.extraWorkPaidByHour'), 14, 16)
       doc.setTextColor(0)
       doc.setFontSize(10); doc.setFont('helvetica', 'normal')
-      doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 22)
+      doc.text(t('housemaster.name') + ': ' + (worker?.full_name || '') + '   ' + t('auth.workNumber') + ': ' + (worker?.work_number || '') + '   ' + localizedMonth, 14, 22)
       const rows = Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; const o = hasOrangeWork(e); return [d, o ? e.orange_start?.slice(0,5) : '', o ? e.orange_finish?.slice(0,5) : '', o ? (e.orange_break || '0:00') : '', o ? e.orange_hours : '', o ? e.what_work : '', ''] })
       autoTable(doc, {
         startY: 26,
-        head: [['Date','Start','Finish','Break','Hours minus breaks','What work','Signature']],
+        head: [[t('papers.date'), t('papers.start'), t('papers.finish'), t('housemaster.breakShort'), t('papers.hoursMinusBreaks'), t('papers.whatWork'), t('papers.signature')]],
         body: rows,
         styles: { fontSize: 9, lineColor: [201,125,0], lineWidth: 0.3 },
         headStyles: { fillColor: [255,224,160], textColor: 0, fontStyle: 'bold' },
@@ -772,9 +777,9 @@ export default function Dashboard() {
     }
 
     if (tab === 'weekly') {
-      doc.text('WEEKLY SUMMARY', 14, 16)
+      doc.text(t('papers.weeklySummary').toUpperCase(), 14, 16)
       doc.setFontSize(10); doc.setFont('helvetica', 'normal')
-      doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 22)
+      doc.text(t('housemaster.name') + ': ' + (worker?.full_name || '') + '   ' + t('auth.workNumber') + ': ' + (worker?.work_number || '') + '   ' + localizedMonth, 14, 22)
       const toHHMM = m => m > 0 ? Math.floor(m/60) + ':' + String(m%60).padStart(2,'0') : ''
       Array.from({ length: Math.min(Math.ceil(daysCount/7), 4) }, (_, wi) => {
         const ws = wi*7+1
@@ -785,15 +790,15 @@ export default function Dashboard() {
         const startY = wi===0 ? 30 : (doc.lastAutoTable?.finalY||30)+10
         doc.setFontSize(9); doc.setFont('helvetica', 'bold')
         doc.setTextColor(0)
-        doc.text('Week ' + (wi+1), 14, startY - 2)
+        doc.text(t('papers.week') + ' ' + (wi+1), 14, startY - 2)
         autoTable(doc, {
           startY,
-          head: [['', ...wd.map(d=>'Day '+d), ...Array(7-wd.length).fill(''), 'Total']],
+          head: [['', ...wd.map(d=>t('papers.day')+' '+d), ...Array(7-wd.length).fill(''), t('papers.total')]],
           body: [
-            ['Berry picking (kg)', ...wd.map(d=>{ const ge=greenEntries[d]; return ge?.kg_picked != null ? ge.kg_picked : '' }), ...Array(7-wd.length).fill(''), tk > 0 ? Math.round(tk*100)/100 : ''],
-            ['working hrs', ...wd.map(d=>entries[d]?(entries[d].white_hours||'8:00'):''), ...Array(7-wd.length).fill(''), toHHMM(tw)],
-            ['extra hrs', ...wd.map(d=>entries[d]?entries[d].orange_hours:''), ...Array(7-wd.length).fill(''), toHHMM(te)],
-            ['yes, I want to work extra hours   Signature: _______________________', ...Array(8).fill('')]
+            [t('days.berryPicking') + ' (kg)', ...wd.map(d=>{ const ge=greenEntries[d]; return ge?.kg_picked != null ? ge.kg_picked : '' }), ...Array(7-wd.length).fill(''), tk > 0 ? Math.round(tk*100)/100 : ''],
+            [t('papers.regHrs'), ...wd.map(d=>entries[d]?(entries[d].white_hours||'8:00'):''), ...Array(7-wd.length).fill(''), toHHMM(tw)],
+            [t('papers.extraHrs'), ...wd.map(d=>entries[d]?entries[d].orange_hours:''), ...Array(7-wd.length).fill(''), toHHMM(te)],
+            [t('papers.yesWantExtraHours') + '   ' + t('papers.signature') + ': _______________________', ...Array(8).fill('')]
           ],
           styles: { fontSize: 8, halign: 'center', lineWidth: 0.3 },
           headStyles: { fillColor: [208,208,208], textColor: 0, fontStyle: 'bold' },
@@ -813,14 +818,14 @@ export default function Dashboard() {
 
     if (tab === 'green') {
       doc.setTextColor(45, 106, 45)
-      doc.text('GREEN PAPER - TIME USED FOR PICKUP, SALARY IS PAID BY KILOS', 14, 16)
+      doc.text(t('papers.greenPaperTitle'), 14, 16)
       doc.setTextColor(0)
       doc.setFontSize(10); doc.setFont('helvetica', 'normal')
-      doc.text('Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName, 14, 22)
-      const rows = Array.from({ length: daysCount }, (_, i) => { const d = i+1; const ge = greenEntries[d]; return [d, ge?.start_time?.slice(0,5) || '', ge?.finish_time?.slice(0,5) || '', '1 hour', '', '', ge?.what_picked || '', ge?.kg_picked != null ? ge.kg_picked : ''] })
+      doc.text(t('housemaster.name') + ': ' + (worker?.full_name || '') + '   ' + t('auth.workNumber') + ': ' + (worker?.work_number || '') + '   ' + localizedMonth, 14, 22)
+      const rows = Array.from({ length: daysCount }, (_, i) => { const d = i+1; const ge = greenEntries[d]; return [d, ge?.start_time?.slice(0,5) || '', ge?.finish_time?.slice(0,5) || '', t('papers.oneHour'), '', '', ge?.what_picked || '', ge?.kg_picked != null ? ge.kg_picked : ''] })
       autoTable(doc, {
         startY: 26,
-        head: [['Date','Start','Finish','Eating break','Extra breaks','Hours minus breaks','What was picked up','Kg picked']],
+        head: [[t('papers.date'), t('papers.start'), t('papers.finish'), t('papers.eatingBreak'), t('papers.extraBreaks'), t('papers.hoursMinusBreaks'), t('days.whatPicked'), t('days.kgPicked')]],
         body: rows,
         styles: { fontSize: 9, lineColor: [45,106,45], lineWidth: 0.3 },
         headStyles: { fillColor: [232,245,233], textColor: [45,106,45], fontStyle: 'bold' },
@@ -836,31 +841,32 @@ export default function Dashboard() {
   function downloadExcel(tab) {
     const daysCount = getDaysInMonth(month, year)
     const monthName = MONTHS[month - 1] + ' ' + year
+    const localizedMonth = t('months')[month - 1] + ' ' + year
     const wb = XLSX.utils.book_new()
     const toHHMM = m => m > 0 ? Math.floor(m/60) + ':' + String(m%60).padStart(2,'0') : ''
 
     if (tab === 'white') {
       const data = [
-        ['WORK PAID BY THE HOUR'],
-        ['8 HOURS PER DAY / 40 HOURS PER WEEK'],
-        ['Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName],
+        [t('papers.workPaidByHour')],
+        [t('papers.hoursPerDayWeek')],
+        [t('housemaster.name') + ': ' + (worker?.full_name || '') + '   ' + t('auth.workNumber') + ': ' + (worker?.work_number || '') + '   ' + localizedMonth],
         [],
-        ['Date', 'Start', 'Finish', 'Eating break', 'Hours minus breaks', 'What work'],
-        ...Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; return [d, e ? e.white_start?.slice(0,5) : '', e ? e.white_finish?.slice(0,5) : '', '30 min', e ? (e.white_hours || '8:00') : '', e ? e.what_work : ''] })
+        [t('papers.date'), t('papers.start'), t('papers.finish'), t('papers.eatingBreak'), t('papers.hoursMinusBreaks'), t('papers.whatWork')],
+        ...Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; return [d, e ? e.white_start?.slice(0,5) : '', e ? e.white_finish?.slice(0,5) : '', t('papers.thirtyMin'), e ? (e.white_hours || '8:00') : '', e ? e.what_work : ''] })
       ]
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'White Paper')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), t('papers.whitePaper'))
       XLSX.writeFile(wb, 'white-paper-' + monthName + '-' + (worker?.work_number || '') + '.xlsx')
     }
 
     if (tab === 'orange') {
       const data = [
-        ['EXTRAWORK PAID BY THE HOUR'],
-        ['Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName],
+        [t('papers.extraWorkPaidByHour')],
+        [t('housemaster.name') + ': ' + (worker?.full_name || '') + '   ' + t('auth.workNumber') + ': ' + (worker?.work_number || '') + '   ' + localizedMonth],
         [],
-        ['Date', 'Start', 'Finish', 'Break', 'Hours minus breaks', 'What work', 'Signature'],
+        [t('papers.date'), t('papers.start'), t('papers.finish'), t('housemaster.breakShort'), t('papers.hoursMinusBreaks'), t('papers.whatWork'), t('papers.signature')],
         ...Array.from({ length: daysCount }, (_, i) => { const d = i+1; const e = entries[d]; const o = hasOrangeWork(e); return [d, o ? e.orange_start?.slice(0,5) : '', o ? e.orange_finish?.slice(0,5) : '', o ? (e.orange_break || '0:00') : '', o ? e.orange_hours : '', o ? e.what_work : '', ''] })
       ]
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Orange Paper')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), t('papers.orangePaper'))
       XLSX.writeFile(wb, 'orange-paper-' + monthName + '-' + (worker?.work_number || '') + '.xlsx')
     }
 
@@ -872,31 +878,31 @@ export default function Dashboard() {
         const te = wd.reduce((s,d)=>{ if(!entries[d]?.orange_hours) return s; const p=entries[d].orange_hours.split(':'); return s+parseInt(p[0])*60+parseInt(p[1]) },0)
         const tk = wd.reduce((s,d)=>{ const ge=greenEntries[d]; return ge?.kg_picked != null ? s+(Number(ge.kg_picked)||0) : s },0)
         const data = [
-          wi === 0 ? ['WEEKLY SUMMARY'] : [],
-          wi === 0 ? ['Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName] : [],
+          wi === 0 ? [t('papers.weeklySummary').toUpperCase()] : [],
+          wi === 0 ? [t('housemaster.name') + ': ' + (worker?.full_name || '') + '   ' + t('auth.workNumber') + ': ' + (worker?.work_number || '') + '   ' + localizedMonth] : [],
           wi === 0 ? [] : [],
-          ['Week ' + (wi+1)],
-          ['', ...wd.map(d=>'Day '+d), ...Array(7-wd.length).fill(''), 'Total'],
-          ['Berry picking (kg)', ...wd.map(d=>{ const ge=greenEntries[d]; return ge?.kg_picked != null ? ge.kg_picked : '' }), ...Array(7-wd.length).fill(''), tk > 0 ? Math.round(tk*100)/100 : ''],
-          ['working hrs', ...wd.map(d=>entries[d]?(entries[d].white_hours||'8:00'):''), ...Array(7-wd.length).fill(''), toHHMM(tw)],
-          ['extra hrs', ...wd.map(d=>entries[d]?entries[d].orange_hours:''), ...Array(7-wd.length).fill(''), toHHMM(te)],
-          ['yes, I want to work extra hours   Signature: _______________________'],
+          [t('papers.week') + ' ' + (wi+1)],
+          ['', ...wd.map(d=>t('papers.day')+' '+d), ...Array(7-wd.length).fill(''), t('papers.total')],
+          [t('days.berryPicking') + ' (kg)', ...wd.map(d=>{ const ge=greenEntries[d]; return ge?.kg_picked != null ? ge.kg_picked : '' }), ...Array(7-wd.length).fill(''), tk > 0 ? Math.round(tk*100)/100 : ''],
+          [t('papers.regHrs'), ...wd.map(d=>entries[d]?(entries[d].white_hours||'8:00'):''), ...Array(7-wd.length).fill(''), toHHMM(tw)],
+          [t('papers.extraHrs'), ...wd.map(d=>entries[d]?entries[d].orange_hours:''), ...Array(7-wd.length).fill(''), toHHMM(te)],
+          [t('papers.yesWantExtraHours') + '   ' + t('papers.signature') + ': _______________________'],
           []
         ]
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Week ' + (wi+1))
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), t('papers.week') + ' ' + (wi+1))
       })
       XLSX.writeFile(wb, 'weekly-summary-' + monthName + '-' + (worker?.work_number || '') + '.xlsx')
     }
 
     if (tab === 'green') {
       const data = [
-        ['GREEN PAPER - TIME USED FOR PICKUP, SALARY IS PAID BY KILOS'],
-        ['Name: ' + (worker?.full_name || '') + '   Work number: ' + (worker?.work_number || '') + '   ' + monthName],
+        [t('papers.greenPaperTitle')],
+        [t('housemaster.name') + ': ' + (worker?.full_name || '') + '   ' + t('auth.workNumber') + ': ' + (worker?.work_number || '') + '   ' + localizedMonth],
         [],
-        ['Date', 'Start', 'Finish', 'Eating break', 'Extra breaks', 'Hours minus breaks', 'What was picked up', 'Kg picked'],
-        ...Array.from({ length: daysCount }, (_, i) => { const d = i+1; const ge = greenEntries[d]; return [d, ge?.start_time?.slice(0,5) || '', ge?.finish_time?.slice(0,5) || '', '1 hour', '', '', ge?.what_picked || '', ge?.kg_picked != null ? ge.kg_picked : ''] })
+        [t('papers.date'), t('papers.start'), t('papers.finish'), t('papers.eatingBreak'), t('papers.extraBreaks'), t('papers.hoursMinusBreaks'), t('days.whatPicked'), t('days.kgPicked')],
+        ...Array.from({ length: daysCount }, (_, i) => { const d = i+1; const ge = greenEntries[d]; return [d, ge?.start_time?.slice(0,5) || '', ge?.finish_time?.slice(0,5) || '', t('papers.oneHour'), '', '', ge?.what_picked || '', ge?.kg_picked != null ? ge.kg_picked : ''] })
       ]
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Green Paper')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), t('papers.greenPaper'))
       XLSX.writeFile(wb, 'green-paper-' + monthName + '-' + (worker?.work_number || '') + '.xlsx')
     }
   }
@@ -922,9 +928,10 @@ export default function Dashboard() {
               </button>
             )}
             {worker?.role === 'admin' && (
-              <button onClick={() => router.push('/admin')} style={{ padding: '6px 14px', background: '#fff', border: '1px solid #2d6a2d', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', color: '#2d6a2d', fontWeight: '600' }}>Admin</button>
+              <button onClick={() => router.push('/admin')} style={{ padding: '6px 14px', background: '#fff', border: '1px solid #2d6a2d', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', color: '#2d6a2d', fontWeight: '600' }}>{t('housemaster.adminBtn')}</button>
             )}
-            <button onClick={logout} style={{ padding: '6px 14px', background: '#2d6a2d', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', color: '#fff', fontWeight: '600' }}>Sign out</button>
+            <button onClick={logout} style={{ padding: '6px 14px', background: '#2d6a2d', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', color: '#fff', fontWeight: '600' }}>{t('nav.signOut')}</button>
+            <LanguageSelector />
           </div>
         </div>
 
@@ -936,12 +943,12 @@ export default function Dashboard() {
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
               <span style={{ fontSize: '13px', color: '#b45309', fontWeight: '600' }}>
-                Your account has a temporary work number ({worker.work_number}). Please set your official farm work number.
+                {t('dashboard.tempWorkNumberPrefix')} ({worker.work_number}). {t('dashboard.tempWorkNumberSuffix')}
               </span>
             </div>
             <button onClick={() => { setWorkNumInput(''); setWorkNumError(''); setWorkNumModal(true) }}
               style={{ padding: '5px 14px', background: '#b45309', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              Set work number
+              {t('dashboard.setWorkNumber')}
             </button>
           </div>
         )}
@@ -951,12 +958,12 @@ export default function Dashboard() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
               <button onClick={() => { if (month === 1) { setMonth(12); setYear(y => y-1) } else setMonth(m => m-1) }} style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '6px', background: '#fff', cursor: 'pointer', fontSize: '16px', flexShrink: 0 }}>{'<'}</button>
-              <div style={{ fontWeight: '700', fontSize: '16px', textAlign: 'center', whiteSpace: 'nowrap', flex: 1 }}>{MONTHS[month-1]} {year}</div>
+              <div style={{ fontWeight: '700', fontSize: '16px', textAlign: 'center', whiteSpace: 'nowrap', flex: 1 }}>{t('months')[month-1]} {year}</div>
               <button onClick={() => { if (month === 12) { setMonth(1); setYear(y => y+1) } else setMonth(m => m+1) }} style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '6px', background: '#fff', cursor: 'pointer', fontSize: '16px', flexShrink: 0 }}>{'>'}</button>
             </div>
             <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-              <button onClick={() => setView('list')} style={{ padding: '7px 13px', background: view === 'list' ? '#2d6a2d' : '#fff', color: view === 'list' ? '#fff' : '#333', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>Days</button>
-              <button onClick={() => setView('papers')} style={{ padding: '7px 13px', background: view === 'papers' ? '#2d6a2d' : '#fff', color: view === 'papers' ? '#fff' : '#333', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>Papers</button>
+              <button onClick={() => setView('list')} style={{ padding: '7px 13px', background: view === 'list' ? '#2d6a2d' : '#fff', color: view === 'list' ? '#fff' : '#333', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>{t('dashboard.daysTab')}</button>
+              <button onClick={() => setView('papers')} style={{ padding: '7px 13px', background: view === 'papers' ? '#2d6a2d' : '#fff', color: view === 'papers' ? '#fff' : '#333', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>{t('dashboard.papersLabel')}</button>
             </div>
           </div>
 
@@ -969,13 +976,13 @@ export default function Dashboard() {
                   <div key={day} style={{ background: '#fff', border: hasEntry ? '2px solid #2d6a2d' : '1px solid #ddd', borderRadius: '10px', padding: '10px 14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
-                        <span style={{ fontWeight: '800', fontSize: '15px', minWidth: '55px' }}>Day {day}</span>
+                        <span style={{ fontWeight: '800', fontSize: '15px', minWidth: '55px' }}>{t('papers.day')} {day}</span>
                         {hasEntry ? (
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginTop: '4px' }}>
-                            <span style={{ fontSize: '12px', color: '#555' }}>{entry.actual_start?.slice(0,5)} to {entry.actual_finish?.slice(0,5)}</span>
+                            <span style={{ fontSize: '12px', color: '#555' }}>{entry.actual_start?.slice(0,5)} {t('dashboard.to')} {entry.actual_finish?.slice(0,5)}</span>
                             <span style={{ fontSize: '11px', fontWeight: '700', background: '#f0f0f0', color: '#555', padding: '2px 8px', borderRadius: '4px' }}>W: {entry.white_hours}</span>
                             <span style={{ fontSize: '11px', fontWeight: '700', background: '#fff3e0', color: '#b45309', padding: '2px 8px', borderRadius: '4px' }}>O: {entry.orange_hours}</span>
-                            <span style={{ fontSize: '11px', fontWeight: '700', background: '#e3f2fd', color: '#1565c0', padding: '2px 8px', borderRadius: '4px' }}>Total: {entry.total_hours}</span>
+                            <span style={{ fontSize: '11px', fontWeight: '700', background: '#e3f2fd', color: '#1565c0', padding: '2px 8px', borderRadius: '4px' }}>{t('papers.total')}: {entry.total_hours}</span>
                             {greenEntries[day]?.kg_picked && (
                               <span style={{ fontSize: '11px', fontWeight: '700', background: '#e8f5e9', color: '#2d6a2d', padding: '2px 8px', borderRadius: '4px', border: '1px solid #c8e6c9' }}>
                                 KG: {greenEntries[day].kg_picked}
@@ -984,7 +991,7 @@ export default function Dashboard() {
                             {entry.what_work && <span style={{ fontSize: '11px', color: '#888' }}>{entry.what_work}</span>}
                           </div>
                         ) : (
-                          <span style={{ fontSize: '13px', color: '#bbb' }}>No entry yet</span>
+                          <span style={{ fontSize: '13px', color: '#bbb' }}>{t('days.noEntry')}</span>
                         )}
                       </div>
                       <div style={{ display: 'flex', gap: '6px', marginLeft: '8px' }}>
@@ -992,33 +999,33 @@ export default function Dashboard() {
                           <button
                             onClick={() => setViewDay(viewDay === day ? null : day)}
                             style={{ padding: '5px 10px', background: viewDay === day ? '#2d6a2d' : '#e8f5e9', border: '1px solid #2d6a2d', borderRadius: '6px', fontSize: '12px', color: viewDay === day ? '#fff' : '#2d6a2d', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>
-                            {viewDay === day ? 'Hide' : 'View'}
+                            {viewDay === day ? t('dashboard.hide') : t('days.view')}
                           </button>
                         )}
                         <button
                           onClick={() => { openEdit(editDay === day ? null : day) }}
                           style={{ padding: '5px 12px', background: hasEntry ? '#fff' : '#2d6a2d', border: hasEntry ? '1px solid #ccc' : 'none', borderRadius: '6px', fontSize: '12px', color: hasEntry ? '#333' : '#fff', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>
-                          {editDay === day ? 'Close' : hasEntry ? 'Edit' : '+ Add'}
+                          {editDay === day ? t('dashboard.close') : hasEntry ? t('days.edit') : t('days.add')}
                         </button>
                         {hasEntry && confirmDelete !== day && (
                           <button onClick={() => setConfirmDelete(day)}
                             style={{ padding: '5px 10px', background: '#fdecea', border: '1px solid #ffc1c0', borderRadius: '6px', fontSize: '12px', color: '#c0392b', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>
-                            Delete
+                            {t('days.delete')}
                           </button>
                         )}
                         {hasEntry && confirmDelete === day && (
                           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <div style={{ background: '#fff', borderRadius: '12px', padding: '28px 32px', maxWidth: '340px', width: '90%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-                              <h3 style={{ fontSize: '17px', fontWeight: '700', marginBottom: '8px' }}>Delete Day {day}?</h3>
-                              <p style={{ fontSize: '14px', color: '#666', lineHeight: '1.5', marginBottom: '20px' }}>This will permanently remove this entry from all papers.</p>
+                              <h3 style={{ fontSize: '17px', fontWeight: '700', marginBottom: '8px' }}>{t('dashboard.deleteDayTitle')} {day}?</h3>
+                              <p style={{ fontSize: '14px', color: '#666', lineHeight: '1.5', marginBottom: '20px' }}>{t('dashboard.deleteDayDesc')}</p>
                               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
                                 <button onClick={() => setConfirmDelete(null)}
                                   style={{ padding: '10px 24px', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
-                                  Cancel
+                                  {t('sup.cancel')}
                                 </button>
                                 <button onClick={() => deleteEntry(day)}
                                   style={{ padding: '10px 24px', background: '#c0392b', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#fff' }}>
-                                  Yes, delete
+                                  {t('dashboard.yesDelete')}
                                 </button>
                               </div>
                             </div>
@@ -1032,52 +1039,52 @@ export default function Dashboard() {
                         {error && <p style={{ color: 'red', fontSize: '13px', margin: 0 }}>{error}</p>}
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                           <div style={{ flex: 1, minWidth: '130px' }}>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>Actual start time</label>
-                            <input style={inp} placeholder="HH:MM e.g. 10:15" value={form.start} onChange={e => setForm({...form, start: e.target.value})} />
-                            {form.start && !VALID.includes(form.start) && <p style={{ color: 'orange', fontSize: '11px', margin: '2px 0 0' }}>Should be 9:00, 9:15, 9:30, or 9:45</p>}
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('dashboard.actualStartTime')}</label>
+                            <input style={inp} placeholder={t('dashboard.startTimePlaceholder')} value={form.start} onChange={e => setForm({...form, start: e.target.value})} />
+                            {form.start && !VALID.includes(form.start) && <p style={{ color: 'orange', fontSize: '11px', margin: '2px 0 0' }}>{t('dashboard.shouldBeTime')}</p>}
                           </div>
                           <div style={{ flex: 1, minWidth: '130px' }}>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>Actual finish time</label>
-                            <input style={inp} placeholder="HH:MM e.g. 20:45" value={form.finish} onChange={e => setForm({...form, finish: e.target.value})} />
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('dashboard.actualFinishTime')}</label>
+                            <input style={inp} placeholder={t('dashboard.finishTimePlaceholder')} value={form.finish} onChange={e => setForm({...form, finish: e.target.value})} />
                           </div>
                           <div style={{ flex: 1, minWidth: '130px' }}>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>Total break (minutes)</label>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.breakMins')}</label>
                             <input style={inp} type="number" min="30" placeholder="30" value={form.break_mins} onChange={e => setForm({...form, break_mins: e.target.value})} />
-                            <p style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>Min 30 min eating break</p>
+                            <p style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>{t('dashboard.min30Break')}</p>
                           </div>
                           <div style={{ flex: 2, minWidth: '180px' }}>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>What work</label>
-                            <input style={inp} placeholder="e.g. cleaning, planting" value={form.work} onChange={e => setForm({...form, work: e.target.value})} />
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.whatWork')}</label>
+                            <input style={inp} placeholder={t('dashboard.whatWorkPlaceholder')} value={form.work} onChange={e => setForm({...form, work: e.target.value})} />
                           </div>
                         </div>
 
                         {BERRY_SEASON && (
                           <div style={{ borderTop: '2px solid #e8f5e9', marginTop: '16px', paddingTop: '16px' }}>
-                            <p style={{ fontSize: '13px', fontWeight: '800', color: '#2d6a2d', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Berry picking (Green paper)</p>
+                            <p style={{ fontSize: '13px', fontWeight: '800', color: '#2d6a2d', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('dashboard.berryPickingGreenPaper')}</p>
                             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                               <div style={{ flex: 1, minWidth: '120px' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>Start time</label>
-                                <input style={inp} placeholder="HH:MM" value={greenForm.start} onChange={e => setGreenForm({...greenForm, start: e.target.value})} />
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.startTime')}</label>
+                                <input style={inp} placeholder={t('dashboard.hhmmPlaceholder')} value={greenForm.start} onChange={e => setGreenForm({...greenForm, start: e.target.value})} />
                               </div>
                               <div style={{ flex: 1, minWidth: '120px' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>Finish time</label>
-                                <input style={inp} placeholder="HH:MM" value={greenForm.finish} onChange={e => setGreenForm({...greenForm, finish: e.target.value})} />
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.finishTime')}</label>
+                                <input style={inp} placeholder={t('dashboard.hhmmPlaceholder')} value={greenForm.finish} onChange={e => setGreenForm({...greenForm, finish: e.target.value})} />
                               </div>
                               <div style={{ flex: 1, minWidth: '120px' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>Kg picked</label>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.kgPicked')}</label>
                                 <input style={inp} type="number" step="0.1" min="0" placeholder="e.g. 24.5" value={greenForm.kg} onChange={e => setGreenForm({...greenForm, kg: e.target.value})} />
                               </div>
                               <div style={{ flex: 2, minWidth: '180px' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>What was picked</label>
-                                <input style={inp} placeholder="e.g. strawberries" value={greenForm.what} onChange={e => setGreenForm({...greenForm, what: e.target.value})} />
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.whatPicked')}</label>
+                                <input style={inp} placeholder={t('dashboard.whatPickedPlaceholder')} value={greenForm.what} onChange={e => setGreenForm({...greenForm, what: e.target.value})} />
                               </div>
                             </div>
                           </div>
                         )}
 
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={saveEntry} disabled={saving} style={{ flex: 1, padding: '10px', background: saving ? '#aaa' : '#2d6a2d', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '700', cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Saving...' : 'Save'}</button>
-                          <button onClick={() => { setEditDay(null); setError('') }} style={{ padding: '10px 20px', background: '#fff', color: '#333', border: '1px solid #ccc', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+                          <button onClick={saveEntry} disabled={saving} style={{ flex: 1, padding: '10px', background: saving ? '#aaa' : '#2d6a2d', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '700', cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? t('sup.saving') : t('days.save')}</button>
+                          <button onClick={() => { setEditDay(null); setError('') }} style={{ padding: '10px 20px', background: '#fff', color: '#333', border: '1px solid #ccc', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>{t('sup.cancel')}</button>
                         </div>
                       </div>
                     )}
@@ -1098,9 +1105,9 @@ export default function Dashboard() {
       {workNumModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ background: '#fff', borderRadius: '14px', padding: '28px', width: '100%', maxWidth: '380px', boxShadow: '0 24px 64px rgba(0,0,0,0.2)' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '6px' }}>Set your work number</h2>
+            <h2 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '6px' }}>{t('dashboard.setYourWorkNumber')}</h2>
             <p style={{ fontSize: '13px', color: '#666', marginBottom: '20px', lineHeight: '1.5' }}>
-              Enter your official farm work number. This is the number assigned to you by the farm manager.
+              {t('dashboard.workNumberModalDesc')}
             </p>
             {workNumError && (
               <div style={{ background: '#fdecea', border: '1px solid #ffc1c0', color: '#c0392b', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', marginBottom: '14px' }}>
@@ -1108,11 +1115,11 @@ export default function Dashboard() {
               </div>
             )}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Work number</label>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>{t('auth.workNumber')}</label>
               <input
                 autoFocus
                 type="text"
-                placeholder="e.g. 334"
+                placeholder={t('admin.workNumberPlaceholder')}
                 value={workNumInput}
                 onChange={e => setWorkNumInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && saveWorkNumber()}
@@ -1122,11 +1129,11 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={saveWorkNumber} disabled={workNumSaving}
                 style={{ flex: 1, padding: '11px', background: workNumSaving ? '#aaa' : '#2d6a2d', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '700', cursor: workNumSaving ? 'not-allowed' : 'pointer' }}>
-                {workNumSaving ? 'Saving...' : 'Save work number'}
+                {workNumSaving ? t('sup.saving') : t('dashboard.saveWorkNumberBtn')}
               </button>
               <button onClick={() => setWorkNumModal(false)}
                 style={{ padding: '11px 18px', background: '#fff', color: '#333', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
-                Cancel
+                {t('sup.cancel')}
               </button>
             </div>
           </div>

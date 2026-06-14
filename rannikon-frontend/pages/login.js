@@ -3,6 +3,8 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import api from '../lib/api'
 import { saveAuth } from '../lib/auth'
+import { useLanguage } from '@/lib/i18n'
+import LanguageSelector from '@/components/LanguageSelector'
 
 function EyeIcon({ open }) {
   return open ? (
@@ -30,6 +32,7 @@ function GoogleIcon() {
 
 export default function Login() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [workNumber, setWorkNumber] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -48,7 +51,7 @@ export default function Login() {
       else if (role === 'supervisor') router.push('/supervisor')
       else router.push('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.')
+      setError(err.response?.data?.error || t('auth.loginFailed'))
     } finally {
       setLoading(false)
     }
@@ -56,7 +59,7 @@ export default function Login() {
 
   return (
     <>
-      <Head><title>Sign in | Rannikon</title><meta name="viewport" content="width=device-width, initial-scale=1" /></Head>
+      <Head><title>{t('auth.login')} | Rannikon</title><meta name="viewport" content="width=device-width, initial-scale=1" /></Head>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
         body{font-family:'DM Sans',sans-serif;background:#fff;color:#1a1a18;-webkit-font-smoothing:antialiased}
@@ -81,7 +84,7 @@ export default function Login() {
         {/* Logo + Title */}
         <div onClick={() => router.push('/')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '40px', marginBottom: '16px', cursor: 'pointer' }}>
           <img src="/rannikkopuutarhalogo.png" alt="Rannikon Puutarha" style={{ height: '48px', width: 'auto', marginBottom: '14px' }} />
-          <h1 style={{ fontSize: '24px', fontWeight: '300', letterSpacing: '-0.3px', color: '#1a1a18' }}>Sign in to Rannikon</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: '300', letterSpacing: '-0.3px', color: '#1a1a18' }}>{t('auth.signInTitle')}</h1>
         </div>
 
         {/* Form card */}
@@ -93,7 +96,7 @@ export default function Login() {
 
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>
-                Work number or email address
+                {t('auth.workNumberOrEmail')}
               </label>
               <input
                 className="gh-input"
@@ -108,10 +111,10 @@ export default function Login() {
 
             <div style={{ marginBottom: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '600' }}>Password</label>
+                <label style={{ fontSize: '14px', fontWeight: '600' }}>{t('auth.password')}</label>
                 <a href="/forgot-password" style={{ fontSize: '12px', color: '#0969da', textDecoration: 'none' }}
                   onMouseEnter={e => e.target.style.textDecoration = 'underline'} onMouseLeave={e => e.target.style.textDecoration = 'none'}>
-                  Forgot password?
+                  {t('auth.forgotPassword')}
                 </a>
               </div>
               <div className="gh-input-wrap">
@@ -130,39 +133,44 @@ export default function Login() {
             </div>
 
             <button type="submit" className="gh-btn-green" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? t('auth.signingIn') : t('auth.login')}
             </button>
           </form>
 
-          <div className="gh-divider">or</div>
+          <div className="gh-divider">{t('auth.or')}</div>
 
           <button className="gh-btn-outline" onClick={() => window.location.href = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4003') + '/api/auth/google'}>
             <GoogleIcon />
-            Continue with Google
+            {t('auth.continueWithGoogle')}
           </button>
 
         </div>
 
         {/* Create account link */}
         <div style={{ width: '100%', maxWidth: '340px', border: '1px solid #d0d7de', borderRadius: '6px', padding: '14px 20px', marginTop: '16px', textAlign: 'center', background: '#fff', fontSize: '14px' }}>
-          New to Rannikon?{' '}
+          {t('auth.newToRannikon')}{' '}
           <a href="/register" style={{ color: '#0969da', fontWeight: '500', textDecoration: 'none' }}
             onMouseEnter={e => e.target.style.textDecoration = 'underline'} onMouseLeave={e => e.target.style.textDecoration = 'none'}>
-            Create an account
+            {t('auth.createAnAccount')}
           </a>
+        </div>
+
+        {/* Language selector */}
+        <div style={{ marginTop: '20px' }}>
+          <LanguageSelector />
         </div>
 
         {/* Footer */}
         <div style={{ marginTop: 'auto', paddingTop: '32px', paddingBottom: '24px', display: 'flex', flexWrap: 'wrap', gap: '10px 16px', justifyContent: 'center', maxWidth: '500px' }}>
           {[
-            ['Terms', '#'],
-            ['Privacy', '#'],
-            ['Docs', '#'],
-            ['Contact support', '#'],
-            ['Manage cookies', '#'],
-            ['Do not share personal information', '#'],
-          ].map(([l, h]) => (
-            <a key={l} href={h} className="gh-footer-link">{l}</a>
+            ['terms', '#'],
+            ['privacy', '#'],
+            ['docs', '#'],
+            ['contactSupport', '#'],
+            ['manageCookies', '#'],
+            ['doNotShare', '#'],
+          ].map(([k, h]) => (
+            <a key={k} href={h} className="gh-footer-link">{t(`footer.${k}`)}</a>
           ))}
         </div>
 

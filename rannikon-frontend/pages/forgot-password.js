@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import Head from 'next/head'
 import api from '../lib/api'
+import { useLanguage } from '@/lib/i18n'
+import LanguageSelector from '@/components/LanguageSelector'
 
 export default function ForgotPassword() {
+  const { t } = useLanguage()
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
@@ -16,7 +19,7 @@ export default function ForgotPassword() {
       await api.post('/api/auth/forgot-password', { email })
       setSent(true)
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to send reset email. Please try again.')
+      setError(err.response?.data?.error || t('auth.forgotEmailFailed'))
     } finally {
       setLoading(false)
     }
@@ -24,7 +27,7 @@ export default function ForgotPassword() {
 
   return (
     <>
-      <Head><title>Forgot Password | Rannikon</title><meta name="viewport" content="width=device-width, initial-scale=1" /></Head>
+      <Head><title>{t('auth.resetYourPassword')} | Rannikon</title><meta name="viewport" content="width=device-width, initial-scale=1" /></Head>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
         body{font-family:'DM Sans',sans-serif;background:#fff;color:#1a1a18;-webkit-font-smoothing:antialiased}
@@ -42,7 +45,7 @@ export default function ForgotPassword() {
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '40px', marginBottom: '16px' }}>
           <img src="/rannikkopuutarhalogo.png" alt="Rannikon Puutarha" style={{ height: '48px', width: 'auto', marginBottom: '14px', borderRadius: '8px' }} />
-          <h1 style={{ fontSize: '24px', fontWeight: '300', letterSpacing: '-0.3px', color: '#1a1a18' }}>Reset your password</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: '300', letterSpacing: '-0.3px', color: '#1a1a18' }}>{t('auth.resetYourPassword')}</h1>
         </div>
 
         <div style={{ width: '100%', maxWidth: '340px', border: '1px solid #d0d7de', borderRadius: '6px', padding: '20px', background: '#fff' }}>
@@ -54,26 +57,26 @@ export default function ForgotPassword() {
                   <polyline points="22,6 12,13 2,6"/>
                 </svg>
               </div>
-              <h2 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: '#2d6a2d' }}>Check your email</h2>
+              <h2 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: '#2d6a2d' }}>{t('auth.checkYourEmail')}</h2>
               <p style={{ fontSize: '13px', color: '#555', lineHeight: '1.6' }}>
-                We sent a password reset link to <b>{email}</b>.<br />
-                Click the link in the email to reset your password.
+                {t('auth.resetLinkSentTo')} <b>{email}</b>.<br />
+                {t('auth.clickLinkToReset')}
               </p>
-              <p style={{ fontSize: '12px', color: '#999', marginTop: '12px' }}>Did not receive it? Check your spam folder.</p>
+              <p style={{ fontSize: '12px', color: '#999', marginTop: '12px' }}>{t('auth.didNotReceive')}</p>
             </div>
           ) : (
             <>
               <p style={{ fontSize: '13px', color: '#555', marginBottom: '16px', lineHeight: '1.6' }}>
-                Enter your email address and we will send you a link to reset your password.
+                {t('auth.enterEmailForReset')}
               </p>
               {error && <div className="error-box">{error}</div>}
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>Email address</label>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>{t('auth.emailAddress')}</label>
                   <input className="gh-input" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
                 </div>
                 <button type="submit" className="gh-btn-green" disabled={loading}>
-                  {loading ? 'Sending...' : 'Send reset link'}
+                  {loading ? t('auth.sending') : t('auth.sendResetLink')}
                 </button>
               </form>
             </>
@@ -81,12 +84,16 @@ export default function ForgotPassword() {
         </div>
 
         <p style={{ marginTop: '16px', fontSize: '14px', color: '#666' }}>
-          <a href="/login" style={{ color: '#2d6a2d', fontWeight: '500' }}>Back to sign in</a>
+          <a href="/login" style={{ color: '#2d6a2d', fontWeight: '500' }}>{t('auth.backToSignIn')}</a>
         </p>
 
+        <div style={{ marginTop: '20px' }}>
+          <LanguageSelector />
+        </div>
+
         <div style={{ marginTop: 'auto', paddingTop: '32px', paddingBottom: '24px', display: 'flex', flexWrap: 'wrap', gap: '10px 16px', justifyContent: 'center' }}>
-          {[['Terms', '#'], ['Privacy', '#'], ['Contact support', '#'], ['Manage cookies', '#']].map(([l, h]) => (
-            <a key={l} href={h} className="footer-link">{l}</a>
+          {['terms', 'privacy', 'contactSupport', 'manageCookies'].map(k => (
+            <a key={k} href="#" className="footer-link">{t(`footer.${k}`)}</a>
           ))}
         </div>
 

@@ -6,6 +6,10 @@ import { getWorker, isLoggedIn, clearAuth, saveAuth } from '../lib/auth'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
+import { useLanguage } from '@/lib/i18n'
+import LanguageSelector from '@/components/LanguageSelector'
+
+const LOCALE_MAP = { en: 'en-GB', uk: 'uk-UA', km: 'km-KH', vi: 'vi-VN', ne: 'ne-NP' }
 
 const GROUP_COLORS = {
   'Kivilinna/Salo':    { bg: '#e8f5e9', text: '#1b5e20', border: '#a5d6a7' },
@@ -49,6 +53,7 @@ function GroupPill({ group }) {
 
 export default function SupervisorPage() {
   const router = useRouter()
+  const { t, lang } = useLanguage()
   const [worker, setWorker] = useState(null)
   const [session, setSession] = useState(null)
   const [batches, setBatches] = useState([])
@@ -136,8 +141,8 @@ export default function SupervisorPage() {
   async function addBatch() {
     setBatchError('')
     const nums = batchNumbers.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean)
-    if (!nums.length) { setBatchError('Enter at least one worker number'); return }
-    if (!batchStart) { setBatchError('Start time is required'); return }
+    if (!nums.length) { setBatchError(t('sup.enterWorkerNumber')); return }
+    if (!batchStart) { setBatchError(t('sup.startTimeRequired')); return }
     setBatchSaving(true)
     try {
       await api.post('/api/supervisor/batch', {
@@ -151,7 +156,7 @@ export default function SupervisorPage() {
       await loadBatches(session.id)
       await loadLogs(session.id)
     } catch (e) {
-      setBatchError(e.response?.data?.error || 'Failed to add batch')
+      setBatchError(e.response?.data?.error || t('sup.failedAddBatch'))
     } finally {
       setBatchSaving(false)
     }
@@ -191,7 +196,7 @@ export default function SupervisorPage() {
       setSent(true)
       setSession(s => ({ ...s, status: 'sent' }))
     } catch (e) {
-      alert(e.response?.data?.error || 'Failed to send')
+      alert(e.response?.data?.error || t('sup.failedToSend'))
     } finally {
       setSending(false)
     }
@@ -204,15 +209,15 @@ export default function SupervisorPage() {
 
   function downloadPDF() {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-    const dateLabel = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+    const dateLabel = new Date().toLocaleDateString(LOCALE_MAP[lang] || 'en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
     doc.setFontSize(14); doc.setFont('helvetica', 'bold')
-    doc.text('Work Log', 14, 16)
+    doc.text(t('housemaster.workLog'), 14, 16)
     doc.setFontSize(10); doc.setFont('helvetica', 'normal')
-    doc.text('Supervisor: ' + (worker?.full_name || '') + '   Date: ' + dateLabel + '   Total break: ' + (session?.total_break_mins || 0) + ' min', 14, 23)
+    doc.text(`${t('sup.supervisorLabel')}: ${worker?.full_name || ''}   ${t('papers.date')}: ${dateLabel}   ${t('sup.totalBreak')}: ${session?.total_break_mins || 0} min`, 14, 23)
     const rows = logs.map(r => [r.worker_number, r.worker_name || '', r.house_group, r.start_time?.slice(0,5) || '', r.finish_time?.slice(0,5) || '', (r.total_break_mins || 0) + ' min', r.white_hours || '', r.orange_hours || '', r.total_hours || '', r.what_work || ''])
     autoTable(doc, {
       startY: 28,
-      head: [['Work#', 'Name', 'Group', 'Start', 'Finish', 'Break', 'White hrs', 'Orange hrs', 'Total hrs', 'Work done']],
+      head: [[t('housemaster.workNumberShort'), t('housemaster.name'), t('sup.group'), t('papers.start'), t('papers.finish'), t('housemaster.breakShort'), t('sup.whiteHrs'), t('sup.orangeHrs'), t('housemaster.totalHrs'), t('housemaster.workDone')]],
       body: rows,
       styles: { fontSize: 8, lineWidth: 0.2 },
       headStyles: { fillColor: [45, 106, 45], textColor: 255, fontStyle: 'bold' },
@@ -227,27 +232,27 @@ export default function SupervisorPage() {
   }
 
   function downloadExcel() {
-    const dateLabel = new Date().toLocaleDateString('en-GB')
+    const dateLabel = new Date().toLocaleDateString(LOCALE_MAP[lang] || 'en-GB')
     const data = [
-      ['Work Log'],
-      ['Supervisor: ' + (worker?.full_name || '') + '   Date: ' + dateLabel + '   Break: ' + (session?.total_break_mins || 0) + ' min'],
+      [t('housemaster.workLog')],
+      [`${t('sup.supervisorLabel')}: ${worker?.full_name || ''}   ${t('papers.date')}: ${dateLabel}   ${t('housemaster.breakShort')}: ${session?.total_break_mins || 0} min`],
       [],
-      ['Work#', 'Name', 'Group', 'Start', 'Finish', 'Break', 'White hrs', 'Orange hrs', 'Total hrs', 'Work done'],
+      [t('housemaster.workNumberShort'), t('housemaster.name'), t('sup.group'), t('papers.start'), t('papers.finish'), t('housemaster.breakShort'), t('sup.whiteHrs'), t('sup.orangeHrs'), t('housemaster.totalHrs'), t('housemaster.workDone')],
       ...logs.map(r => [r.worker_number, r.worker_name || '', r.house_group, r.start_time?.slice(0,5) || '', r.finish_time?.slice(0,5) || '', (r.total_break_mins || 0) + ' min', r.white_hours || '', r.orange_hours || '', r.total_hours || '', r.what_work || ''])
     ]
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Work Log')
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), t('housemaster.workLog'))
     XLSX.writeFile(wb, 'worklog-' + new Date().toISOString().slice(0,10) + '.xlsx')
   }
 
   const inp = (extra = {}) => ({ width: '100%', padding: '10px 12px', fontSize: '15px', border: '1px solid #ccc', borderRadius: '8px', boxSizing: 'border-box', fontFamily: 'inherit', ...extra })
 
-  const todayLabel = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
+  const todayLabel = new Date().toLocaleDateString(LOCALE_MAP[lang] || 'en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
 
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif' }}>
-        <p style={{ color: '#555' }}>Loading...</p>
+        <p style={{ color: '#555' }}>{t('common.loading')}</p>
       </div>
     )
   }
@@ -255,7 +260,7 @@ export default function SupervisorPage() {
   return (
     <>
       <Head>
-        <title>Supervisor | Rannikon</title>
+        <title>{t('sup.badge')} | Rannikon</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
       </Head>
@@ -284,15 +289,16 @@ export default function SupervisorPage() {
             <img src="/rannikkopuutarhalogo.png" alt="Rannikon" style={{ height: '46px', width: 'auto' }} />
             <span style={{ fontFamily: 'Dancing Script, cursive', fontWeight: '700', fontSize: '22px', color: '#2d6a2d', lineHeight: 1 }}>Rannikon Puutarha</span>
           </div>
-          <span className="sup-badge" style={{ background: '#1a3a5c', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.5px' }}>SUPERVISOR</span>
+          <span className="sup-badge" style={{ background: '#1a3a5c', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.5px' }}>{t('sup.badge')}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '13px', color: '#444', fontWeight: '500' }}>#{worker?.work_number} {worker?.full_name}</span>
           {worker?.role === 'admin' && (
-            <button className="btn btn-outline" onClick={() => router.push('/admin')} style={{ fontSize: '12px', padding: '5px 12px' }}>Admin</button>
+            <button className="btn btn-outline" onClick={() => router.push('/admin')} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('housemaster.adminBtn')}</button>
           )}
-          <button className="btn btn-outline" onClick={() => router.push('/dashboard')} style={{ fontSize: '12px', padding: '5px 12px' }}>My timesheet</button>
-          <button className="btn btn-outline" onClick={() => { clearAuth(); router.push('/login') }} style={{ fontSize: '12px', padding: '5px 12px' }}>Sign out</button>
+          <button className="btn btn-outline" onClick={() => router.push('/dashboard')} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('nav.myTimesheet')}</button>
+          <button className="btn btn-outline" onClick={() => { clearAuth(); router.push('/login') }} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('nav.signOut')}</button>
+          <LanguageSelector />
         </div>
       </div>
 
@@ -300,7 +306,7 @@ export default function SupervisorPage() {
 
         {/* Header */}
         <div style={{ marginBottom: '20px' }}>
-          <h1 style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '-0.4px', marginBottom: '4px' }}>Supervisor panel</h1>
+          <h1 style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '-0.4px', marginBottom: '4px' }}>{t('sup.panel')}</h1>
           <p style={{ fontSize: '13px', color: '#666' }}>{todayLabel}</p>
         </div>
 
@@ -312,11 +318,11 @@ export default function SupervisorPage() {
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
               </svg>
             </div>
-            <h2 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>No active session today</h2>
-            <p style={{ fontSize: '14px', color: '#666', marginBottom: '24px' }}>Start a session to begin recording workers.</p>
+            <h2 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>{t('sup.noActiveSession')}</h2>
+            <p style={{ fontSize: '14px', color: '#666', marginBottom: '24px' }}>{t('sup.startSessionDesc')}</p>
             <button className="btn btn-green" onClick={startSession} style={{ fontSize: '14px', padding: '10px 24px' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Start today's session
+              {t('sup.startSession')}
             </button>
           </div>
         )}
@@ -328,38 +334,38 @@ export default function SupervisorPage() {
             <div className="card" style={{ marginBottom: '16px', padding: '14px 20px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: '10px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Workers recorded</div>
+                  <div style={{ fontSize: '10px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('sup.workersRecorded')}</div>
                   <div style={{ fontSize: '22px', fontWeight: '800', color: '#2d6a2d' }}>{logs.length}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '10px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total break</div>
+                  <div style={{ fontSize: '10px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('sup.totalBreak')}</div>
                   <div style={{ fontSize: '22px', fontWeight: '800', color: '#b45309' }}>{session.total_break_mins || 0} min</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '10px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Batches</div>
+                  <div style={{ fontSize: '10px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('sup.batches')}</div>
                   <div style={{ fontSize: '22px', fontWeight: '800', color: '#555' }}>{batches.length}</div>
                 </div>
                 {sent && (
                   <div style={{ background: '#e8f5e9', color: '#2d6a2d', padding: '6px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: '700', border: '1px solid #c8e6c9' }}>
-                    Sent to admin
+                    {t('sup.sentToAdmin')}
                   </div>
                 )}
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button className="btn btn-outline" onClick={() => setShowBreakModal(true)} style={{ background: '#fffbeb', borderColor: '#f59e0b !important', color: '#b45309' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  + Break
+                  {t('sup.addBreak')}
                 </button>
                 <button className="btn btn-green" onClick={() => setShowBatchModal(true)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  Add workers
+                  {t('sup.addWorkers')}
                 </button>
               </div>
             </div>
 
             {/* View toggle */}
             <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
-              {[['session', 'Batches'], ['worklog', 'Work log']].map(([v, l]) => (
+              {[['session', t('sup.batches')], ['worklog', t('sup.workLogTab')]].map(([v, l]) => (
                 <button key={v} onClick={() => setView(v)} style={{ padding: '7px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', border: '1px solid #ddd', background: view === v ? '#2d6a2d' : '#fff', color: view === v ? '#fff' : '#333' }}>{l}</button>
               ))}
             </div>
@@ -369,7 +375,7 @@ export default function SupervisorPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {batches.length === 0 && (
                   <div className="card" style={{ textAlign: 'center', padding: '32px', color: '#888' }}>
-                    <p style={{ fontSize: '14px' }}>No batches yet. Tap "Add workers" to start recording.</p>
+                    <p style={{ fontSize: '14px' }}>{t('sup.noBatchesYet')}</p>
                   </div>
                 )}
                 {batches.map(b => {
@@ -380,14 +386,14 @@ export default function SupervisorPage() {
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                             <span style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a18' }}>
-                              Start: <span style={{ color: '#2d6a2d' }}>{b.start_time?.slice(0,5)}</span>
+                              {t('papers.start')}: <span style={{ color: '#2d6a2d' }}>{b.start_time?.slice(0,5)}</span>
                             </span>
                             {hasFinish ? (
                               <span style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a18' }}>
-                                Finish: <span style={{ color: '#b45309' }}>{b.finish_time?.slice(0,5)}</span>
+                                {t('papers.finish')}: <span style={{ color: '#b45309' }}>{b.finish_time?.slice(0,5)}</span>
                               </span>
                             ) : (
-                              <span style={{ fontSize: '11px', background: '#fff3e0', color: '#b45309', padding: '2px 8px', borderRadius: '6px', fontWeight: '700' }}>No finish yet</span>
+                              <span style={{ fontSize: '11px', background: '#fff3e0', color: '#b45309', padding: '2px 8px', borderRadius: '6px', fontWeight: '700' }}>{t('sup.noFinishYet')}</span>
                             )}
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
@@ -404,16 +410,16 @@ export default function SupervisorPage() {
                         </div>
                         {!hasFinish && (
                           <button className="btn btn-green" onClick={() => { setFinishBatchId(b.id); setFinishTime('') }} style={{ fontSize: '12px', padding: '7px 14px' }}>
-                            Set finish time
+                            {t('sup.setFinish')}
                           </button>
                         )}
                         {hasFinish && (
                           <button className="btn btn-outline" onClick={() => { setFinishBatchId(b.id); setFinishTime(b.finish_time?.slice(0,5) || '') }} style={{ fontSize: '12px', padding: '7px 14px' }}>
-                            Edit finish
+                            {t('sup.editFinish')}
                           </button>
                         )}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#888' }}>{b.worker_numbers?.length} worker{b.worker_numbers?.length !== 1 ? 's' : ''}</div>
+                      <div style={{ fontSize: '12px', color: '#888' }}>{b.worker_numbers?.length} {b.worker_numbers?.length !== 1 ? t('housemaster.workers') : t('housemaster.worker')}</div>
                     </div>
                   )
                 })}
@@ -425,12 +431,12 @@ export default function SupervisorPage() {
               <div>
                 <div className="card" style={{ marginBottom: '12px', overflowX: 'auto' }}>
                   {logs.length === 0 ? (
-                    <p style={{ textAlign: 'center', color: '#888', padding: '24px', fontSize: '14px' }}>No workers recorded yet.</p>
+                    <p style={{ textAlign: 'center', color: '#888', padding: '24px', fontSize: '14px' }}>{t('sup.noWorkersRecorded')}</p>
                   ) : (
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '680px' }}>
                       <thead>
                         <tr style={{ background: '#f5f5f0' }}>
-                          {['Work#', 'Name', 'Group', 'Start', 'Finish', 'Break', 'White hrs', 'Orange hrs', 'Total', 'Work done', ''].map(h => (
+                          {[t('housemaster.workNumberShort'), t('housemaster.name'), t('sup.group'), t('papers.start'), t('papers.finish'), t('housemaster.breakShort'), t('sup.whiteHrs'), t('sup.orangeHrs'), t('papers.total'), t('housemaster.workDone'), ''].map(h => (
                             <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: '700', fontSize: '11px', color: '#555', borderBottom: '1px solid #e8e8e3', whiteSpace: 'nowrap' }}>{h}</th>
                           ))}
                         </tr>
@@ -439,17 +445,17 @@ export default function SupervisorPage() {
                         {logs.map((r, i) => (
                           <tr key={r.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafaf8', borderBottom: '1px solid #f0f0ec' }}>
                             <td style={{ padding: '8px 10px', fontWeight: '700' }}>#{r.worker_number}</td>
-                            <td style={{ padding: '8px 10px', color: '#333' }}>{r.worker_name || <span style={{ color: '#ccc' }}>Unknown</span>}</td>
+                            <td style={{ padding: '8px 10px', color: '#333' }}>{r.worker_name || <span style={{ color: '#ccc' }}>{t('housemaster.unknown')}</span>}</td>
                             <td style={{ padding: '8px 10px' }}><GroupPill group={r.house_group} /></td>
                             <td style={{ padding: '8px 10px', fontFamily: 'monospace' }}>{r.start_time?.slice(0,5) || ''}</td>
-                            <td style={{ padding: '8px 10px', fontFamily: 'monospace' }}>{r.finish_time?.slice(0,5) || <span style={{ color: '#ccc' }}>pending</span>}</td>
+                            <td style={{ padding: '8px 10px', fontFamily: 'monospace' }}>{r.finish_time?.slice(0,5) || <span style={{ color: '#ccc' }}>{t('sup.pending')}</span>}</td>
                             <td style={{ padding: '8px 10px', color: '#b45309' }}>{r.total_break_mins > 0 ? r.total_break_mins + ' min' : ''}</td>
                             <td style={{ padding: '8px 10px', fontWeight: '600', color: '#2d6a2d' }}>{r.white_hours || ''}</td>
                             <td style={{ padding: '8px 10px', fontWeight: '600', color: '#b45309' }}>{r.orange_hours || ''}</td>
                             <td style={{ padding: '8px 10px', fontWeight: '800', color: '#1565c0' }}>{r.total_hours || ''}</td>
                             <td style={{ padding: '8px 10px', color: '#555', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.what_work || ''}</td>
                             <td style={{ padding: '8px 10px' }}>
-                              <button onClick={() => removeWorker(r.worker_number)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', padding: '2px' }}>
+                              <button onClick={() => removeWorker(r.worker_number)} title={t('sup.remove')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', padding: '2px' }}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                               </button>
                             </td>
@@ -465,22 +471,22 @@ export default function SupervisorPage() {
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <button className="btn btn-outline" onClick={downloadPDF} style={{ fontSize: '12px' }}>
                       <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect width="14" height="14" rx="2" fill="#E53935"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial" fill="white">PDF</text></svg>
-                      Download PDF
+                      {t('papers.downloadPDF')}
                     </button>
                     <button className="btn btn-outline" onClick={downloadExcel} style={{ fontSize: '12px' }}>
                       <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect width="14" height="14" rx="2" fill="#217346"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial" fill="white">XLS</text></svg>
-                      Download Excel
+                      {t('papers.downloadExcel')}
                     </button>
                     <div style={{ flex: 1 }} />
                     {!sent ? (
                       <button className="btn btn-green" onClick={sendToAdmin} disabled={sending} style={{ fontSize: '13px', padding: '9px 20px' }}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                        {sending ? 'Sending...' : 'Send to admin'}
+                        {sending ? t('auth.sending') : t('sup.sendToAdmin')}
                       </button>
                     ) : (
                       <div style={{ background: '#e8f5e9', color: '#2d6a2d', padding: '9px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '700', border: '1px solid #c8e6c9', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                        Sent to admin
+                        {t('sup.sentToAdmin')}
                       </div>
                     )}
                   </div>
@@ -495,33 +501,33 @@ export default function SupervisorPage() {
       {showBatchModal && (
         <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget) setShowBatchModal(false) }}>
           <div className="modal">
-            <h3 style={{ fontSize: '17px', fontWeight: '800', marginBottom: '18px' }}>Add workers</h3>
+            <h3 style={{ fontSize: '17px', fontWeight: '800', marginBottom: '18px' }}>{t('sup.addWorkers')}</h3>
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>Worker numbers</label>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>{t('sup.workerNumbers')}</label>
               <textarea
                 style={{ ...inp(), height: '80px', resize: 'none', fontSize: '14px' }}
-                placeholder="234 354 267 292 (space or comma separated)"
+                placeholder={t('sup.workerNumbersPlaceholder')}
                 value={batchNumbers}
                 onChange={e => setBatchNumbers(e.target.value)}
               />
               <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-                {batchNumbers.split(/[\s,;]+/).filter(Boolean).length} workers entered
+                {batchNumbers.split(/[\s,;]+/).filter(Boolean).length} {t('sup.workersEntered')}
               </div>
             </div>
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>Start time</label>
-              <input style={inp()} placeholder="HH:MM e.g. 7:00" value={batchStart} onChange={e => setBatchStart(e.target.value)} />
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>{t('days.startTime')}</label>
+              <input style={inp()} placeholder={t('sup.startTimePlaceholder')} value={batchStart} onChange={e => setBatchStart(e.target.value)} />
             </div>
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>What work <span style={{ color: '#888', fontWeight: '400' }}>(optional)</span></label>
-              <input type="text" style={inp()} placeholder="e.g. blueberry picking, cleaning" value={batchWork} onChange={e => setBatchWork(e.target.value)} />
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>{t('days.whatWork')} <span style={{ color: '#888', fontWeight: '400' }}>{t('sup.optional')}</span></label>
+              <input type="text" style={inp()} placeholder={t('sup.whatWorkPlaceholder')} value={batchWork} onChange={e => setBatchWork(e.target.value)} />
             </div>
             {batchError && <div style={{ color: '#c0392b', fontSize: '13px', marginBottom: '12px' }}>{batchError}</div>}
 
             {/* Preview of groups */}
             {batchNumbers.trim() && (
               <div style={{ marginBottom: '16px', padding: '10px 12px', background: '#f5f5f0', borderRadius: '8px' }}>
-                <div style={{ fontSize: '11px', fontWeight: '700', color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Groups detected</div>
+                <div style={{ fontSize: '11px', fontWeight: '700', color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{t('sup.groupsDetected')}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {batchNumbers.split(/[\s,;]+/).filter(Boolean).map(wn => (
                     <div key={wn} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -534,9 +540,9 @@ export default function SupervisorPage() {
             )}
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn btn-outline" onClick={() => { setShowBatchModal(false); setBatchError('') }} style={{ flex: 1 }}>Cancel</button>
+              <button className="btn btn-outline" onClick={() => { setShowBatchModal(false); setBatchError('') }} style={{ flex: 1 }}>{t('sup.cancel')}</button>
               <button className="btn btn-green" onClick={addBatch} disabled={batchSaving} style={{ flex: 2 }}>
-                {batchSaving ? 'Saving...' : 'Add batch'}
+                {batchSaving ? t('sup.saving') : t('sup.addBatchBtn')}
               </button>
             </div>
           </div>
@@ -547,11 +553,11 @@ export default function SupervisorPage() {
       {showBreakModal && (
         <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget) setShowBreakModal(false) }}>
           <div className="modal" style={{ maxWidth: '340px' }}>
-            <h3 style={{ fontSize: '17px', fontWeight: '800', marginBottom: '6px' }}>Record break</h3>
-            <p style={{ fontSize: '13px', color: '#666', marginBottom: '18px' }}>Current total: <b>{session.total_break_mins || 0} min</b></p>
+            <h3 style={{ fontSize: '17px', fontWeight: '800', marginBottom: '6px' }}>{t('sup.recordBreak')}</h3>
+            <p style={{ fontSize: '13px', color: '#666', marginBottom: '18px' }}>{t('sup.currentTotal')}: <b>{session.total_break_mins || 0} min</b></p>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Break duration (minutes)</label>
-              <input type="number" min="1" max="120" style={inp({ fontSize: '20px', fontWeight: '700', textAlign: 'center' })} placeholder="e.g. 20" value={breakMins} onChange={e => setBreakMins(e.target.value)} />
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>{t('sup.breakDuration')}</label>
+              <input type="number" min="1" max="120" style={inp({ fontSize: '20px', fontWeight: '700', textAlign: 'center' })} placeholder={t('sup.breakPlaceholder')} value={breakMins} onChange={e => setBreakMins(e.target.value)} />
             </div>
             <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
               {[10, 15, 20, 30, 45].map(m => (
@@ -559,9 +565,9 @@ export default function SupervisorPage() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn btn-outline" onClick={() => setShowBreakModal(false)} style={{ flex: 1 }}>Cancel</button>
+              <button className="btn btn-outline" onClick={() => setShowBreakModal(false)} style={{ flex: 1 }}>{t('sup.cancel')}</button>
               <button className="btn btn-green" onClick={addBreak} disabled={breakSaving || !breakMins} style={{ flex: 2 }}>
-                {breakSaving ? 'Saving...' : `Add ${breakMins || '—'} min break`}
+                {breakSaving ? t('sup.saving') : `${t('sup.addBreakPrefix')} ${breakMins || '—'} ${t('sup.minBreakSuffix')}`}
               </button>
             </div>
           </div>
@@ -572,16 +578,16 @@ export default function SupervisorPage() {
       {finishBatchId && (
         <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget) setFinishBatchId(null) }}>
           <div className="modal" style={{ maxWidth: '340px' }}>
-            <h3 style={{ fontSize: '17px', fontWeight: '800', marginBottom: '6px' }}>Set finish time</h3>
-            <p style={{ fontSize: '13px', color: '#666', marginBottom: '18px' }}>This applies to all workers in this batch.</p>
+            <h3 style={{ fontSize: '17px', fontWeight: '800', marginBottom: '6px' }}>{t('sup.setFinish')}</h3>
+            <p style={{ fontSize: '13px', color: '#666', marginBottom: '18px' }}>{t('sup.applyToAllWorkers')}</p>
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Finish time</label>
-              <input style={inp({ fontSize: '20px', textAlign: 'center' })} placeholder="HH:MM e.g. 16:00" value={finishTime} onChange={e => setFinishTime(e.target.value)} />
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>{t('days.finishTime')}</label>
+              <input style={inp({ fontSize: '20px', textAlign: 'center' })} placeholder={t('sup.finishTimePlaceholder')} value={finishTime} onChange={e => setFinishTime(e.target.value)} />
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn btn-outline" onClick={() => setFinishBatchId(null)} style={{ flex: 1 }}>Cancel</button>
+              <button className="btn btn-outline" onClick={() => setFinishBatchId(null)} style={{ flex: 1 }}>{t('sup.cancel')}</button>
               <button className="btn btn-green" onClick={setFinish} disabled={finishSaving || !finishTime} style={{ flex: 2 }}>
-                {finishSaving ? 'Saving...' : 'Set finish'}
+                {finishSaving ? t('sup.saving') : t('sup.setFinishBtn')}
               </button>
             </div>
           </div>

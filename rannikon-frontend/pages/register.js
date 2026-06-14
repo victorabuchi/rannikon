@@ -3,6 +3,8 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import api from '../lib/api'
 import { saveAuth } from '../lib/auth'
+import { useLanguage } from '@/lib/i18n'
+import LanguageSelector from '@/components/LanguageSelector'
 
 function EyeIcon({ open }) {
   return open ? (
@@ -38,10 +40,11 @@ function CheckIcon() {
 
 const PAPERS = [
   {
-    name: 'White Paper',
+    id: 'white',
+    nameKey: 'papers.whitePaper',
     accent: '#4ade80',
     headerBg: 'rgba(45,106,45,0.35)',
-    cols: ['Day', 'Start', 'Finish', 'Hours'],
+    colsKeys: ['papers.day', 'papers.start', 'papers.finish', 'papers.hours'],
     rows: [
       ['1', '09:30', '18:00', '7:30'],
       ['2', '10:00', '19:30', '7:30'],
@@ -49,10 +52,11 @@ const PAPERS = [
     ],
   },
   {
-    name: 'Orange Paper',
+    id: 'orange',
+    nameKey: 'papers.orangePaper',
     accent: '#fb923c',
     headerBg: 'rgba(180,83,9,0.35)',
-    cols: ['Day', 'Start', 'Finish', 'Extra hrs'],
+    colsKeys: ['papers.day', 'papers.start', 'papers.finish', 'papers.extraHrs'],
     rows: [
       ['1', '18:00', '21:30', '3:15'],
       ['2', '19:30', '22:00', '2:15'],
@@ -60,10 +64,11 @@ const PAPERS = [
     ],
   },
   {
-    name: 'Weekly Summary',
+    id: 'weekly',
+    nameKey: 'papers.weeklySummary',
     accent: '#60a5fa',
     headerBg: 'rgba(21,101,192,0.35)',
-    cols: ['Week', 'Reg hrs', 'Extra hrs', 'Total'],
+    colsKeys: ['papers.week', 'papers.regHrs', 'papers.extraHrs', 'papers.total'],
     rows: [
       ['1', '37:30', '12:15', '49:45'],
       ['2', '37:30', '9:00',  '46:30'],
@@ -71,10 +76,11 @@ const PAPERS = [
     ],
   },
   {
-    name: 'Green Paper',
+    id: 'green',
+    nameKey: 'papers.greenPaper',
     accent: '#34d399',
     headerBg: 'rgba(5,150,105,0.35)',
-    cols: ['Day', 'Start', 'Finish', 'Kg picked'],
+    colsKeys: ['papers.day', 'papers.start', 'papers.finish', 'days.kgPicked'],
     rows: [
       ['1', '09:00', '16:30', '240 kg'],
       ['2', '09:30', '17:00', '195 kg'],
@@ -85,6 +91,7 @@ const PAPERS = [
 
 /* Cycles through all 4 papers, filling rows one by one — no movement */
 function PaperFillAnimation() {
+  const { t } = useLanguage()
   const [paperIdx, setPaperIdx] = useState(0)
   const [filledCount, setFilledCount] = useState(0)
   const [paperDone, setPaperDone] = useState(false)
@@ -121,7 +128,7 @@ function PaperFillAnimation() {
       {/* Paper tab indicators */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
         {PAPERS.map((p, i) => (
-          <div key={p.name} style={{
+          <div key={p.id} style={{
             flex: 1, height: '3px', borderRadius: '2px',
             background: i < paperIdx || allDone ? p.accent : i === paperIdx ? p.accent : 'rgba(255,255,255,0.12)',
             opacity: i < paperIdx || allDone ? 0.5 : 1,
@@ -134,13 +141,13 @@ function PaperFillAnimation() {
       <div style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${paper.accent}30`, borderRadius: '12px', overflow: 'hidden', transition: 'border-color 0.4s' }}>
 
         <div style={{ background: paper.headerBg, padding: '9px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 0.4s' }}>
-          <span style={{ fontSize: '11px', fontWeight: '700', color: paper.accent, textTransform: 'uppercase', letterSpacing: '0.8px', transition: 'color 0.4s' }}>{paper.name}</span>
-          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>June 2026</span>
+          <span style={{ fontSize: '11px', fontWeight: '700', color: paper.accent, textTransform: 'uppercase', letterSpacing: '0.8px', transition: 'color 0.4s' }}>{t(paper.nameKey)}</span>
+          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>{t('months')[5]} 2026</span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 1fr 72px', padding: '5px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          {paper.cols.map(h => (
-            <span key={h} style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{h}</span>
+          {paper.colsKeys.map(k => (
+            <span key={k} style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{t(k)}</span>
           ))}
         </div>
 
@@ -179,20 +186,12 @@ function PaperFillAnimation() {
         </svg>
         <span style={{ fontSize: '12px', fontWeight: '600', transition: 'color 0.4s',
           color: allDone ? '#4ade80' : paperDone ? paper.accent : 'rgba(255,255,255,0.22)' }}>
-          {allDone ? 'All 4 papers auto-filled' : paperDone ? `${paper.name} complete` : `Filling ${paper.name}...`}
+          {allDone ? t('register.allPapersFilled') : paperDone ? `${t(paper.nameKey)} ${t('register.complete')}` : `${t('register.filling')} ${t(paper.nameKey)}...`}
         </span>
       </div>
     </div>
   )
 }
-
-const FEATURES = [
-  { title: 'Digital timesheet', desc: 'Log every working day and track your full month.' },
-  { title: 'Auto-calculated papers', desc: 'White, orange, and weekly summary filled instantly.' },
-  { title: 'Zero math errors', desc: 'Start and finish times produce correct hour totals.' },
-  { title: 'Supervisor verification', desc: 'Hours reviewed and approved before payroll.' },
-  { title: 'Secure cloud storage', desc: 'Your records safe and accessible from any device.' },
-]
 
 const COUNTRIES = [
   'Finland', 'Sweden', 'Norway', 'Denmark', 'Estonia', 'Latvia', 'Lithuania',
@@ -203,6 +202,7 @@ const COUNTRIES = [
 
 export default function Register() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [form, setForm] = useState({ work_number: '', full_name: '', email: '', password: '' })
   const [country, setCountry] = useState('Finland')
   const [emailPref, setEmailPref] = useState(false)
@@ -230,7 +230,7 @@ export default function Register() {
       saveAuth(res.data.token, res.data.worker)
       router.push('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed. Please try again.')
+      setError(err.response?.data?.error || t('register.registrationFailed'))
     } finally {
       setLoading(false)
     }
@@ -239,7 +239,7 @@ export default function Register() {
   return (
     <>
       <Head>
-        <title>Create account | Rannikon</title>
+        <title>{t('auth.register')} | Rannikon</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <style>{`
@@ -300,14 +300,14 @@ export default function Register() {
             </div>
 
             <h1 style={{ fontSize: 'clamp(24px,3.5vw,36px)', fontWeight: '700', lineHeight: 1.15, marginBottom: '10px', color: '#fff' }}>
-              Create your account
+              {t('register.createYourAccount')}
             </h1>
             <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.55)', lineHeight: '1.6', marginBottom: '20px' }}>
-              Track your farm work hours accurately.<br />Auto-calculate your paper forms.
+              {t('register.trackHours')}<br />{t('register.autoCalcForms')}
             </p>
 
             <button className="features-toggle" onClick={() => setShowFeatures(s => !s)}>
-              See what&apos;s included
+              {t('register.seeWhatsIncluded')}
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                 style={{ transform: showFeatures ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
                 <polyline points="6 9 12 15 18 9"/>
@@ -315,8 +315,8 @@ export default function Register() {
             </button>
 
             <div style={{ overflow: 'hidden', maxHeight: showFeatures ? '400px' : '0', transition: 'max-height 0.35s ease', marginTop: showFeatures ? '14px' : '0' }}>
-              {FEATURES.map(f => (
-                <div key={f.title} className="feature-item">
+              {t('register.features').map((f, i) => (
+                <div key={i} className="feature-item">
                   <div style={{ flexShrink: 0, marginTop: '2px', width: '18px', height: '18px', background: 'rgba(74,222,128,0.12)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <CheckIcon />
                   </div>
@@ -338,84 +338,88 @@ export default function Register() {
           {/* Mobile-only header */}
           <div className="reg-mobile-top" onClick={() => router.push('/')} style={{ cursor: 'pointer' }}>
             <img src="/rannikkopuutarhalogo.png" alt="Rannikon Puutarha" style={{ height: '48px', width: 'auto', marginBottom: '14px' }} />
-            <h1 style={{ fontSize: '24px', fontWeight: '300', letterSpacing: '-0.3px', color: '#1a1a18' }}>Create your account</h1>
+            <h1 style={{ fontSize: '24px', fontWeight: '300', letterSpacing: '-0.3px', color: '#1a1a18' }}>{t('register.createYourAccount')}</h1>
           </div>
 
           <p style={{ textAlign: 'center', fontSize: '13px', color: '#666', marginBottom: '20px' }}>
-            Already have an account?{' '}
+            {t('register.alreadyHaveAccount')}{' '}
             <a href="/login" style={{ color: '#2d6a2d', fontWeight: '600' }}
               onMouseEnter={e => e.target.style.textDecoration = 'underline'}
               onMouseLeave={e => e.target.style.textDecoration = 'none'}>
-              Sign in
+              {t('auth.login')}
             </a>
           </p>
 
-          <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1a1a18', marginBottom: '16px', textAlign: 'center' }}>Sign up for Rannikon</h2>
+          <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1a1a18', marginBottom: '16px', textAlign: 'center' }}>{t('register.signUpFor')}</h2>
 
           <button className="gh-btn-outline" style={{ marginBottom: '4px' }} onClick={() => window.location.href = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4003') + '/api/auth/google'}>
             <GoogleIcon />
-            Continue with Google
+            {t('auth.continueWithGoogle')}
           </button>
 
-          <div className="gh-divider">or</div>
+          <div className="gh-divider">{t('auth.or')}</div>
 
           {error && <div className="error-box">{error}</div>}
 
           <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
             <div>
-              <label className="field-label">Email<span>*</span></label>
-              <input className="gh-input" type="email" name="email" placeholder="Email" value={form.email} onChange={handleChange} required />
+              <label className="field-label">{t('register.email')}<span>*</span></label>
+              <input className="gh-input" type="email" name="email" placeholder={t('register.email')} value={form.email} onChange={handleChange} required />
             </div>
 
             <div>
-              <label className="field-label">Password<span>*</span></label>
+              <label className="field-label">{t('auth.password')}<span>*</span></label>
               <div className="gh-input-wrap">
-                <input className="gh-input" style={{ paddingRight: '36px' }} type={showPassword ? 'text' : 'password'} name="password" placeholder="Password" value={form.password} onChange={handleChange} required />
+                <input className="gh-input" style={{ paddingRight: '36px' }} type={showPassword ? 'text' : 'password'} name="password" placeholder={t('auth.password')} value={form.password} onChange={handleChange} required />
                 <button type="button" className="eye-btn" onClick={() => setShowPassword(s => !s)}><EyeIcon open={showPassword} /></button>
               </div>
-              <p className="hint">At least 8 characters including a number and a lowercase letter.</p>
+              <p className="hint">{t('register.passwordHint')}</p>
             </div>
 
             <div>
-              <label className="field-label">Work number<span>*</span></label>
-              <input className="gh-input" type="text" name="work_number" placeholder="Work number" value={form.work_number} onChange={handleChange} required />
-              <p className="hint">Your unique farm number. Cannot be changed later.</p>
+              <label className="field-label">{t('auth.workNumber')}<span>*</span></label>
+              <input className="gh-input" type="text" name="work_number" placeholder={t('auth.workNumber')} value={form.work_number} onChange={handleChange} required />
+              <p className="hint">{t('register.workNumberHint')}</p>
             </div>
 
             <div>
-              <label className="field-label">Full name<span>*</span></label>
-              <input className="gh-input" type="text" name="full_name" placeholder="Full name" value={form.full_name} onChange={handleChange} required />
+              <label className="field-label">{t('register.fullName')}<span>*</span></label>
+              <input className="gh-input" type="text" name="full_name" placeholder={t('register.fullName')} value={form.full_name} onChange={handleChange} required />
             </div>
 
             <div>
-              <label className="field-label">Your Country/Region<span>*</span></label>
+              <label className="field-label">{t('register.countryRegion')}<span>*</span></label>
               <select className="gh-select" value={country} onChange={e => setCountry(e.target.value)}>
-                {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {COUNTRIES.map((c, i) => <option key={c} value={c}>{t('register.countries')[i]}</option>)}
               </select>
-              <p className="hint">Required for compliance and account notifications.</p>
+              <p className="hint">{t('register.countryHint')}</p>
             </div>
 
             <div>
-              <p style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a18', marginBottom: '6px' }}>Email preferences</p>
+              <p style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a18', marginBottom: '6px' }}>{t('register.emailPreferences')}</p>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }}>
                 <input type="checkbox" checked={emailPref} onChange={e => setEmailPref(e.target.checked)} style={{ marginTop: '2px', flexShrink: 0 }} />
-                <span style={{ fontSize: '13px', color: '#444', lineHeight: '1.5' }}>Receive occasional product updates and announcements</span>
+                <span style={{ fontSize: '13px', color: '#444', lineHeight: '1.5' }}>{t('register.emailPrefDesc')}</span>
               </label>
             </div>
 
             <button type="submit" className="gh-btn-green" disabled={loading} style={{ marginTop: '4px' }}>
-              {loading ? 'Creating account...' : 'Create account'}
+              {loading ? t('register.creatingAccount') : t('auth.register')}
             </button>
 
           </form>
 
           <p style={{ fontSize: '11px', color: '#8c959f', marginTop: '14px', lineHeight: '1.7' }}>
-            By creating an account, you agree to the{' '}
-            <a href="/terms" style={{ color: '#2d6a2d' }}>Terms of Service</a>.{' '}
-            See our <a href="/privacy" style={{ color: '#2d6a2d' }}>Privacy Statement</a> for details.{' '}
-            We&apos;ll occasionally send you account-related emails.
+            {t('register.agreeToTerms')}{' '}
+            <a href="/terms" style={{ color: '#2d6a2d' }}>{t('register.termsOfService')}</a>.{' '}
+            {t('register.seeOur')} <a href="/privacy" style={{ color: '#2d6a2d' }}>{t('register.privacyStatement')}</a> {t('register.forDetails')}{' '}
+            {t('register.willSendEmails')}
           </p>
+
+          <div style={{ marginTop: '16px', textAlign: 'center' }}>
+            <LanguageSelector />
+          </div>
 
         </div>
       </div>
@@ -424,14 +428,14 @@ export default function Register() {
       {cookieBanner && (
         <div className="cookie-popup">
           <p style={{ marginBottom: '10px', lineHeight: '1.6' }}>
-            We use cookies to improve your experience.{' '}
-            <a href="#">Manage preferences</a>{' · '}
-            <a href="/privacy">Privacy Statement</a>{' · '}
-            <a href="#">Third-Party Cookies</a>
+            {t('register.cookieMsg')}{' '}
+            <a href="#">{t('register.managePreferences')}</a>{' · '}
+            <a href="/privacy">{t('register.privacyStatement')}</a>{' · '}
+            <a href="#">{t('register.thirdPartyCookies')}</a>
           </p>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => setCookieBanner(false)} style={{ flex: 1, padding: '8px', background: '#2d6a2d', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Accept</button>
-            <button onClick={() => setCookieBanner(false)} style={{ flex: 1, padding: '8px', background: '#fff', color: '#555', border: '1px solid #ddd', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Reject</button>
+            <button onClick={() => setCookieBanner(false)} style={{ flex: 1, padding: '8px', background: '#2d6a2d', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>{t('register.accept')}</button>
+            <button onClick={() => setCookieBanner(false)} style={{ flex: 1, padding: '8px', background: '#fff', color: '#555', border: '1px solid #ddd', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>{t('register.reject')}</button>
           </div>
         </div>
       )}

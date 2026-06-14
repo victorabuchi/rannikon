@@ -6,6 +6,10 @@ import { clearAuth } from '../lib/auth'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
+import { useLanguage } from '@/lib/i18n'
+import LanguageSelector from '@/components/LanguageSelector'
+
+const LOCALE_MAP = { en: 'en-GB', uk: 'uk-UA', km: 'km-KH', vi: 'vi-VN', ne: 'ne-NP' }
 
 function toMins(t) {
   if (!t) return 0
@@ -13,25 +17,26 @@ function toMins(t) {
   return parseInt(p[0]) * 60 + parseInt(p[1])
 }
 
-function formatDate(d) {
+function formatDate(d, lang) {
   if (!d) return '—'
   const date = new Date(d)
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+  return date.toLocaleDateString(LOCALE_MAP[lang] || 'en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
 function WorklogCard({ wl, onDelete }) {
+  const { t, lang } = useLanguage()
   const logs = Array.isArray(wl.logs) ? wl.logs : (typeof wl.logs === 'string' ? JSON.parse(wl.logs) : [])
-  const dateLabel = formatDate(wl.session_date)
+  const dateLabel = formatDate(wl.session_date, lang)
 
   function downloadPDF() {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
     doc.setFontSize(14); doc.setFont('helvetica', 'bold')
-    doc.text(`${wl.house_group} — Work Log`, 14, 16)
+    doc.text(`${wl.house_group} — ${t('housemaster.workLog')}`, 14, 16)
     doc.setFontSize(10); doc.setFont('helvetica', 'normal')
-    doc.text(`${dateLabel}   |   ${logs.length} workers`, 14, 23)
+    doc.text(`${dateLabel}   |   ${logs.length} ${logs.length !== 1 ? t('housemaster.workers') : t('housemaster.worker')}`, 14, 23)
     autoTable(doc, {
       startY: 28,
-      head: [['Work#', 'Name', 'Start', 'Finish', 'Break', 'Total hrs', 'Work done']],
+      head: [[t('housemaster.workNumberShort'), t('housemaster.name'), t('papers.start'), t('papers.finish'), t('housemaster.breakShort'), t('housemaster.totalHrs'), t('housemaster.workDone')]],
       body: logs.map(r => [
         r.worker_number || '',
         r.worker_name || '',
@@ -49,10 +54,10 @@ function WorklogCard({ wl, onDelete }) {
 
   function downloadExcel() {
     const data = [
-      [`${wl.house_group} — Work Log`],
-      [dateLabel + '   |   ' + logs.length + ' workers'],
+      [`${wl.house_group} — ${t('housemaster.workLog')}`],
+      [dateLabel + '   |   ' + logs.length + ' ' + (logs.length !== 1 ? t('housemaster.workers') : t('housemaster.worker'))],
       [],
-      ['Work#', 'Name', 'Start', 'Finish', 'Break', 'Total hrs', 'Work done'],
+      [t('housemaster.workNumberShort'), t('housemaster.name'), t('papers.start'), t('papers.finish'), t('housemaster.breakShort'), t('housemaster.totalHrs'), t('housemaster.workDone')],
       ...logs.map(r => [
         r.worker_number || '',
         r.worker_name || '',
@@ -64,7 +69,7 @@ function WorklogCard({ wl, onDelete }) {
       ])
     ]
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Work Log')
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), t('housemaster.workLog'))
     XLSX.writeFile(wb, `worklog-${wl.house_group.replace(/[^a-z0-9]/gi, '-')}-${wl.session_date}.xlsx`)
   }
 
@@ -72,12 +77,12 @@ function WorklogCard({ wl, onDelete }) {
     const lines = logs.map(r =>
       `#${r.worker_number} ${r.worker_name || ''} — ${r.start_time?.slice(0,5) || '?'} to ${r.finish_time?.slice(0,5) || '?'} — ${r.total_hours || '?'} hrs`
     ).join('\n')
-    const text = `Rannikon Puutarha Work Log - ${wl.house_group} - ${dateLabel}\n\n${lines}`
+    const text = `Rannikon Puutarha ${t('housemaster.workLog')} - ${wl.house_group} - ${dateLabel}\n\n${lines}`
     if (navigator.share) {
-      navigator.share({ title: `Work Log — ${wl.house_group}`, text }).catch(() => {})
+      navigator.share({ title: `${t('housemaster.workLog')} — ${wl.house_group}`, text }).catch(() => {})
     } else {
       navigator.clipboard?.writeText(text)
-      alert('Copied to clipboard')
+      alert(t('housemaster.copiedToClipboard'))
     }
   }
 
@@ -86,7 +91,7 @@ function WorklogCard({ wl, onDelete }) {
       <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0ec', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <div>
           <div style={{ fontSize: '15px', fontWeight: '800', color: '#1a1a18', marginBottom: '2px' }}>{wl.house_group}</div>
-          <div style={{ fontSize: '13px', color: '#888' }}>{dateLabel} &nbsp;|&nbsp; {logs.length} worker{logs.length !== 1 ? 's' : ''}</div>
+          <div style={{ fontSize: '13px', color: '#888' }}>{dateLabel} &nbsp;|&nbsp; {logs.length} {logs.length !== 1 ? t('housemaster.workers') : t('housemaster.worker')}</div>
         </div>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           <button
@@ -94,40 +99,40 @@ function WorklogCard({ wl, onDelete }) {
             style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', fontSize: '12px', fontWeight: '600', background: '#fff', border: '1px solid #ddd', borderRadius: '7px', cursor: 'pointer', fontFamily: 'inherit', color: '#333' }}
           >
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect width="14" height="14" rx="2" fill="#E53935"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial" fill="white">PDF</text></svg>
-            PDF
+            {t('housemaster.pdf')}
           </button>
           <button
             onClick={downloadExcel}
             style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', fontSize: '12px', fontWeight: '600', background: '#fff', border: '1px solid #ddd', borderRadius: '7px', cursor: 'pointer', fontFamily: 'inherit', color: '#333' }}
           >
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect width="14" height="14" rx="2" fill="#217346"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial" fill="white">XLS</text></svg>
-            Excel
+            {t('housemaster.excel')}
           </button>
           <button
             onClick={share}
             style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', fontSize: '12px', fontWeight: '600', background: '#fff', border: '1px solid #ddd', borderRadius: '7px', cursor: 'pointer', fontFamily: 'inherit', color: '#333' }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            Share
+            {t('housemaster.share')}
           </button>
           <button
             onClick={() => onDelete(wl.id)}
             style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', fontSize: '12px', fontWeight: '600', background: '#fff', border: '1px solid #f5c2c2', borderRadius: '7px', cursor: 'pointer', fontFamily: 'inherit', color: '#c0392b' }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c0392b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-            Delete
+            {t('days.delete')}
           </button>
         </div>
       </div>
 
       {logs.length === 0 ? (
-        <p style={{ padding: '20px', color: '#bbb', fontSize: '13px', textAlign: 'center' }}>No worker data</p>
+        <p style={{ padding: '20px', color: '#bbb', fontSize: '13px', textAlign: 'center' }}>{t('housemaster.noWorkerData')}</p>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '580px' }}>
             <thead>
               <tr style={{ background: '#fafafa' }}>
-                {['Work#', 'Name', 'Start', 'Finish', 'Break', 'Total hrs', 'Work done'].map(h => (
+                {[t('housemaster.workNumberShort'), t('housemaster.name'), t('papers.start'), t('papers.finish'), t('housemaster.breakShort'), t('housemaster.totalHrs'), t('housemaster.workDone')].map(h => (
                   <th key={h} style={{ padding: '9px 12px', textAlign: 'left', fontWeight: '700', fontSize: '11px', color: '#555', borderBottom: '1px solid #f0f0ec', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -136,7 +141,7 @@ function WorklogCard({ wl, onDelete }) {
               {logs.map((r, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid #f8f8f5', background: i % 2 === 0 ? '#fff' : '#fafaf8' }}>
                   <td style={{ padding: '8px 12px', fontWeight: '700', fontFamily: 'monospace' }}>#{r.worker_number}</td>
-                  <td style={{ padding: '8px 12px', color: '#333' }}>{r.worker_name || <span style={{ color: '#ccc' }}>Unknown</span>}</td>
+                  <td style={{ padding: '8px 12px', color: '#333' }}>{r.worker_name || <span style={{ color: '#ccc' }}>{t('housemaster.unknown')}</span>}</td>
                   <td style={{ padding: '8px 12px', fontFamily: 'monospace' }}>{r.start_time?.slice(0,5) || ''}</td>
                   <td style={{ padding: '8px 12px', fontFamily: 'monospace' }}>{r.finish_time?.slice(0,5) || <span style={{ color: '#ccc' }}>—</span>}</td>
                   <td style={{ padding: '8px 12px', color: '#b45309' }}>{r.total_break_mins > 0 ? r.total_break_mins + ' min' : ''}</td>
@@ -154,6 +159,7 @@ function WorklogCard({ wl, onDelete }) {
 
 export default function HousemasterPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [me, setMe] = useState(null)
   const [worklogs, setWorklogs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -183,19 +189,19 @@ export default function HousemasterPage() {
   }
 
   async function deleteWorklog(id) {
-    if (!confirm('Delete this work log? This cannot be undone.')) return
+    if (!confirm(t('housemaster.deleteConfirm'))) return
     try {
       await api.delete(`/api/admin/housemaster-worklogs/${id}`)
       setWorklogs(prev => prev.filter(wl => wl.id !== id))
     } catch {
-      alert('Could not delete work log. Please try again.')
+      alert(t('housemaster.deleteFailed'))
     }
   }
 
   if (loading || !me) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif' }}>
-        <p style={{ color: '#555' }}>Loading...</p>
+        <p style={{ color: '#555' }}>{t('common.loading')}</p>
       </div>
     )
   }
@@ -203,7 +209,7 @@ export default function HousemasterPage() {
   return (
     <>
       <Head>
-        <title>Housemaster | Rannikon</title>
+        <title>{t('housemaster.badge')} | Rannikon</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
       </Head>
@@ -225,15 +231,16 @@ export default function HousemasterPage() {
             <img src="/rannikkopuutarhalogo.png" alt="Rannikon" style={{ height: '46px', width: 'auto' }} />
             <span style={{ fontFamily: 'Dancing Script, cursive', fontWeight: '700', fontSize: '22px', color: '#2d6a2d', lineHeight: 1 }}>Rannikon Puutarha</span>
           </div>
-          <span className="hm-badge" style={{ background: '#7b1fa2', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.5px' }}>HOUSEMASTER</span>
+          <span className="hm-badge" style={{ background: '#7b1fa2', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.5px' }}>{t('housemaster.badge')}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '13px', color: '#444', fontWeight: '500' }}>#{me.work_number} {me.full_name}</span>
           {me.role === 'admin' && (
-            <button className="btn btn-outline" onClick={() => router.push('/admin')} style={{ fontSize: '12px', padding: '5px 12px' }}>Admin</button>
+            <button className="btn btn-outline" onClick={() => router.push('/admin')} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('housemaster.adminBtn')}</button>
           )}
-          <button className="btn btn-outline" onClick={() => router.push('/dashboard')} style={{ fontSize: '12px', padding: '5px 12px' }}>My timesheet</button>
-          <button className="btn btn-outline" onClick={() => { clearAuth(); router.push('/login') }} style={{ fontSize: '12px', padding: '5px 12px' }}>Sign out</button>
+          <button className="btn btn-outline" onClick={() => router.push('/dashboard')} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('nav.myTimesheet')}</button>
+          <button className="btn btn-outline" onClick={() => { clearAuth(); router.push('/login') }} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('nav.signOut')}</button>
+          <LanguageSelector />
         </div>
       </div>
 
@@ -241,16 +248,16 @@ export default function HousemasterPage() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '-0.4px', marginBottom: '2px' }}>Work logs</h1>
-            <p style={{ fontSize: '13px', color: '#888' }}>Work logs sent to you from the admin</p>
+            <h1 style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '-0.4px', marginBottom: '2px' }}>{t('housemaster.workLogs')}</h1>
+            <p style={{ fontSize: '13px', color: '#888' }}>{t('housemaster.workLogsSentDesc')}</p>
           </div>
-          <button className="btn btn-outline" onClick={loadWorklogs} style={{ fontSize: '12px' }}>Refresh</button>
+          <button className="btn btn-outline" onClick={loadWorklogs} style={{ fontSize: '12px' }}>{t('housemaster.refresh')}</button>
         </div>
 
         {worklogs.length === 0 ? (
           <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '14px', padding: '48px 24px', textAlign: 'center' }}>
-            <p style={{ fontSize: '15px', color: '#888', fontWeight: '500' }}>No work logs received yet</p>
-            <p style={{ fontSize: '13px', color: '#bbb', marginTop: '6px' }}>When the admin sends a work log to your group, it will appear here.</p>
+            <p style={{ fontSize: '15px', color: '#888', fontWeight: '500' }}>{t('housemaster.noLogsYet')}</p>
+            <p style={{ fontSize: '13px', color: '#bbb', marginTop: '6px' }}>{t('housemaster.noLogsDesc')}</p>
           </div>
         ) : (
           worklogs.map(wl => <WorklogCard key={wl.id} wl={wl} onDelete={deleteWorklog} />)

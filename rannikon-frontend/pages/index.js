@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
+import { useLanguage } from '@/lib/i18n'
+import LanguageSelector from '@/components/LanguageSelector'
 
 function toMins(t) {
   const p = t.split(':')
@@ -22,6 +24,7 @@ const SCENARIOS = [
 ]
 
 function AnimatedDemo() {
+  const { t } = useLanguage()
   const [tick, setTick] = useState(0)
   const step = tick % 9
   const scenarioIdx = Math.floor(tick / 9) % 3
@@ -78,16 +81,16 @@ function AnimatedDemo() {
         {/* Form */}
         <div style={{ padding: '18px' }}>
           <div style={{ fontSize: '11px', fontWeight: '700', color: '#2d6a2d', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: '14px' }}>
-            Log work hours
+            {t('home.logWorkHours')}
           </div>
 
           <div style={{ marginBottom: '9px' }}>
-            <div style={{ fontSize: '10px', color: '#888', marginBottom: '3px', fontWeight: '500' }}>Worker number</div>
+            <div style={{ fontSize: '10px', color: '#888', marginBottom: '3px', fontWeight: '500' }}>{t('home.workerNumber')}</div>
             <div style={{ border: '1px solid #ddd', borderRadius: '6px', padding: '7px 9px', fontSize: '13px', fontWeight: '600', background: '#fafaf9', color: '#333' }}>247</div>
           </div>
 
           <div style={{ marginBottom: '9px' }}>
-            <div style={{ fontSize: '10px', color: '#888', marginBottom: '3px', fontWeight: '500' }}>Start time</div>
+            <div style={{ fontSize: '10px', color: '#888', marginBottom: '3px', fontWeight: '500' }}>{t('days.startTime')}</div>
             <div style={{
               border: (step === 1 || step === 2) ? '1.5px solid #2d6a2d' : '1px solid #ddd',
               borderRadius: '6px', padding: '7px 9px', fontSize: '13px', fontWeight: '600',
@@ -103,7 +106,7 @@ function AnimatedDemo() {
           </div>
 
           <div style={{ marginBottom: '9px' }}>
-            <div style={{ fontSize: '10px', color: '#888', marginBottom: '3px', fontWeight: '500' }}>Finish time</div>
+            <div style={{ fontSize: '10px', color: '#888', marginBottom: '3px', fontWeight: '500' }}>{t('days.finishTime')}</div>
             <div style={{
               border: (step === 3 || step === 4) ? '1.5px solid #2d6a2d' : '1px solid #ddd',
               borderRadius: '6px', padding: '7px 9px', fontSize: '13px', fontWeight: '600',
@@ -119,7 +122,7 @@ function AnimatedDemo() {
           </div>
 
           <div style={{ marginBottom: '13px' }}>
-            <div style={{ fontSize: '10px', color: '#888', marginBottom: '4px', fontWeight: '500' }}>Break</div>
+            <div style={{ fontSize: '10px', color: '#888', marginBottom: '4px', fontWeight: '500' }}>{t('housemaster.breakShort')}</div>
             <div style={{ display: 'flex', gap: '4px' }}>
               {[30, 40, 60].map(b => (
                 <div key={b} style={{
@@ -140,19 +143,19 @@ function AnimatedDemo() {
             transform: btnClick ? 'scale(0.96)' : 'scale(1)',
             transition: 'transform 0.12s', opacity: btnClick ? 0.8 : 1, cursor: 'pointer'
           }}>
-            Calculate hours
+            {t('home.calculateHours')}
           </div>
 
           <div style={{ overflow: 'hidden', maxHeight: showResults ? '260px' : '0', transition: 'max-height 0.5s ease', marginTop: showResults ? '10px' : '0' }}>
 
             {/* White Paper */}
             <div style={{ background: '#f0fff4', border: '1px solid #c6f6d5', borderRadius: '7px', padding: '7px 10px', marginBottom: '5px' }}>
-              <div style={{ fontSize: '9px', fontWeight: '700', color: '#2d6a2d', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '5px' }}>White Paper</div>
+              <div style={{ fontSize: '9px', fontWeight: '700', color: '#2d6a2d', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '5px' }}>{t('papers.whitePaper')}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '3px' }}>
-                {[['Start', sc.start], ['Finish', wFinish], ['Break', extraBreak + ' min'], ['Hours', '8:00']].map(([l, v]) => (
-                  <div key={l} style={{ textAlign: 'center', background: '#fff', borderRadius: '4px', padding: '4px 2px' }}>
-                    <div style={{ fontSize: '8px', color: '#888' }}>{l}</div>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: l === 'Hours' ? '#2d6a2d' : '#1a1a18' }}>{v}</div>
+                {[['Start', t('papers.start'), sc.start], ['Finish', t('papers.finish'), wFinish], ['Break', t('housemaster.breakShort'), extraBreak + ' min'], ['Hours', t('papers.hours'), '8:00']].map(([key, label, v]) => (
+                  <div key={key} style={{ textAlign: 'center', background: '#fff', borderRadius: '4px', padding: '4px 2px' }}>
+                    <div style={{ fontSize: '8px', color: '#888' }}>{label}</div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: key === 'Hours' ? '#2d6a2d' : '#1a1a18' }}>{v}</div>
                   </div>
                 ))}
               </div>
@@ -160,12 +163,12 @@ function AnimatedDemo() {
 
             {/* Orange Paper */}
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '7px', padding: '7px 10px', marginBottom: '5px' }}>
-              <div style={{ fontSize: '9px', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '5px' }}>Orange Paper</div>
+              <div style={{ fontSize: '9px', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '5px' }}>{t('papers.orangePaper')}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '3px' }}>
-                {[['Start', oStart], ['Finish', sc.finish], ['Break', extraBreak + ' min'], ['Hrs', oHours]].map(([l, v]) => (
-                  <div key={l} style={{ textAlign: 'center', background: '#fff', borderRadius: '4px', padding: '4px 2px' }}>
-                    <div style={{ fontSize: '8px', color: '#888' }}>{l}</div>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: l === 'Hrs' ? '#b45309' : '#1a1a18' }}>{v}</div>
+                {[['Start', t('papers.start'), oStart], ['Finish', t('papers.finish'), sc.finish], ['Break', t('housemaster.breakShort'), extraBreak + ' min'], ['Hrs', t('papers.hours'), oHours]].map(([key, label, v]) => (
+                  <div key={key} style={{ textAlign: 'center', background: '#fff', borderRadius: '4px', padding: '4px 2px' }}>
+                    <div style={{ fontSize: '8px', color: '#888' }}>{label}</div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: key === 'Hrs' ? '#b45309' : '#1a1a18' }}>{v}</div>
                   </div>
                 ))}
               </div>
@@ -173,9 +176,9 @@ function AnimatedDemo() {
 
             {/* Weekly Summary */}
             <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '7px', padding: '7px 10px' }}>
-              <div style={{ fontSize: '9px', fontWeight: '700', color: '#1565c0', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '5px' }}>Weekly Summary</div>
+              <div style={{ fontSize: '9px', fontWeight: '700', color: '#1565c0', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '5px' }}>{t('papers.weeklySummary')}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px' }}>
-                {[['Working hrs', '8:00'], ['Extra hrs', oHours], ['Total', totalHours]].map(([l, v]) => (
+                {[[t('papers.regHrs'), '8:00'], [t('papers.extraHrs'), oHours], [t('papers.total'), totalHours]].map(([l, v]) => (
                   <div key={l} style={{ textAlign: 'center', background: '#fff', borderRadius: '4px', padding: '4px 2px' }}>
                     <div style={{ fontSize: '8px', color: '#888' }}>{l}</div>
                     <div style={{ fontSize: '11px', fontWeight: '700', color: '#1565c0' }}>{v}</div>
@@ -205,6 +208,7 @@ function AnimatedDemo() {
 
 export default function Home() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [date, setDate] = useState('')
   const [work, setWork] = useState('')
   const [start, setStart] = useState('')
@@ -227,7 +231,7 @@ export default function Home() {
   }, [])
 
   function calc() {
-    if (!date || !start || !finish) { alert('Please fill in date, start time, and finish time'); return }
+    if (!date || !start || !finish) { alert(t('home.fillRequiredAlert')); return }
     const totalBreak = Math.max(30, breakMins)
     const extraBreak = totalBreak - 30
     const WHITE_WINDOW = 510
@@ -250,8 +254,8 @@ export default function Home() {
           <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
         </svg>
       ),
-      title: 'Calculate hours instantly',
-      desc: 'Enter start, finish and break — papers auto-fill instantly.'
+      title: t('home.wf1Title'),
+      desc: t('home.wf1Desc')
     },
     {
       icon: (
@@ -259,8 +263,8 @@ export default function Home() {
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
         </svg>
       ),
-      title: 'Full monthly timesheet',
-      desc: '31-day view with all your entries in one place.'
+      title: t('home.wf2Title'),
+      desc: t('home.wf2Desc')
     },
     {
       icon: (
@@ -268,8 +272,8 @@ export default function Home() {
           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
         </svg>
       ),
-      title: 'Download papers as PDF or Excel',
-      desc: 'White paper, orange paper, weekly summary and green paper — ready to print or share.'
+      title: t('home.wf3Title'),
+      desc: t('home.wf3Desc')
     },
     {
       icon: (
@@ -277,8 +281,8 @@ export default function Home() {
           <circle cx="9" cy="14" r="3" /><circle cx="15" cy="14" r="3" /><circle cx="12" cy="9" r="3" /><path d="M12 6V3" /><path d="M9 3c0 1.5 1.5 2 3 2s3-.5 3-2" />
         </svg>
       ),
-      title: 'Berry picking tracking',
-      desc: 'Log the kilos picked each day on the green paper.'
+      title: t('home.wf4Title'),
+      desc: t('home.wf4Desc')
     },
     {
       icon: (
@@ -286,8 +290,8 @@ export default function Home() {
           <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
         </svg>
       ),
-      title: 'Edit any value',
-      desc: 'Tap any cell to correct it directly — no need to start over.'
+      title: t('home.wf5Title'),
+      desc: t('home.wf5Desc')
     },
   ]
 
@@ -298,8 +302,8 @@ export default function Home() {
           <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
         </svg>
       ),
-      title: 'Record worker batches',
-      desc: 'Enter multiple worker numbers at once with one shared start time.'
+      title: t('home.sf1Title'),
+      desc: t('home.sf1Desc')
     },
     {
       icon: (
@@ -307,8 +311,8 @@ export default function Home() {
           <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
         </svg>
       ),
-      title: 'Track breaks automatically',
-      desc: 'Add breaks throughout the day — the system totals them for you.'
+      title: t('home.sf2Title'),
+      desc: t('home.sf2Desc')
     },
     {
       icon: (
@@ -316,8 +320,8 @@ export default function Home() {
           <polyline points="20 6 9 17 4 12" />
         </svg>
       ),
-      title: 'Set finish time per batch',
-      desc: 'One tap fills the finish time for every worker in that batch.'
+      title: t('home.sf3Title'),
+      desc: t('home.sf3Desc')
     },
     {
       icon: (
@@ -325,8 +329,8 @@ export default function Home() {
           <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
         </svg>
       ),
-      title: 'Auto-fill worker timesheets',
-      desc: 'Workers see their hours already calculated when they log in.'
+      title: t('home.sf4Title'),
+      desc: t('home.sf4Desc')
     },
     {
       icon: (
@@ -334,8 +338,8 @@ export default function Home() {
           <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
         </svg>
       ),
-      title: 'Send worklog to admin',
-      desc: 'One tap sends the full day report by email.'
+      title: t('home.sf5Title'),
+      desc: t('home.sf5Desc')
     },
   ]
 
@@ -346,8 +350,8 @@ export default function Home() {
           <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
         </svg>
       ),
-      title: 'View all workers',
-      desc: 'Search and manage every worker account in one place.'
+      title: t('home.af1Title'),
+      desc: t('home.af1Desc')
     },
     {
       icon: (
@@ -355,8 +359,8 @@ export default function Home() {
           <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
         </svg>
       ),
-      title: 'Sort supervisor logs by group',
-      desc: 'Kivilinna/Salo, Karton Cambodia, Karton International, Vassila, Suppala, Salo/Turku.'
+      title: t('home.af2Title'),
+      desc: t('home.af2Desc')
     },
     {
       icon: (
@@ -364,8 +368,8 @@ export default function Home() {
           <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
         </svg>
       ),
-      title: 'Send worklogs to housemasters',
-      desc: "One tap sends the daily worklog to each group's housemaster."
+      title: t('home.af3Title'),
+      desc: t('home.af3Desc')
     },
     {
       icon: (
@@ -373,8 +377,8 @@ export default function Home() {
           <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" />
         </svg>
       ),
-      title: 'Invite anyone',
-      desc: 'Send invitation emails with a role already assigned.'
+      title: t('home.af4Title'),
+      desc: t('home.af4Desc')
     },
     {
       icon: (
@@ -382,8 +386,8 @@ export default function Home() {
           <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /><line x1="2" y1="20" x2="22" y2="20" />
         </svg>
       ),
-      title: 'Full statistics',
-      desc: 'Workers, entries, supervisors and housemasters at a glance.'
+      title: t('home.af5Title'),
+      desc: t('home.af5Desc')
     },
   ]
 
@@ -394,8 +398,8 @@ export default function Home() {
           <path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" />
         </svg>
       ),
-      title: 'Receive group worklogs',
-      desc: 'The admin sends worklogs directly to your account.'
+      title: t('home.hf1Title'),
+      desc: t('home.hf1Desc')
     },
     {
       icon: (
@@ -403,8 +407,8 @@ export default function Home() {
           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
         </svg>
       ),
-      title: 'Download as PDF or Excel',
-      desc: 'Clean, formatted worklog ready to share or print.'
+      title: t('home.hf2Title'),
+      desc: t('home.hf2Desc')
     },
     {
       icon: (
@@ -412,8 +416,8 @@ export default function Home() {
           <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
         </svg>
       ),
-      title: 'Share to Facebook or WhatsApp',
-      desc: 'One tap shares a formatted summary, ready to post.'
+      title: t('home.hf3Title'),
+      desc: t('home.hf3Desc')
     },
     {
       icon: (
@@ -421,15 +425,15 @@ export default function Home() {
           <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
         </svg>
       ),
-      title: 'Delete worklogs',
-      desc: 'Remove outdated records you no longer need.'
+      title: t('home.hf4Title'),
+      desc: t('home.hf4Desc')
     },
   ]
 
   const howItWorksRoles = [
     {
       key: 'worker',
-      label: 'For workers',
+      label: t('home.forWorkers'),
       color: '#2d6a2d',
       iconBg: '#e8f5e9',
       tabIcon: (
@@ -445,8 +449,8 @@ export default function Home() {
               <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
             </svg>
           ),
-          t: 'Enter your times',
-          d: "Open the app, find today's row, enter your actual start time and finish time."
+          t: t('home.wStep1T'),
+          d: t('home.wStep1D')
         },
         {
           n: '02',
@@ -455,8 +459,8 @@ export default function Home() {
               <rect x="4" y="2" width="16" height="20" rx="2" ry="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="8" y1="11" x2="8.01" y2="11" /><line x1="12" y1="11" x2="12.01" y2="11" /><line x1="16" y1="11" x2="16.01" y2="11" /><line x1="8" y1="15" x2="8.01" y2="15" /><line x1="12" y1="15" x2="12.01" y2="15" /><line x1="16" y1="15" x2="16.01" y2="15" /><line x1="8" y1="19" x2="12" y2="19" />
             </svg>
           ),
-          t: 'Rannikon calculates everything',
-          d: 'All four paper columns fill instantly and automatically. No math, no mistakes.'
+          t: t('home.wStep2T'),
+          d: t('home.wStep2D')
         },
         {
           n: '03',
@@ -465,8 +469,8 @@ export default function Home() {
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
             </svg>
           ),
-          t: 'Copy numbers to your paper form',
-          d: 'See the exact values to write on your white, orange, and green papers.'
+          t: t('home.wStep3T'),
+          d: t('home.wStep3D')
         },
         {
           n: '04',
@@ -475,14 +479,14 @@ export default function Home() {
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
             </svg>
           ),
-          t: 'Download or share your papers',
-          d: 'Download PDF or Excel of all your papers in one tap.'
+          t: t('home.wStep4T'),
+          d: t('home.wStep4D')
         },
       ]
     },
     {
       key: 'supervisor',
-      label: 'For supervisors',
+      label: t('home.forSupervisors'),
       color: '#1a3a5c',
       iconBg: '#e8eef5',
       tabIcon: (
@@ -498,8 +502,8 @@ export default function Home() {
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
             </svg>
           ),
-          t: 'Record worker arrivals',
-          d: 'Log each worker number and start time as they arrive at the farm.'
+          t: t('home.sStep1T'),
+          d: t('home.sStep1D')
         },
         {
           n: '02',
@@ -508,8 +512,8 @@ export default function Home() {
               <circle cx="11" cy="13" r="8" /><polyline points="11 9 11 13 14 14" /><line x1="19" y1="3" x2="19" y2="7" /><line x1="17" y1="5" x2="21" y2="5" />
             </svg>
           ),
-          t: 'Track breaks throughout the day',
-          d: 'Add each break as it happens — the system totals them automatically.'
+          t: t('home.sStep2T'),
+          d: t('home.sStep2D')
         },
         {
           n: '03',
@@ -518,8 +522,8 @@ export default function Home() {
               <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
             </svg>
           ),
-          t: 'Set finish time for each batch',
-          d: 'One tap fills the finish time for every worker in that batch.'
+          t: t('home.sStep3T'),
+          d: t('home.sStep3D')
         },
         {
           n: '04',
@@ -528,14 +532,14 @@ export default function Home() {
               <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>
           ),
-          t: 'Send worklog to admin',
-          d: 'Download PDF or send the full day report to admin in one tap.'
+          t: t('home.sStep4T'),
+          d: t('home.sStep4D')
         },
       ]
     },
     {
       key: 'admin',
-      label: 'For admins',
+      label: t('home.forAdmins'),
       color: '#1565c0',
       iconBg: '#e3f2fd',
       tabIcon: (
@@ -551,8 +555,8 @@ export default function Home() {
               <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" />
             </svg>
           ),
-          t: 'Receive supervisor logs',
-          d: 'All supervisor reports arrive sorted by house group automatically.'
+          t: t('home.aStep1T'),
+          d: t('home.aStep1D')
         },
         {
           n: '02',
@@ -561,8 +565,8 @@ export default function Home() {
               <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
             </svg>
           ),
-          t: 'Sort and verify worklogs',
-          d: 'View all 6 groups — Kivilinna/Salo, Karton Cambodia, Karton International, Vassila, Suppala, Salo/Turku.'
+          t: t('home.aStep2T'),
+          d: t('home.aStep2D')
         },
         {
           n: '03',
@@ -571,8 +575,8 @@ export default function Home() {
               <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>
           ),
-          t: 'Send to housemasters',
-          d: 'One tap sends each group worklog to the correct housemaster.'
+          t: t('home.aStep3T'),
+          d: t('home.aStep3D')
         },
         {
           n: '04',
@@ -581,14 +585,14 @@ export default function Home() {
               <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
             </svg>
           ),
-          t: 'Manage all workers',
-          d: 'Invite workers, assign roles, activate or deactivate accounts.'
+          t: t('home.aStep4T'),
+          d: t('home.aStep4D')
         },
       ]
     },
     {
       key: 'housemaster',
-      label: 'For housemasters',
+      label: t('home.forHousemasters'),
       color: '#7b1fa2',
       iconBg: '#f3e5f5',
       tabIcon: (
@@ -604,8 +608,8 @@ export default function Home() {
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" />
             </svg>
           ),
-          t: 'Receive your group worklog',
-          d: 'Admin sends worklogs directly to your account by email and in the app.'
+          t: t('home.hStep1T'),
+          d: t('home.hStep1D')
         },
         {
           n: '02',
@@ -614,8 +618,8 @@ export default function Home() {
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
             </svg>
           ),
-          t: 'Review worker hours',
-          d: "See every worker's start time, finish time, break and total hours."
+          t: t('home.hStep2T'),
+          d: t('home.hStep2D')
         },
         {
           n: '03',
@@ -624,8 +628,8 @@ export default function Home() {
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
             </svg>
           ),
-          t: 'Download PDF or Excel',
-          d: 'Clean formatted worklog ready to print or share.'
+          t: t('home.hStep3T'),
+          d: t('home.hStep3D')
         },
         {
           n: '04',
@@ -634,8 +638,8 @@ export default function Home() {
               <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
             </svg>
           ),
-          t: 'Share to Facebook or WhatsApp',
-          d: 'One tap shares a formatted summary to your group.'
+          t: t('home.hStep4T'),
+          d: t('home.hStep4D')
         },
       ]
     },
@@ -644,7 +648,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Rannikon Puutarha: Work Hours Made Easy</title>
+        <title>{t('home.pageTitle')}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
@@ -688,14 +692,19 @@ export default function Home() {
             <img src="/rannikkopuutarhalogo.png" alt="Rannikon Puutarha" style={{ height: '40px', width: 'auto', flexShrink: 0, borderRadius: '6px' }} />
           </div>
           <div className="nav-links" style={{ display: 'flex', gap: '28px', alignItems: 'center' }}>
-            {['Features', 'How it works', 'Calculator'].map(l => (
-              <a key={l} href={'#' + l.toLowerCase().replace(' ', '-')} style={{ fontSize: '14px', fontWeight: '500', color: '#555', transition: 'color 0.15s' }}
-                onMouseEnter={e => e.target.style.color = '#2d6a2d'} onMouseLeave={e => e.target.style.color = '#555'}>{l}</a>
+            {[
+              { href: '#features', label: t('home.features') },
+              { href: '#how-it-works', label: t('home.howItWorksTitle') },
+              { href: '#calculator', label: t('home.navCalculator') },
+            ].map(l => (
+              <a key={l.href} href={l.href} style={{ fontSize: '14px', fontWeight: '500', color: '#555', transition: 'color 0.15s' }}
+                onMouseEnter={e => e.target.style.color = '#2d6a2d'} onMouseLeave={e => e.target.style.color = '#555'}>{l.label}</a>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="nav-btn" onClick={() => router.push('/login')} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', color: '#333', transition: 'background 0.15s' }}>Sign in</button>
-            <button className="cta-btn" onClick={() => router.push('/register')} style={{ padding: '8px 16px', background: '#2d6a2d', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#fff' }}>Get started</button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button className="nav-btn" onClick={() => router.push('/login')} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', color: '#333', transition: 'background 0.15s' }}>{t('auth.login')}</button>
+            <button className="cta-btn" onClick={() => router.push('/register')} style={{ padding: '8px 16px', background: '#2d6a2d', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#fff' }}>{t('home.getStarted')}</button>
+            <LanguageSelector />
           </div>
         </div>
       </nav>
@@ -712,25 +721,25 @@ export default function Home() {
           <div style={{ flex: '1', minWidth: '280px' }}>
             <div className="fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: '#e8f5e9', border: '1px solid #c8e6c9', borderRadius: '20px', padding: '5px 14px', marginBottom: '22px' }}>
               <span className="dot-pulse" style={{ width: '7px', height: '7px', background: '#2d6a2d', borderRadius: '50%', display: 'inline-block' }} />
-              <span style={{ fontSize: '12px', fontWeight: '600', color: '#2d6a2d' }}>500+ workers already using Rannikon</span>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#2d6a2d' }}>{t('home.heroBadge')}</span>
             </div>
             <h1 className="fade-up" style={{ fontSize: 'clamp(30px,5vw,54px)', fontWeight: '800', lineHeight: '1.08', letterSpacing: '-1.5px', marginBottom: '18px', animationDelay: '0.1s' }}>
-              Farm work hours,<br /><span style={{ color: '#2d6a2d' }}>done in seconds</span>
+              {t('home.heroTitleLine1')}<br /><span style={{ color: '#2d6a2d' }}>{t('home.heroTitleLine2')}</span>
             </h1>
             <p className="fade-up" style={{ fontSize: '17px', color: '#555', lineHeight: '1.7', marginBottom: '30px', maxWidth: '420px', animationDelay: '0.2s' }}>
-              Enter your start and finish time. Rannikon automatically calculates and fills all your paper forms: white paper, orange paper, and weekly summary. Zero mistakes.
+              {t('home.heroDesc')}
             </p>
             <div className="fade-up" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', animationDelay: '0.3s' }}>
               <button className="cta-btn" onClick={() => router.push('/register')} style={{ padding: '13px 26px', background: '#2d6a2d', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', color: '#fff' }}>
-                Create account
+                {t('auth.createAnAccount')}
               </button>
               <a href="#calculator" style={{ padding: '13px 26px', background: '#fff', border: '1px solid #e0e0dc', borderRadius: '10px', fontSize: '15px', fontWeight: '600', color: '#333', display: 'inline-block', transition: 'background 0.15s' }}
                 onMouseEnter={e => e.currentTarget.style.background = '#f5f5f0'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
-                Try calculator
+                {t('home.tryCalculator')}
               </a>
             </div>
             <div style={{ display: 'flex', gap: '32px', marginTop: '36px', flexWrap: 'wrap' }}>
-              {[['500+', 'Workers'], ['4', 'All papers auto-filled'], ['0', 'Errors']].map(([n, l]) => (
+              {[['500+', t('home.statWorkers')], ['4', t('home.statPapers')], ['0', t('home.statErrors')]].map(([n, l]) => (
                 <div key={l}>
                   <div style={{ fontSize: '22px', fontWeight: '800', color: '#2d6a2d', letterSpacing: '-0.5px' }}>{n}</div>
                   <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{l}</div>
@@ -749,8 +758,8 @@ export default function Home() {
       <section id="features" style={{ padding: '80px 24px', background: '#fff' }}>
         <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '52px' }}>
-            <h2 style={{ fontSize: 'clamp(22px,4vw,40px)', fontWeight: '800', letterSpacing: '-0.8px', marginBottom: '10px' }}>Built for everyone at the farm</h2>
-            <p style={{ fontSize: '16px', color: '#666', maxWidth: '440px', margin: '0 auto', lineHeight: '1.6' }}>Workers, supervisors, admins and housemasters — each role has its own dedicated tools</p>
+            <h2 style={{ fontSize: 'clamp(22px,4vw,40px)', fontWeight: '800', letterSpacing: '-0.8px', marginBottom: '10px' }}>{t('home.featuresTitle')}</h2>
+            <p style={{ fontSize: '16px', color: '#666', maxWidth: '440px', margin: '0 auto', lineHeight: '1.6' }}>{t('home.featuresDesc')}</p>
           </div>
 
           <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
@@ -762,7 +771,7 @@ export default function Home() {
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
                 </svg>
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px' }}>For workers</h3>
+              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px' }}>{t('home.forWorkers')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {workerFeatures.map((f, i) => (
                   <div key={i} className="feature-tab feature-tab-light" onClick={() => setActiveFeatures(s => ({ ...s, worker: i }))}
@@ -781,7 +790,7 @@ export default function Home() {
                 ))}
               </div>
               <button className="cta-btn" onClick={() => router.push('/register')} style={{ marginTop: '20px', width: '100%', padding: '12px', background: '#2d6a2d', border: 'none', borderRadius: '10px', color: '#fff', fontWeight: '700', fontSize: '14px', cursor: 'pointer' }}>
-                Register as worker
+                {t('home.registerAsWorker')}
               </button>
             </div>
 
@@ -792,7 +801,7 @@ export default function Home() {
                   <rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
                 </svg>
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px', color: '#fff' }}>For supervisors</h3>
+              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px', color: '#fff' }}>{t('home.forSupervisors')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {supervisorFeatures.map((f, i) => (
                   <div key={i} className="feature-tab feature-tab-dark" onClick={() => setActiveFeatures(s => ({ ...s, supervisor: i }))}
@@ -819,7 +828,7 @@ export default function Home() {
                   <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" />
                 </svg>
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px' }}>For admins</h3>
+              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px' }}>{t('home.forAdmins')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {adminFeatures.map((f, i) => (
                   <div key={i} className="feature-tab feature-tab-light" onClick={() => setActiveFeatures(s => ({ ...s, admin: i }))}
@@ -846,7 +855,7 @@ export default function Home() {
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px', color: '#fff' }}>For housemasters</h3>
+              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px', color: '#fff' }}>{t('home.forHousemasters')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {housemasterFeatures.map((f, i) => (
                   <div key={i} className="feature-tab feature-tab-dark" onClick={() => setActiveFeatures(s => ({ ...s, housemaster: i }))}
@@ -874,8 +883,8 @@ export default function Home() {
       <section id="how-it-works" style={{ padding: '80px 24px', background: '#f5f5f0' }}>
         <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-            <h2 style={{ fontSize: 'clamp(22px,4vw,40px)', fontWeight: '800', letterSpacing: '-0.8px', marginBottom: '10px' }}>How it works</h2>
-            <p style={{ fontSize: '16px', color: '#666', maxWidth: '460px', margin: '0 auto' }}>Four simple steps for every role — pick yours below</p>
+            <h2 style={{ fontSize: 'clamp(22px,4vw,40px)', fontWeight: '800', letterSpacing: '-0.8px', marginBottom: '10px' }}>{t('home.howItWorksTitle')}</h2>
+            <p style={{ fontSize: '16px', color: '#666', maxWidth: '460px', margin: '0 auto' }}>{t('home.howItWorksDesc')}</p>
           </div>
 
           {/* Role tabs */}
@@ -897,13 +906,13 @@ export default function Home() {
 
           {/* Steps for the selected role */}
           <div key={activeRole} className="fade-up" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: '24px 40px' }}>
-            {howItWorksRoles[activeRole].steps.map(({ n, icon, t, d }) => (
+            {howItWorksRoles[activeRole].steps.map(({ n, icon, t: stepTitle, d }) => (
               <div key={n} style={{ display: 'flex', gap: '14px' }}>
                 <div style={{ flexShrink: 0, width: '36px', height: '36px', background: howItWorksRoles[activeRole].iconBg, borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
                     <span style={{ fontSize: '10px', fontWeight: '700', color: howItWorksRoles[activeRole].color, fontFamily: 'monospace' }}>{n}</span>
-                    <h4 style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '-0.1px', color: '#1a1a18' }}>{t}</h4>
+                    <h4 style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '-0.1px', color: '#1a1a18' }}>{stepTitle}</h4>
                   </div>
                   <p style={{ fontSize: '13px', color: '#666', lineHeight: '1.6' }}>{d}</p>
                 </div>
@@ -917,16 +926,16 @@ export default function Home() {
       <section id="calculator" style={{ padding: '80px 24px', background: '#fff' }}>
         <div style={{ maxWidth: '480px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-            <h2 style={{ fontSize: 'clamp(22px,4vw,36px)', fontWeight: '800', letterSpacing: '-0.8px', marginBottom: '10px' }}>Try the calculator</h2>
-            <p style={{ fontSize: '15px', color: '#666' }}>No account needed. See your forms filled instantly.</p>
+            <h2 style={{ fontSize: 'clamp(22px,4vw,36px)', fontWeight: '800', letterSpacing: '-0.8px', marginBottom: '10px' }}>{t('home.calculatorTitle')}</h2>
+            <p style={{ fontSize: '15px', color: '#666' }}>{t('home.calculatorDesc')}</p>
           </div>
           <div style={{ background: '#fafaf8', border: '1px solid #e8e8e3', borderRadius: '20px', padding: '28px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {[
-                { l: 'Date', ph: 'e.g. 25', v: date, fn: e => setDate(e.target.value) },
-                { l: 'What work', ph: 'e.g. cleaning, planting, water system', v: work, fn: e => setWork(e.target.value) },
-                { l: 'Actual start time', ph: 'HH:MM e.g. 10:15', v: start, fn: e => setStart(e.target.value) },
-                { l: 'Actual finish time', ph: 'HH:MM e.g. 20:45', v: finish, fn: e => setFinish(e.target.value) },
+                { l: t('papers.date'), ph: t('home.datePlaceholder'), v: date, fn: e => setDate(e.target.value) },
+                { l: t('papers.whatWork'), ph: t('home.whatWorkPlaceholderCalc'), v: work, fn: e => setWork(e.target.value) },
+                { l: t('dashboard.actualStartTime'), ph: t('dashboard.startTimePlaceholder'), v: start, fn: e => setStart(e.target.value) },
+                { l: t('dashboard.actualFinishTime'), ph: t('dashboard.finishTimePlaceholder'), v: finish, fn: e => setFinish(e.target.value) },
               ].map(({ l, ph, v, fn }) => (
                 <div key={l}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#333' }}>{l}</label>
@@ -934,7 +943,7 @@ export default function Home() {
                 </div>
               ))}
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '7px', color: '#333' }}>Break duration</label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '7px', color: '#333' }}>{t('home.breakDuration')}</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {[30, 45, 60].map(b => (
                     <button key={b} type="button" onClick={() => setBreakMins(b)} style={{
@@ -949,16 +958,16 @@ export default function Home() {
                 </div>
               </div>
               <button className="cta-btn" onClick={calc} style={{ width: '100%', padding: '13px', background: '#2d6a2d', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', marginTop: '4px' }}>
-                Calculate my hours
+                {t('home.calculateMyHours')}
               </button>
             </div>
 
             {res && (
               <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ background: '#fff', border: '2px solid #2d6a2d', borderRadius: '14px', padding: '16px' }}>
-                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#2d6a2d', letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '12px' }}>White paper</p>
+                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#2d6a2d', letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '12px' }}>{t('papers.whitePaper')}</p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                    {[['Start', res.wStart], ['Finish', res.wFinish], ['Hours', res.wHours]].map(([l, v]) => (
+                    {[[t('papers.start'), res.wStart], [t('papers.finish'), res.wFinish], [t('papers.hours'), res.wHours]].map(([l, v]) => (
                       <div key={l} style={{ textAlign: 'center', background: '#f5f5f2', borderRadius: '8px', padding: '8px 4px' }}>
                         <div style={{ fontSize: '10px', color: '#888', marginBottom: '3px' }}>{l}</div>
                         <div style={{ fontSize: '15px', fontWeight: '700' }}>{v}</div>
@@ -967,9 +976,9 @@ export default function Home() {
                   </div>
                 </div>
                 <div style={{ background: '#fff3e0', border: '2px solid #e67e22', borderRadius: '14px', padding: '16px' }}>
-                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#b45309', letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '12px' }}>Orange paper</p>
+                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#b45309', letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '12px' }}>{t('papers.orangePaper')}</p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                    {[['Start', res.oStart], ['Finish', res.oFinish], ['Hours', res.oHours]].map(([l, v]) => (
+                    {[[t('papers.start'), res.oStart], [t('papers.finish'), res.oFinish], [t('papers.hours'), res.oHours]].map(([l, v]) => (
                       <div key={l} style={{ textAlign: 'center', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', padding: '8px 4px' }}>
                         <div style={{ fontSize: '10px', color: '#c08040', marginBottom: '3px' }}>{l}</div>
                         <div style={{ fontSize: '15px', fontWeight: '700', color: '#b45309' }}>{v}</div>
@@ -978,12 +987,12 @@ export default function Home() {
                   </div>
                 </div>
                 <div style={{ background: '#e3f2fd', border: '2px solid #1565c0', borderRadius: '14px', padding: '16px', textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#1565c0', letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '6px' }}>Total hours today</p>
+                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#1565c0', letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '6px' }}>{t('home.totalHoursToday')}</p>
                   <p style={{ fontSize: '32px', fontWeight: '800', color: '#1565c0', letterSpacing: '-1px' }}>{res.total}</p>
                 </div>
                 <p style={{ fontSize: '12px', color: '#999', textAlign: 'center' }}>
-                  Want to save all your days?{' '}
-                  <a href="/register" style={{ color: '#2d6a2d', fontWeight: '600' }}>Create an account</a>
+                  {t('home.wantToSave')}{' '}
+                  <a href="/register" style={{ color: '#2d6a2d', fontWeight: '600' }}>{t('auth.createAnAccount')}</a>
                 </p>
               </div>
             )}
@@ -997,13 +1006,13 @@ export default function Home() {
         <div style={{ position: 'absolute', bottom: '-60px', left: '-60px', width: '300px', height: '300px', background: 'rgba(255,255,255,0.03)', borderRadius: '50%' }} />
         <div style={{ maxWidth: '560px', margin: '0 auto', textAlign: 'center', position: 'relative' }}>
           <h2 style={{ fontSize: 'clamp(22px,4vw,40px)', fontWeight: '800', color: '#fff', letterSpacing: '-0.8px', marginBottom: '14px', lineHeight: '1.1' }}>
-            Stop calculating manually.<br />Start using Rannikon.
+            {t('home.ctaTitle1')}<br />{t('home.ctaTitle2')}
           </h2>
           <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.7)', marginBottom: '32px', lineHeight: '1.6' }}>
-            Join 500+ workers at Rannikon Puutarha.
+            {t('home.ctaDesc')}
           </p>
           <button className="cta-btn" onClick={() => router.push('/register')} style={{ padding: '15px 36px', background: '#fff', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', color: '#2d6a2d', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
-            Create your account
+            {t('home.createYourAccount')}
           </button>
         </div>
       </section>
@@ -1014,17 +1023,17 @@ export default function Home() {
         {/* Newsletter */}
         <div style={{ maxWidth: '1080px', margin: '0 auto', borderBottom: '1px solid #21262d', padding: '48px 0 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '24px' }}>
           <div>
-            <p style={{ fontSize: '14px', fontWeight: '600', color: '#e6edf3', marginBottom: '6px' }}>Subscribe to our newsletter</p>
-            <p style={{ fontSize: '13px', color: '#7d8590', maxWidth: '340px', lineHeight: '1.6' }}>Get tips, technical guides, and best practices. Twice a month.</p>
+            <p style={{ fontSize: '14px', fontWeight: '600', color: '#e6edf3', marginBottom: '6px' }}>{t('home.newsletterTitle')}</p>
+            <p style={{ fontSize: '13px', color: '#7d8590', maxWidth: '340px', lineHeight: '1.6' }}>{t('home.newsletterDesc')}</p>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <input
               type="email"
-              placeholder="Enter your email"
+              placeholder={t('home.enterEmail')}
               className="footer-newsletter-input"
               style={{ padding: '8px 14px', fontSize: '13px', border: '1px solid #30363d', borderRadius: '6px', background: '#161b22', color: '#e6edf3', width: '220px', fontFamily: 'inherit' }}
             />
-            <button style={{ padding: '8px 16px', background: '#238636', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Subscribe</button>
+            <button style={{ padding: '8px 16px', background: '#238636', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>{t('home.subscribe')}</button>
           </div>
         </div>
 
@@ -1032,20 +1041,20 @@ export default function Home() {
         <div className="footer-cols" style={{ maxWidth: '1080px', margin: '0 auto', borderBottom: '1px solid #21262d', padding: '40px 0', display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
           {[
             {
-              title: 'Platform',
-              links: [['Features', '#features'], ['How it works', '#how-it-works'], ['Calculator', '#calculator'], ['Timesheets', '/login'], ['Paper forms', '/login']]
+              title: t('home.platform'),
+              links: [[t('home.features'), '#features'], [t('home.howItWorksTitle'), '#how-it-works'], [t('home.navCalculator'), '#calculator'], [t('home.timesheets'), '/login'], [t('home.paperForms'), '/login']]
             },
             {
-              title: 'Resources',
-              links: [['Documentation', '#'], ['API reference', '#'], ['Changelog', '#'], ['Tutorials', '#'], ['System status', '#']]
+              title: t('home.resources'),
+              links: [[t('home.documentation'), '#'], [t('home.apiReference'), '#'], [t('home.changelog'), '#'], [t('home.tutorials'), '#'], [t('home.systemStatus'), '#']]
             },
             {
-              title: 'Support',
-              links: [['Help center', '#'], ['Contact us', '#'], ['Privacy policy', '/privacy'], ['Terms of service', '/terms'], ['Cookie policy', '#']]
+              title: t('home.support'),
+              links: [[t('home.helpCenter'), '#'], [t('home.contactUs'), '#'], [t('home.privacyPolicy'), '/privacy'], [t('home.termsOfService'), '/terms'], [t('home.cookiePolicy'), '#']]
             },
             {
-              title: 'Company',
-              links: [['About us', '#'], ['Rannikon Puutarha', '#'], ['Blog', '#'], ['Careers', '#'], ['Press', '#']]
+              title: t('home.company'),
+              links: [[t('home.aboutUs'), '#'], ['Rannikon Puutarha', '#'], [t('home.blog'), '#'], [t('home.careers'), '#'], [t('home.press'), '#']]
             },
           ].map(col => (
             <div key={col.title} style={{ flex: '1', minWidth: '140px' }}>
@@ -1066,11 +1075,11 @@ export default function Home() {
         <div style={{ maxWidth: '1080px', margin: '0 auto', padding: '24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <p style={{ fontSize: '12px', color: '#7d8590' }}>
             {'© ' + new Date().getFullYear() + ' Rannikon Puutarha · '}
-            <a href="/terms" style={{ color: '#7d8590' }} onMouseEnter={e => e.target.style.color = '#c9d1d9'} onMouseLeave={e => e.target.style.color = '#7d8590'}>Terms</a>
+            <a href="/terms" style={{ color: '#7d8590' }} onMouseEnter={e => e.target.style.color = '#c9d1d9'} onMouseLeave={e => e.target.style.color = '#7d8590'}>{t('footer.terms')}</a>
             {' · '}
-            <a href="/privacy" style={{ color: '#7d8590' }} onMouseEnter={e => e.target.style.color = '#c9d1d9'} onMouseLeave={e => e.target.style.color = '#7d8590'}>Privacy</a>
+            <a href="/privacy" style={{ color: '#7d8590' }} onMouseEnter={e => e.target.style.color = '#c9d1d9'} onMouseLeave={e => e.target.style.color = '#7d8590'}>{t('footer.privacy')}</a>
             {' · '}
-            <a href="#" style={{ color: '#7d8590' }} onMouseEnter={e => e.target.style.color = '#c9d1d9'} onMouseLeave={e => e.target.style.color = '#7d8590'}>Sitemap</a>
+            <a href="#" style={{ color: '#7d8590' }} onMouseEnter={e => e.target.style.color = '#c9d1d9'} onMouseLeave={e => e.target.style.color = '#7d8590'}>{t('home.sitemap')}</a>
           </p>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
             {/* LinkedIn */}
