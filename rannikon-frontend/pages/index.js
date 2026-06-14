@@ -211,10 +211,18 @@ export default function Home() {
   const [finish, setFinish] = useState('')
   const [breakMins, setBreakMins] = useState(30)
   const [res, setRes] = useState(null)
-  const [activeFeature, setActiveFeature] = useState(0)
+  const [activeFeatures, setActiveFeatures] = useState({ worker: 0, supervisor: 0, admin: 0, housemaster: 0 })
+  const [activeRole, setActiveRole] = useState(0)
 
   useEffect(() => {
-    const t = setInterval(() => setActiveFeature(s => (s + 1) % 5), 3000)
+    const t = setInterval(() => {
+      setActiveFeatures(s => ({
+        worker: (s.worker + 1) % 5,
+        supervisor: (s.supervisor + 1) % 5,
+        admin: (s.admin + 1) % 5,
+        housemaster: (s.housemaster + 1) % 4,
+      }))
+    }, 3000)
     return () => clearInterval(t)
   }, [])
 
@@ -266,7 +274,7 @@ export default function Home() {
     {
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4a2 2 0 001-1.73V8z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" />
+          <circle cx="9" cy="14" r="3" /><circle cx="15" cy="14" r="3" /><circle cx="12" cy="9" r="3" /><path d="M12 6V3" /><path d="M9 3c0 1.5 1.5 2 3 2s3-.5 3-2" />
         </svg>
       ),
       title: 'Berry picking tracking',
@@ -418,6 +426,221 @@ export default function Home() {
     },
   ]
 
+  const howItWorksRoles = [
+    {
+      key: 'worker',
+      label: 'For workers',
+      color: '#2d6a2d',
+      iconBg: '#e8f5e9',
+      tabIcon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
+        </svg>
+      ),
+      steps: [
+        {
+          n: '01',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+            </svg>
+          ),
+          t: 'Enter your times',
+          d: "Open the app, find today's row, enter your actual start time and finish time."
+        },
+        {
+          n: '02',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="4" y="2" width="16" height="20" rx="2" ry="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="8" y1="11" x2="8.01" y2="11" /><line x1="12" y1="11" x2="12.01" y2="11" /><line x1="16" y1="11" x2="16.01" y2="11" /><line x1="8" y1="15" x2="8.01" y2="15" /><line x1="12" y1="15" x2="12.01" y2="15" /><line x1="16" y1="15" x2="16.01" y2="15" /><line x1="8" y1="19" x2="12" y2="19" />
+            </svg>
+          ),
+          t: 'Rannikon calculates everything',
+          d: 'All four paper columns fill instantly and automatically. No math, no mistakes.'
+        },
+        {
+          n: '03',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+          ),
+          t: 'Copy numbers to your paper form',
+          d: 'See the exact values to write on your white, orange, and green papers.'
+        },
+        {
+          n: '04',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          ),
+          t: 'Download or share your papers',
+          d: 'Download PDF or Excel of all your papers in one tap.'
+        },
+      ]
+    },
+    {
+      key: 'supervisor',
+      label: 'For supervisors',
+      color: '#1a3a5c',
+      iconBg: '#e8eef5',
+      tabIcon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
+        </svg>
+      ),
+      steps: [
+        {
+          n: '01',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
+            </svg>
+          ),
+          t: 'Record worker arrivals',
+          d: 'Log each worker number and start time as they arrive at the farm.'
+        },
+        {
+          n: '02',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="13" r="8" /><polyline points="11 9 11 13 14 14" /><line x1="19" y1="3" x2="19" y2="7" /><line x1="17" y1="5" x2="21" y2="5" />
+            </svg>
+          ),
+          t: 'Track breaks throughout the day',
+          d: 'Add each break as it happens — the system totals them automatically.'
+        },
+        {
+          n: '03',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          ),
+          t: 'Set finish time for each batch',
+          d: 'One tap fills the finish time for every worker in that batch.'
+        },
+        {
+          n: '04',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          ),
+          t: 'Send worklog to admin',
+          d: 'Download PDF or send the full day report to admin in one tap.'
+        },
+      ]
+    },
+    {
+      key: 'admin',
+      label: 'For admins',
+      color: '#1565c0',
+      iconBg: '#e3f2fd',
+      tabIcon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" />
+        </svg>
+      ),
+      steps: [
+        {
+          n: '01',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" />
+            </svg>
+          ),
+          t: 'Receive supervisor logs',
+          d: 'All supervisor reports arrive sorted by house group automatically.'
+        },
+        {
+          n: '02',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+            </svg>
+          ),
+          t: 'Sort and verify worklogs',
+          d: 'View all 6 groups — Kivilinna/Salo, Karton Cambodia, Karton International, Vassila, Suppala, Salo/Turku.'
+        },
+        {
+          n: '03',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          ),
+          t: 'Send to housemasters',
+          d: 'One tap sends each group worklog to the correct housemaster.'
+        },
+        {
+          n: '04',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
+          ),
+          t: 'Manage all workers',
+          d: 'Invite workers, assign roles, activate or deactivate accounts.'
+        },
+      ]
+    },
+    {
+      key: 'housemaster',
+      label: 'For housemasters',
+      color: '#7b1fa2',
+      iconBg: '#f3e5f5',
+      tabIcon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      ),
+      steps: [
+        {
+          n: '01',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7b1fa2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+          ),
+          t: 'Receive your group worklog',
+          d: 'Admin sends worklogs directly to your account by email and in the app.'
+        },
+        {
+          n: '02',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7b1fa2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+            </svg>
+          ),
+          t: 'Review worker hours',
+          d: "See every worker's start time, finish time, break and total hours."
+        },
+        {
+          n: '03',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7b1fa2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          ),
+          t: 'Download PDF or Excel',
+          d: 'Clean formatted worklog ready to print or share.'
+        },
+        {
+          n: '04',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7b1fa2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+          ),
+          t: 'Share to Facebook or WhatsApp',
+          d: 'One tap shares a formatted summary to your group.'
+        },
+      ]
+    },
+  ]
+
   return (
     <>
       <Head>
@@ -434,11 +657,14 @@ export default function Home() {
         @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.85)}}
         @keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
         @keyframes blinkCursor{0%,100%{opacity:1}50%{opacity:0}}
+        @keyframes popIn{from{opacity:0;transform:scale(0.4)}to{opacity:1;transform:scale(1)}}
         .nav-btn:hover{background:#f0f0ec!important}
         .cta-btn:hover{background:#235223!important;transform:translateY(-1px)}
         .cta-btn{transition:all 0.2s}
         .feature-tab{transition:all 0.2s;cursor:pointer}
-        .feature-tab:hover{background:#f0f7f0!important}
+        .feature-tab-light:hover{background:#f5f5f2!important}
+        .feature-tab-dark:hover{background:rgba(255,255,255,0.05)!important}
+        .check-pop{animation:popIn 0.25s ease}
         .calc-inp:focus{border-color:#2d6a2d!important;outline:none;box-shadow:0 0 0 3px rgba(45,106,45,0.12)}
         .card-hover:hover{transform:translateY(-3px);box-shadow:0 16px 48px rgba(0,0,0,0.1)!important}
         .card-hover{transition:all 0.25s}
@@ -530,7 +756,7 @@ export default function Home() {
           <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
 
             {/* Workers */}
-            <div style={{ background: '#fafaf8', border: '1px solid #e8e8e3', borderRadius: '20px', padding: '32px' }}>
+            <div className="card-hover" style={{ background: 'linear-gradient(145deg, #fafaf8 0%, #eef6ee 100%)', border: '1px solid #e8e8e3', borderRadius: '20px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.04)' }}>
               <div style={{ width: '44px', height: '44px', background: '#e8f5e9', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
@@ -539,13 +765,18 @@ export default function Home() {
               <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px' }}>For workers</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {workerFeatures.map((f, i) => (
-                  <div key={i} className="feature-tab" onClick={() => setActiveFeature(i)}
-                    style={{ padding: '14px', borderRadius: '12px', background: activeFeature === i ? '#e8f5e9' : 'transparent', marginBottom: '4px', border: activeFeature === i ? '1px solid #c8e6c9' : '1px solid transparent' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: activeFeature === i ? '6px' : '0' }}>
-                      <span style={{ color: activeFeature === i ? '#2d6a2d' : '#888', flexShrink: 0 }}>{f.icon}</span>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a18' }}>{f.title}</span>
+                  <div key={i} className="feature-tab feature-tab-light" onClick={() => setActiveFeatures(s => ({ ...s, worker: i }))}
+                    style={{ padding: '14px', borderRadius: '12px', background: activeFeatures.worker === i ? '#e8f5e9' : 'transparent', marginBottom: '4px', border: activeFeatures.worker === i ? '1px solid #c8e6c9' : '1px solid transparent' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: activeFeatures.worker === i ? '6px' : '0' }}>
+                      <span style={{ color: activeFeatures.worker === i ? '#2d6a2d' : '#888', flexShrink: 0 }}>{f.icon}</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a18', flex: 1 }}>{f.title}</span>
+                      {activeFeatures.worker === i && (
+                        <svg className="check-pop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
                     </div>
-                    {activeFeature === i && <p style={{ fontSize: '13px', color: '#555', lineHeight: '1.5', paddingLeft: '28px', animation: 'slideIn 0.2s ease' }}>{f.desc}</p>}
+                    {activeFeatures.worker === i && <p style={{ fontSize: '13px', color: '#555', lineHeight: '1.5', paddingLeft: '28px', animation: 'slideIn 0.2s ease' }}>{f.desc}</p>}
                   </div>
                 ))}
               </div>
@@ -555,63 +786,81 @@ export default function Home() {
             </div>
 
             {/* Supervisors */}
-            <div style={{ background: '#1a1a18', border: '1px solid #333', borderRadius: '20px', padding: '32px' }}>
+            <div className="card-hover" style={{ background: 'linear-gradient(145deg, #1a1a18 0%, #20231f 100%)', border: '1px solid #333', borderRadius: '20px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.18)' }}>
               <div style={{ width: '44px', height: '44px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
                 </svg>
               </div>
               <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px', color: '#fff' }}>For supervisors</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {supervisorFeatures.map((f, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                    <div style={{ width: '32px', height: '32px', background: 'rgba(45,106,45,0.25)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{f.icon}</div>
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff', marginBottom: '3px' }}>{f.title}</div>
-                      <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.4' }}>{f.desc}</div>
+                  <div key={i} className="feature-tab feature-tab-dark" onClick={() => setActiveFeatures(s => ({ ...s, supervisor: i }))}
+                    style={{ padding: '14px', borderRadius: '12px', background: activeFeatures.supervisor === i ? 'rgba(45,106,45,0.22)' : 'transparent', marginBottom: '4px', border: activeFeatures.supervisor === i ? '1px solid rgba(76,175,80,0.35)' : '1px solid transparent' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: activeFeatures.supervisor === i ? '6px' : '0' }}>
+                      <span style={{ flexShrink: 0 }}>{f.icon}</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#fff', flex: 1 }}>{f.title}</span>
+                      {activeFeatures.supervisor === i && (
+                        <svg className="check-pop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#66bb6a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
                     </div>
+                    {activeFeatures.supervisor === i && <p style={{ fontSize: '13px', color: '#aaa', lineHeight: '1.5', paddingLeft: '28px', animation: 'slideIn 0.2s ease' }}>{f.desc}</p>}
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Admins */}
-            <div style={{ background: '#fafaf8', border: '1px solid #e8e8e3', borderRadius: '20px', padding: '32px' }}>
+            <div className="card-hover" style={{ background: 'linear-gradient(145deg, #fafaf8 0%, #eaf2fb 100%)', border: '1px solid #e8e8e3', borderRadius: '20px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.04)' }}>
               <div style={{ width: '44px', height: '44px', background: '#e3f2fd', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" />
                 </svg>
               </div>
               <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px' }}>For admins</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {adminFeatures.map((f, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                    <div style={{ width: '32px', height: '32px', background: '#e3f2fd', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{f.icon}</div>
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a18', marginBottom: '3px' }}>{f.title}</div>
-                      <div style={{ fontSize: '12px', color: '#777', lineHeight: '1.4' }}>{f.desc}</div>
+                  <div key={i} className="feature-tab feature-tab-light" onClick={() => setActiveFeatures(s => ({ ...s, admin: i }))}
+                    style={{ padding: '14px', borderRadius: '12px', background: activeFeatures.admin === i ? '#e3f2fd' : 'transparent', marginBottom: '4px', border: activeFeatures.admin === i ? '1px solid #bbdefb' : '1px solid transparent' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: activeFeatures.admin === i ? '6px' : '0' }}>
+                      <span style={{ flexShrink: 0 }}>{f.icon}</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a18', flex: 1 }}>{f.title}</span>
+                      {activeFeatures.admin === i && (
+                        <svg className="check-pop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
                     </div>
+                    {activeFeatures.admin === i && <p style={{ fontSize: '13px', color: '#555', lineHeight: '1.5', paddingLeft: '28px', animation: 'slideIn 0.2s ease' }}>{f.desc}</p>}
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Housemasters */}
-            <div style={{ background: '#1a1a18', border: '1px solid #333', borderRadius: '20px', padding: '32px' }}>
+            <div className="card-hover" style={{ background: 'linear-gradient(145deg, #1a1a18 0%, #221a26 100%)', border: '1px solid #333', borderRadius: '20px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.18)' }}>
               <div style={{ width: '44px', height: '44px', background: 'rgba(123,31,162,0.25)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ce93d8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
               </div>
               <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px', color: '#fff' }}>For housemasters</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {housemasterFeatures.map((f, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                    <div style={{ width: '32px', height: '32px', background: 'rgba(123,31,162,0.25)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{f.icon}</div>
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff', marginBottom: '3px' }}>{f.title}</div>
-                      <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.4' }}>{f.desc}</div>
+                  <div key={i} className="feature-tab feature-tab-dark" onClick={() => setActiveFeatures(s => ({ ...s, housemaster: i }))}
+                    style={{ padding: '14px', borderRadius: '12px', background: activeFeatures.housemaster === i ? 'rgba(123,31,162,0.22)' : 'transparent', marginBottom: '4px', border: activeFeatures.housemaster === i ? '1px solid rgba(206,147,216,0.35)' : '1px solid transparent' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: activeFeatures.housemaster === i ? '6px' : '0' }}>
+                      <span style={{ flexShrink: 0 }}>{f.icon}</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#fff', flex: 1 }}>{f.title}</span>
+                      {activeFeatures.housemaster === i && (
+                        <svg className="check-pop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ce93d8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
                     </div>
+                    {activeFeatures.housemaster === i && <p style={{ fontSize: '13px', color: '#aaa', lineHeight: '1.5', paddingLeft: '28px', animation: 'slideIn 0.2s ease' }}>{f.desc}</p>}
                   </div>
                 ))}
               </div>
@@ -624,144 +873,42 @@ export default function Home() {
       {/* HOW IT WORKS */}
       <section id="how-it-works" style={{ padding: '80px 24px', background: '#f5f5f0' }}>
         <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '52px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
             <h2 style={{ fontSize: 'clamp(22px,4vw,40px)', fontWeight: '800', letterSpacing: '-0.8px', marginBottom: '10px' }}>How it works</h2>
-            <p style={{ fontSize: '16px', color: '#666', maxWidth: '460px', margin: '0 auto' }}>Four simple steps, whether you are a worker or a supervisor</p>
+            <p style={{ fontSize: '16px', color: '#666', maxWidth: '460px', margin: '0 auto' }}>Four simple steps for every role — pick yours below</p>
           </div>
 
-          {/* Two columns: workers + supervisors */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: '40px' }}>
+          {/* Role tabs */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '48px' }}>
+            {howItWorksRoles.map((r, i) => (
+              <button key={r.key} onClick={() => setActiveRole(i)} style={{
+                display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '24px',
+                border: activeRole === i ? 'none' : '1px solid #e0e0dc', cursor: 'pointer',
+                fontSize: '14px', fontWeight: '700', fontFamily: 'inherit',
+                background: activeRole === i ? r.color : '#fff',
+                color: activeRole === i ? '#fff' : '#666',
+                transition: 'all 0.2s'
+              }}>
+                {r.tabIcon}
+                {r.label}
+              </button>
+            ))}
+          </div>
 
-            {/* Workers column */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                <div style={{ width: '36px', height: '36px', background: '#2d6a2d', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                  </svg>
-                </div>
-                <h3 style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.3px', color: '#1a1a18' }}>For workers</h3>
-              </div>
-              {[
-                {
-                  n: '01',
-                  icon: (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                  ),
-                  t: 'Enter your times',
-                  d: "Open the app, find today's row, and type your actual start time and finish time."
-                },
-                {
-                  n: '02',
-                  icon: (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                    </svg>
-                  ),
-                  t: 'Rannikon calculates everything',
-                  d: 'All four paper columns fill instantly and automatically. No math, no mistakes.'
-                },
-                {
-                  n: '03',
-                  icon: (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-                    </svg>
-                  ),
-                  t: 'Copy numbers to your paper form',
-                  d: 'See the exact values to write on your white, orange, and green papers. Correct every time.'
-                },
-                {
-                  n: '04',
-                  icon: (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                    </svg>
-                  ),
-                  t: 'Submit forms to your supervisor',
-                  d: 'Send your completed timesheet forms directly to your supervisor or house master in one tap.'
-                },
-              ].map(({ n, icon, t, d }) => (
-                <div key={n} style={{ display: 'flex', gap: '14px', marginBottom: '16px' }}>
-                  <div style={{ flexShrink: 0, width: '36px', height: '36px', background: '#e8f5e9', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-                      <span style={{ fontSize: '10px', fontWeight: '700', color: '#2d6a2d', fontFamily: 'monospace' }}>{n}</span>
-                      <h4 style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '-0.1px', color: '#1a1a18' }}>{t}</h4>
-                    </div>
-                    <p style={{ fontSize: '13px', color: '#666', lineHeight: '1.6' }}>{d}</p>
+          {/* Steps for the selected role */}
+          <div key={activeRole} className="fade-up" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: '24px 40px' }}>
+            {howItWorksRoles[activeRole].steps.map(({ n, icon, t, d }) => (
+              <div key={n} style={{ display: 'flex', gap: '14px' }}>
+                <div style={{ flexShrink: 0, width: '36px', height: '36px', background: howItWorksRoles[activeRole].iconBg, borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: '700', color: howItWorksRoles[activeRole].color, fontFamily: 'monospace' }}>{n}</span>
+                    <h4 style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '-0.1px', color: '#1a1a18' }}>{t}</h4>
                   </div>
+                  <p style={{ fontSize: '13px', color: '#666', lineHeight: '1.6' }}>{d}</p>
                 </div>
-              ))}
-            </div>
-
-            {/* Supervisors column */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                <div style={{ width: '36px', height: '36px', background: '#1a3a5c', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
-                  </svg>
-                </div>
-                <h3 style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.3px', color: '#1a1a18' }}>For supervisors</h3>
               </div>
-              {[
-                {
-                  n: '01',
-                  icon: (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                  ),
-                  t: 'Record worker arrivals',
-                  d: "Log each worker's work number and start time as they arrive. The system tracks and calculates their hours automatically."
-                },
-                {
-                  n: '02',
-                  icon: (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-                    </svg>
-                  ),
-                  t: 'Send daily PDF to house master',
-                  d: 'At the end of the day, download a full PDF of all workers and their hours and send it to the house master in one click.'
-                },
-                {
-                  n: '03',
-                  icon: (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
-                  ),
-                  t: 'Assign numbers, workdays and holidays',
-                  d: 'Easily set work numbers for new workers, manage working days, and mark holidays for each person in your team.'
-                },
-                {
-                  n: '04',
-                  icon: (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                    </svg>
-                  ),
-                  t: 'Share reports with each group',
-                  d: 'Send all four timesheet papers to each group captain or house boss. Group captains can then forward the full paperwork from their workers directly to the house master.'
-                },
-              ].map(({ n, icon, t, d }) => (
-                <div key={n} style={{ display: 'flex', gap: '14px', marginBottom: '16px' }}>
-                  <div style={{ flexShrink: 0, width: '36px', height: '36px', background: '#e8eef5', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-                      <span style={{ fontSize: '10px', fontWeight: '700', color: '#1a3a5c', fontFamily: 'monospace' }}>{n}</span>
-                      <h4 style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '-0.1px', color: '#1a1a18' }}>{t}</h4>
-                    </div>
-                    <p style={{ fontSize: '13px', color: '#666', lineHeight: '1.6' }}>{d}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
+            ))}
           </div>
         </div>
       </section>
