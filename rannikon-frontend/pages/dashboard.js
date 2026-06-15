@@ -40,7 +40,7 @@ function computeEntry(e) {
   const totalBreak = Math.max(0, e.break_mins || 0)
   const extraBreak = Math.max(0, totalBreak - 30)
   const workedMins = toMins(e.actual_finish) - toMins(e.actual_start)
-  const WHITE_WINDOW = 480 + (totalBreak >= 30 ? 30 : 0) + extraBreak
+  const WHITE_WINDOW = totalBreak >= 30 ? 510 : 480
   if (workedMins > WHITE_WINDOW) {
     const wFinish = addMins(e.actual_start, WHITE_WINDOW)
     const oMins = Math.max(0, toMins(e.actual_finish) - toMins(wFinish) - extraBreak)
