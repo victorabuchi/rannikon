@@ -132,7 +132,7 @@ export default function Dashboard() {
 
   async function loadEntries() {
     try {
-      const res = await api.get('/api/timesheet/' + month + '/' + year)
+      const res = await api.get('/api/timesheet/' + month + '/' + year, { params: { _t: Date.now() } })
       const map = {}
       res.data.entries.forEach(e => {
         const day = parseInt(e.entry_date.split('T')[0].split('-')[2])
