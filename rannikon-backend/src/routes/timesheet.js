@@ -22,7 +22,7 @@ function calculate(actualStart, actualFinish, breakMins) {
   const extraBreak = Math.max(0, totalBreak - 30)
 
   const workedMins = toMins(actualFinish) - toMins(actualStart)
-  const WHITE_WINDOW = 480 + (totalBreak >= 30 ? 30 : 0) + extraBreak
+  const WHITE_WINDOW = totalBreak >= 30 ? 510 : 480
 
   const whiteStart = actualStart
 
