@@ -21,9 +21,10 @@ function addMins(t, add) {
 function calculate(actualStart, actualFinish, breakMins) {
   const totalBreak = Math.max(30, breakMins || 30)
   const extraBreak = totalBreak - 30
-  const whiteFinish = addMins(actualStart, 510)
+  const WHITE_WINDOW = totalBreak >= 30 ? 510 : 480
+  const whiteFinish = addMins(actualStart, WHITE_WINDOW)
   const workedMins = toMins(actualFinish) - toMins(actualStart)
-  if (workedMins < 510) {
+  if (workedMins < WHITE_WINDOW) {
     const wHours = toHHMM(Math.max(0, workedMins - totalBreak))
     return { white_hours: wHours, orange_hours: '0:00', total_hours: wHours, white_finish: actualFinish, orange_start: actualFinish }
   }
