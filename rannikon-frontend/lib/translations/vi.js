@@ -277,6 +277,11 @@ export default {
     roleRequired: 'Vai trò là bắt buộc',
     emailOrWorkNumberRequired: 'Cần email hoặc số làm việc',
     failedToSendInvitation: 'Không thể gửi lời mời',
+    delete: 'Xóa',
+    deleting: 'Đang xóa...',
+    deleteWorkerTitle: 'Xóa công nhân',
+    deleteWorkerDesc: 'Thao tác này sẽ xóa vĩnh viễn họ và tất cả dữ liệu bảng chấm công của họ.',
+    deleteFailed: 'Không thể xóa công nhân',
   },
   dashboard: {
     clickToEdit: 'Nhấn để chỉnh sửa',

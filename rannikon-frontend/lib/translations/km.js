@@ -277,6 +277,11 @@ export default {
     roleRequired: 'ត្រូវការតួនាទី',
     emailOrWorkNumberRequired: 'ត្រូវការអ៊ីមែល ឬលេខការងារ',
     failedToSendInvitation: 'មិនអាចផ្ញើការអញ្ជើញបានទេ',
+    delete: 'លុប',
+    deleting: 'កំពុងលុប...',
+    deleteWorkerTitle: 'លុបកម្មករ',
+    deleteWorkerDesc: 'វានឹងលុបពួកគេ និងទិន្នន័យសន្លឹកពេលវេលាទាំងអស់របស់ពួកគេជាអចិន្ត្រៃយ៍។',
+    deleteFailed: 'បរាជ័យក្នុងការលុបកម្មករ',
   },
   dashboard: {
     clickToEdit: 'ចុចដើម្បីកែសម្រួល',

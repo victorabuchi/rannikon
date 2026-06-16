@@ -277,6 +277,11 @@ export default {
     roleRequired: "Роль є обов'язковою",
     emailOrWorkNumberRequired: "Потрібен email або номер працівника",
     failedToSendInvitation: 'Не вдалося надіслати запрошення',
+    delete: 'Видалити',
+    deleting: 'Видалення...',
+    deleteWorkerTitle: 'Видалити працівника',
+    deleteWorkerDesc: 'Це назавжди видалить їх та всі їхні дані табеля.',
+    deleteFailed: 'Не вдалося видалити працівника',
   },
   dashboard: {
     clickToEdit: 'Натисніть, щоб редагувати',

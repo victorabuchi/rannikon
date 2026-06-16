@@ -66,6 +66,10 @@ export default function AdminPage() {
   const [search, setSearch] = useState('')
   const [updatingId, setUpdatingId] = useState(null)
 
+  // Delete modal
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
   // Invite modal
   const [showInvite, setShowInvite] = useState(false)
   const [inviteForm, setInviteForm] = useState({ email: '', work_number: '', role: 'worker', house_group: '' })
@@ -175,6 +179,21 @@ export default function AdminPage() {
     setInviteError('')
     setCopied(false)
     setShowInvite(false)
+  }
+
+  async function deleteWorker() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await api.delete('/api/admin/workers/' + deleteTarget.id)
+      setDeleteTarget(null)
+      await loadWorkers()
+      await loadStats()
+    } catch (e) {
+      alert(e.response?.data?.error || t('admin.deleteFailed'))
+    } finally {
+      setDeleting(false)
+    }
   }
 
   async function sendToHousemaster(group) {
@@ -354,6 +373,14 @@ export default function AdminPage() {
                           >
                             {w.is_active ? t('admin.deactivate') : t('admin.activate')}
                           </button>
+                          {!w.is_active && w.id !== me?.id && (
+                            <button
+                              onClick={() => setDeleteTarget(w)}
+                              style={{ padding: '4px 10px', fontSize: '12px', fontWeight: '600', borderRadius: '6px', cursor: 'pointer', border: '1px solid #ffc1c0', background: '#fdecea', color: '#c0392b', whiteSpace: 'nowrap', fontFamily: 'inherit' }}
+                            >
+                              {t('admin.delete')}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -493,6 +520,30 @@ export default function AdminPage() {
         )}
 
       </div>
+
+      {/* DELETE MODAL */}
+      {deleteTarget && (
+        <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget && !deleting) setDeleteTarget(null) }}>
+          <div className="modal">
+            <h3 style={{ fontSize: '17px', fontWeight: '800', marginBottom: '12px', color: '#c0392b' }}>
+              {t('admin.deleteWorkerTitle')} #{deleteTarget.work_number} {deleteTarget.full_name}?
+            </h3>
+            <p style={{ fontSize: '14px', color: '#555', marginBottom: '24px', lineHeight: '1.5' }}>
+              {t('admin.deleteWorkerDesc')}
+            </p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn btn-outline" onClick={() => setDeleteTarget(null)} disabled={deleting} style={{ flex: 1 }}>{t('sup.cancel')}</button>
+              <button
+                onClick={deleteWorker}
+                disabled={deleting}
+                style={{ flex: 1, padding: '10px', background: deleting ? '#aaa' : '#c0392b', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '700', cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+              >
+                {deleting ? t('admin.deleting') : t('admin.delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* INVITE MODAL */}
       {showInvite && (

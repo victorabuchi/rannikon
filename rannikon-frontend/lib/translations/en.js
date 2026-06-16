@@ -277,6 +277,11 @@ export default {
     roleRequired: 'Role is required',
     emailOrWorkNumberRequired: 'Email or work number is required',
     failedToSendInvitation: 'Failed to send invitation',
+    delete: 'Delete',
+    deleting: 'Deleting...',
+    deleteWorkerTitle: 'Delete worker',
+    deleteWorkerDesc: 'This permanently removes them and all their timesheet data.',
+    deleteFailed: 'Failed to delete worker',
   },
   dashboard: {
     clickToEdit: 'Click to edit',

@@ -277,6 +277,11 @@ export default {
     roleRequired: 'भूमिका आवश्यक छ',
     emailOrWorkNumberRequired: 'इमेल वा काम नम्बर आवश्यक छ',
     failedToSendInvitation: 'निमन्त्रणा पठाउन सकिएन',
+    delete: 'हटाउनुहोस्',
+    deleting: 'हटाउँदै...',
+    deleteWorkerTitle: 'कामदार हटाउनुहोस्',
+    deleteWorkerDesc: 'यसले तिनीहरू र तिनीहरूका सबै टाइमशिट डेटा स्थायी रूपमा हटाउँछ।',
+    deleteFailed: 'कामदार हटाउन असफल',
   },
   dashboard: {
     clickToEdit: 'सम्पादन गर्न क्लिक गर्नुहोस्',

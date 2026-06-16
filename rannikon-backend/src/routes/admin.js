@@ -70,6 +70,14 @@ module.exports = async function adminRoutes(fastify) {
     return reply.send({ success: true })
   })
 
+  fastify.delete('/api/admin/workers/:id', { onRequest: [isAdmin] }, async (request, reply) => {
+    if (request.user.id === request.params.id) {
+      return reply.status(400).send({ error: 'You cannot delete your own account' })
+    }
+    await db.query('DELETE FROM workers WHERE id = $1', [request.params.id])
+    return reply.send({ success: true })
+  })
+
   fastify.get('/api/admin/stats', { onRequest: [isAdmin] }, async (request, reply) => {
     const workers = await db.query('SELECT COUNT(*) FROM workers')
     const active = await db.query("SELECT COUNT(*) FROM workers WHERE is_active = true")
