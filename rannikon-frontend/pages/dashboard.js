@@ -35,6 +35,21 @@ function addMins(t, add) {
   const total = toMins(t) + add
   return String(Math.floor(total / 60) % 24).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0')
 }
+function parseTimeInput(val) {
+  if (!val) return ''
+  const clean = val.replace(/[.,\s]/g, ':')
+  const parts = clean.split(':')
+  if (parts.length >= 2) {
+    const h = parts[0].padStart(2, '0')
+    const m = parts[1].padStart(2, '0')
+    return h + ':' + m
+  }
+  if (clean.replace(':', '').length === 4) {
+    const d = clean.replace(':', '')
+    return d.slice(0, 2) + ':' + d.slice(2)
+  }
+  return val
+}
 function computeEntry(e) {
   if (!e?.actual_start || !e?.actual_finish) return e
   const totalBreak = Math.max(0, e.break_mins || 0)
@@ -220,22 +235,49 @@ export default function Dashboard() {
     }
   }
 
+  function validateForm() {
+    if (!form.start && !form.finish && !form.work && !greenForm.start && !greenForm.finish && !greenForm.kg && !greenForm.what) {
+      return 'Please enter your work details or berry picking details for this day.'
+    }
+    if (form.start && !form.finish) {
+      return 'You entered a start time for field work — please also enter the finish time.'
+    }
+    if (!form.start && form.finish) {
+      return 'You entered a finish time for field work — please also enter the start time.'
+    }
+    if (greenForm.start && !greenForm.finish) {
+      return 'You entered a berry picking start time — please also enter the finish time.'
+    }
+    if (!greenForm.start && greenForm.finish) {
+      return 'You entered a berry picking finish time — please also enter the start time.'
+    }
+    if (greenForm.kg && !greenForm.start && !greenForm.finish) {
+      return 'You entered kg picked — please also enter the start and finish time for berry picking.'
+    }
+    return null
+  }
+
   async function saveEntry() {
-    if (!form.start || !form.finish) { setError(t('dashboard.startFinishRequired')); return }
+    const validationError = validateForm()
+    if (validationError) { setError(validationError); return }
     setSaving(true)
     setError('')
     try {
       const dateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(editDay).padStart(2,'0')
-      await api.post('/api/timesheet/entry', {
-        entry_date: dateStr,
-        actual_start: form.start,
-        actual_finish: form.finish,
-        what_work: form.work,
-        break_mins: parseInt(form.break_mins) ?? 0
-      })
-      await loadEntries()
-      if (greenForm.start || greenForm.finish || greenForm.kg || greenForm.what) {
-        const greenDateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(editDay).padStart(2,'0') + 'T12:00:00.000Z'
+      const hasFieldWork = form.start && form.finish
+      const hasGreenWork = greenForm.start || greenForm.finish || greenForm.kg || greenForm.what
+      if (hasFieldWork) {
+        await api.post('/api/timesheet/entry', {
+          entry_date: dateStr,
+          actual_start: form.start,
+          actual_finish: form.finish,
+          what_work: form.work,
+          break_mins: parseInt(form.break_mins) ?? 0
+        })
+        await loadEntries()
+      }
+      if (hasGreenWork) {
+        const greenDateStr = dateStr + 'T12:00:00.000Z'
         await api.post('/api/green/entry', {
           entry_date: greenDateStr,
           start_time: greenForm.start || null,
@@ -1041,12 +1083,12 @@ export default function Dashboard() {
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                           <div style={{ flex: 1, minWidth: '130px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('dashboard.actualStartTime')}</label>
-                            <input style={inp} placeholder={t('dashboard.startTimePlaceholder')} value={form.start} onChange={e => setForm({...form, start: e.target.value})} />
+                            <input style={inp} placeholder={t('dashboard.startTimePlaceholder')} value={form.start} onChange={e => setForm({...form, start: e.target.value})} onBlur={e => setForm(f => ({...f, start: parseTimeInput(e.target.value)}))} />
                             {form.start && !VALID.includes(form.start) && <p style={{ color: 'orange', fontSize: '11px', margin: '2px 0 0' }}>{t('dashboard.shouldBeTime')}</p>}
                           </div>
                           <div style={{ flex: 1, minWidth: '130px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('dashboard.actualFinishTime')}</label>
-                            <input style={inp} placeholder={t('dashboard.finishTimePlaceholder')} value={form.finish} onChange={e => setForm({...form, finish: e.target.value})} />
+                            <input style={inp} placeholder={t('dashboard.finishTimePlaceholder')} value={form.finish} onChange={e => setForm({...form, finish: e.target.value})} onBlur={e => setForm(f => ({...f, finish: parseTimeInput(e.target.value)}))} />
                           </div>
                           <div style={{ flex: 1, minWidth: '130px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.breakMins')}</label>
@@ -1065,11 +1107,11 @@ export default function Dashboard() {
                             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                               <div style={{ flex: 1, minWidth: '120px' }}>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.startTime')}</label>
-                                <input style={inp} placeholder={t('dashboard.hhmmPlaceholder')} value={greenForm.start} onChange={e => setGreenForm({...greenForm, start: e.target.value})} />
+                                <input style={inp} placeholder={t('dashboard.hhmmPlaceholder')} value={greenForm.start} onChange={e => setGreenForm({...greenForm, start: e.target.value})} onBlur={e => setGreenForm(f => ({...f, start: parseTimeInput(e.target.value)}))} />
                               </div>
                               <div style={{ flex: 1, minWidth: '120px' }}>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.finishTime')}</label>
-                                <input style={inp} placeholder={t('dashboard.hhmmPlaceholder')} value={greenForm.finish} onChange={e => setGreenForm({...greenForm, finish: e.target.value})} />
+                                <input style={inp} placeholder={t('dashboard.hhmmPlaceholder')} value={greenForm.finish} onChange={e => setGreenForm({...greenForm, finish: e.target.value})} onBlur={e => setGreenForm(f => ({...f, finish: parseTimeInput(e.target.value)}))} />
                               </div>
                               <div style={{ flex: 1, minWidth: '120px' }}>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.kgPicked')}</label>
