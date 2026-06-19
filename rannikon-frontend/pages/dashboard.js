@@ -37,17 +37,16 @@ function addMins(t, add) {
 }
 function parseTimeInput(val) {
   if (!val) return ''
-  const clean = val.replace(/[.,\s]/g, ':')
+  const clean = val.replace(/[.,]/g, ':')
   const parts = clean.split(':')
   if (parts.length >= 2) {
-    const h = parts[0].padStart(2, '0')
-    const m = parts[1].padStart(2, '0')
+    const h = String(parseInt(parts[0]) || 0).padStart(2, '0')
+    const m = String(parseInt(parts[1]) || 0).padStart(2, '0')
     return h + ':' + m
   }
-  if (clean.replace(':', '').length === 4) {
-    const d = clean.replace(':', '')
-    return d.slice(0, 2) + ':' + d.slice(2)
-  }
+  const digits = clean.replace(/\D/g, '')
+  if (digits.length === 3) return '0' + digits[0] + ':' + digits.slice(1)
+  if (digits.length === 4) return digits.slice(0, 2) + ':' + digits.slice(2)
   return val
 }
 function computeEntry(e) {
@@ -223,9 +222,11 @@ export default function Dashboard() {
   async function deleteEntry(day) {
     const dateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0')
     try {
-      await api.delete('/api/timesheet/entry/' + dateStr)
-      const greenDateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0') + 'T12:00:00.000Z'
-      try { await api.delete('/api/green/entry/' + greenDateStr) } catch {}
+      if (entries[day]) await api.delete('/api/timesheet/entry/' + dateStr)
+      if (greenEntries[day]) {
+        const greenDateStr = dateStr + 'T12:00:00.000Z'
+        await api.delete('/api/green/entry/' + greenDateStr)
+      }
       await loadEntries()
       await loadGreenEntries()
       setConfirmDelete(null)
@@ -317,108 +318,114 @@ export default function Dashboard() {
     return (
       <div style={{ marginTop: '12px', borderTop: '1px solid #eee', paddingTop: '12px', overflowX: 'auto' }}>
 
-        <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '2px' }}>{t('papers.whitePaper').toUpperCase()}: {t('papers.workPaidByHour')}</p>
-        <p style={{ fontSize: '11px', color: '#555', marginBottom: '6px' }}>{t('papers.hoursPerDayWeek')}</p>
-        <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
-          <table style={{ borderCollapse: 'collapse', minWidth: '540px', width: '100%', fontSize: '12px' }}>
-            <thead>
-              <tr>
-                <th style={thW()}>{t('papers.date')}</th>
-                <th style={thW()}>{t('papers.start')}</th>
-                <th style={thW()}>{t('papers.finish')}</th>
-                <th style={thW()}>{t('papers.eatingBreak')}</th>
-                <th style={thW()}>{t('papers.hoursMinusBreaks')}</th>
-                <th style={thW()}>{t('papers.whatWork')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style={{ background: '#fafafa' }}>
-                <td style={tdW()}><b>{day}</b></td>
-                <td style={tdW()}>{entry.white_start?.slice(0,5)}</td>
-                <td style={tdW()}>{entry.white_finish?.slice(0,5)}</td>
-                <td style={tdW({ textAlign: 'center' })}>{t('papers.thirtyMin')}</td>
-                <td style={tdW({ fontWeight: '700', color: '#2d6a2d' })}>{entry.white_hours}</td>
-                <td style={tdW()}>{entry.what_work}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p style={{ fontSize: '11px', color: '#555', marginBottom: '16px', fontStyle: 'italic' }}>{t('papers.eatingBreakFull')}</p>
+        {entry ? (
+          <>
+            <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '2px' }}>{t('papers.whitePaper').toUpperCase()}: {t('papers.workPaidByHour')}</p>
+            <p style={{ fontSize: '11px', color: '#555', marginBottom: '6px' }}>{t('papers.hoursPerDayWeek')}</p>
+            <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
+              <table style={{ borderCollapse: 'collapse', minWidth: '540px', width: '100%', fontSize: '12px' }}>
+                <thead>
+                  <tr>
+                    <th style={thW()}>{t('papers.date')}</th>
+                    <th style={thW()}>{t('papers.start')}</th>
+                    <th style={thW()}>{t('papers.finish')}</th>
+                    <th style={thW()}>{t('papers.eatingBreak')}</th>
+                    <th style={thW()}>{t('papers.hoursMinusBreaks')}</th>
+                    <th style={thW()}>{t('papers.whatWork')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{ background: '#fafafa' }}>
+                    <td style={tdW()}><b>{day}</b></td>
+                    <td style={tdW()}>{entry.white_start?.slice(0,5)}</td>
+                    <td style={tdW()}>{entry.white_finish?.slice(0,5)}</td>
+                    <td style={tdW({ textAlign: 'center' })}>{t('papers.thirtyMin')}</td>
+                    <td style={tdW({ fontWeight: '700', color: '#2d6a2d' })}>{entry.white_hours}</td>
+                    <td style={tdW()}>{entry.what_work}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p style={{ fontSize: '11px', color: '#555', marginBottom: '16px', fontStyle: 'italic' }}>{t('papers.eatingBreakFull')}</p>
 
-        <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '2px', color: '#b45309' }}>{t('papers.orangePaper').toUpperCase()}: {t('papers.extraWorkPaidByHour')}</p>
-        <p style={{ fontSize: '11px', color: '#555', marginBottom: '6px' }}>{t('papers.maxHoursWeekday')} | {t('papers.maxHoursSaturday')}</p>
-        <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
-          <table style={{ borderCollapse: 'collapse', minWidth: '540px', width: '100%', fontSize: '12px' }}>
-            <thead>
-              <tr>
-                <th style={thO()}>{t('papers.date')}</th>
-                <th style={thO()}>{t('papers.start')}</th>
-                <th style={thO()}>{t('papers.finish')}</th>
-                <th style={thO()}>{t('housemaster.breakShort')}</th>
-                <th style={thO()}>{t('papers.hoursMinusBreaks')}</th>
-                <th style={thO()}>{t('papers.whatWork')}</th>
-                <th style={thO()}>{t('papers.signature')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={tdO()}><b>{day}</b></td>
-                <td style={tdO()}>{hasOrangeWork(entry) ? entry.orange_start?.slice(0,5) : ''}</td>
-                <td style={tdO()}>{hasOrangeWork(entry) ? entry.orange_finish?.slice(0,5) : ''}</td>
-                <td style={tdO({ textAlign: 'center' })}>{hasOrangeWork(entry) ? (entry.orange_break || '0:00') : ''}</td>
-                <td style={tdO({ fontWeight: '700', color: hasOrangeWork(entry) ? '#b45309' : '' })}>{hasOrangeWork(entry) ? entry.orange_hours : ''}</td>
-                <td style={tdO()}>{hasOrangeWork(entry) ? entry.what_work : ''}</td>
-                <td style={tdO()}></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p style={{ fontSize: '11px', color: '#555', marginBottom: '16px', fontStyle: 'italic' }}>{t('papers.startWorkNote')}</p>
+            <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '2px', color: '#b45309' }}>{t('papers.orangePaper').toUpperCase()}: {t('papers.extraWorkPaidByHour')}</p>
+            <p style={{ fontSize: '11px', color: '#555', marginBottom: '6px' }}>{t('papers.maxHoursWeekday')} | {t('papers.maxHoursSaturday')}</p>
+            <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
+              <table style={{ borderCollapse: 'collapse', minWidth: '540px', width: '100%', fontSize: '12px' }}>
+                <thead>
+                  <tr>
+                    <th style={thO()}>{t('papers.date')}</th>
+                    <th style={thO()}>{t('papers.start')}</th>
+                    <th style={thO()}>{t('papers.finish')}</th>
+                    <th style={thO()}>{t('housemaster.breakShort')}</th>
+                    <th style={thO()}>{t('papers.hoursMinusBreaks')}</th>
+                    <th style={thO()}>{t('papers.whatWork')}</th>
+                    <th style={thO()}>{t('papers.signature')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={tdO()}><b>{day}</b></td>
+                    <td style={tdO()}>{hasOrangeWork(entry) ? entry.orange_start?.slice(0,5) : ''}</td>
+                    <td style={tdO()}>{hasOrangeWork(entry) ? entry.orange_finish?.slice(0,5) : ''}</td>
+                    <td style={tdO({ textAlign: 'center' })}>{hasOrangeWork(entry) ? (entry.orange_break || '0:00') : ''}</td>
+                    <td style={tdO({ fontWeight: '700', color: hasOrangeWork(entry) ? '#b45309' : '' })}>{hasOrangeWork(entry) ? entry.orange_hours : ''}</td>
+                    <td style={tdO()}>{hasOrangeWork(entry) ? entry.what_work : ''}</td>
+                    <td style={tdO()}></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p style={{ fontSize: '11px', color: '#555', marginBottom: '16px', fontStyle: 'italic' }}>{t('papers.startWorkNote')}</p>
 
-        <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '6px', color: '#1565c0' }}>{t('papers.weeklySummary').toUpperCase()}</p>
-        <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
-          <table style={{ borderCollapse: 'collapse', minWidth: '540px', width: '100%', fontSize: '12px' }}>
-            <thead>
-              <tr>
-                <th style={thB({ textAlign: 'left', minWidth: '140px' })}>{t('papers.type')}</th>
-                <th style={thB()}>{t('papers.daysShort')[1]}</th>
-                <th style={thB()}>{t('papers.daysShort')[2]}</th>
-                <th style={thB()}>{t('papers.daysShort')[3]}</th>
-                <th style={thB()}>{t('papers.daysShort')[4]}</th>
-                <th style={thB()}>{t('papers.daysShort')[5]}</th>
-                <th style={thB()}>{t('papers.daysShort')[6]} ({t('papers.max11')})</th>
-                <th style={thB()}>{t('papers.daysShort')[0]}</th>
-                <th style={thB()}>{t('papers.totalHours')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style={{ background: '#e8f5e9' }}>
-                <td style={tdG({ textAlign: 'left', fontWeight: '700' })}>{t('days.berryPicking')} (kg)</td>
-                <td style={tdG()}></td><td style={tdG()}></td><td style={tdG()}></td><td style={tdG()}></td><td style={tdG()}></td><td style={tdG()}></td>
-                <td style={tdG({ color: '#999' })}>X</td>
-                <td style={tdG({ fontWeight: '700', color: '#2d6a2d' })}>{ge?.kg_picked != null ? ge.kg_picked : ''}</td>
-              </tr>
-              <tr>
-                <td style={tdB({ textAlign: 'left', fontWeight: '600' })}>{t('papers.regHrs')} ({t('papers.max8')})</td>
-                <td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td>
-                <td style={tdB({ color: '#999' })}>X</td>
-                <td style={tdB({ fontWeight: '700', color: '#2d6a2d' })}>{entry.white_hours}</td>
-              </tr>
-              <tr>
-                <td style={tdB({ textAlign: 'left', fontWeight: '600' })}>{t('papers.extraHrs')} ({t('papers.max3')})</td>
-                <td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td>
-                <td style={tdB({ color: '#999' })}>X</td>
-                <td style={tdB({ fontWeight: '700', color: '#b45309' })}>{entry.orange_hours}</td>
-              </tr>
-              <tr style={{ background: '#e3f2fd' }}>
-                <td style={tdB({ textAlign: 'left', fontWeight: '700' })}>{t('papers.total')}</td>
-                <td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td>
-                <td style={tdB({ color: '#999' })}>X</td>
-                <td style={tdB({ fontWeight: '700', color: '#1565c0', fontSize: '13px' })}>{entry.total_hours}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+            <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '6px', color: '#1565c0' }}>{t('papers.weeklySummary').toUpperCase()}</p>
+            <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
+              <table style={{ borderCollapse: 'collapse', minWidth: '540px', width: '100%', fontSize: '12px' }}>
+                <thead>
+                  <tr>
+                    <th style={thB({ textAlign: 'left', minWidth: '140px' })}>{t('papers.type')}</th>
+                    <th style={thB()}>{t('papers.daysShort')[1]}</th>
+                    <th style={thB()}>{t('papers.daysShort')[2]}</th>
+                    <th style={thB()}>{t('papers.daysShort')[3]}</th>
+                    <th style={thB()}>{t('papers.daysShort')[4]}</th>
+                    <th style={thB()}>{t('papers.daysShort')[5]}</th>
+                    <th style={thB()}>{t('papers.daysShort')[6]} ({t('papers.max11')})</th>
+                    <th style={thB()}>{t('papers.daysShort')[0]}</th>
+                    <th style={thB()}>{t('papers.totalHours')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{ background: '#e8f5e9' }}>
+                    <td style={tdG({ textAlign: 'left', fontWeight: '700' })}>{t('days.berryPicking')} (kg)</td>
+                    <td style={tdG()}></td><td style={tdG()}></td><td style={tdG()}></td><td style={tdG()}></td><td style={tdG()}></td><td style={tdG()}></td>
+                    <td style={tdG({ color: '#999' })}>X</td>
+                    <td style={tdG({ fontWeight: '700', color: '#2d6a2d' })}>{ge?.kg_picked != null ? ge.kg_picked : ''}</td>
+                  </tr>
+                  <tr>
+                    <td style={tdB({ textAlign: 'left', fontWeight: '600' })}>{t('papers.regHrs')} ({t('papers.max8')})</td>
+                    <td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td>
+                    <td style={tdB({ color: '#999' })}>X</td>
+                    <td style={tdB({ fontWeight: '700', color: '#2d6a2d' })}>{entry.white_hours}</td>
+                  </tr>
+                  <tr>
+                    <td style={tdB({ textAlign: 'left', fontWeight: '600' })}>{t('papers.extraHrs')} ({t('papers.max3')})</td>
+                    <td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td>
+                    <td style={tdB({ color: '#999' })}>X</td>
+                    <td style={tdB({ fontWeight: '700', color: '#b45309' })}>{entry.orange_hours}</td>
+                  </tr>
+                  <tr style={{ background: '#e3f2fd' }}>
+                    <td style={tdB({ textAlign: 'left', fontWeight: '700' })}>{t('papers.total')}</td>
+                    <td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td><td style={tdB()}></td>
+                    <td style={tdB({ color: '#999' })}>X</td>
+                    <td style={tdB({ fontWeight: '700', color: '#1565c0', fontSize: '13px' })}>{entry.total_hours}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <p style={{ fontSize: '13px', color: '#888', fontStyle: 'italic', marginBottom: '16px' }}>No field work recorded this day.</p>
+        )}
 
         <p style={{ fontWeight: '800', fontSize: '13px', marginBottom: '2px', color: '#2d6a2d' }}>{t('papers.greenPaperTitle')}</p>
         <div style={{ overflowX: 'auto', marginBottom: '8px' }}>
@@ -1015,8 +1022,10 @@ export default function Dashboard() {
               {Array.from({ length: days }, (_, i) => i + 1).map(day => {
                 const entry = entries[day]
                 const hasEntry = !!entry
+                const hasGreenEntry = !!greenEntries[day]
+                const hasAnyEntry = hasEntry || hasGreenEntry
                 return (
-                  <div key={day} style={{ background: '#fff', border: hasEntry ? '2px solid #2d6a2d' : '1px solid #ddd', borderRadius: '10px', padding: '10px 14px' }}>
+                  <div key={day} style={{ background: '#fff', border: hasAnyEntry ? '2px solid #2d6a2d' : '1px solid #ddd', borderRadius: '10px', padding: '10px 14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
                         <span style={{ fontWeight: '800', fontSize: '15px', minWidth: '55px' }}>{t('papers.day')} {day}</span>
@@ -1026,19 +1035,31 @@ export default function Dashboard() {
                             <span style={{ fontSize: '11px', fontWeight: '700', background: '#f0f0f0', color: '#555', padding: '2px 8px', borderRadius: '4px' }}>W: {entry.white_hours}</span>
                             <span style={{ fontSize: '11px', fontWeight: '700', background: '#fff3e0', color: '#b45309', padding: '2px 8px', borderRadius: '4px' }}>O: {entry.orange_hours}</span>
                             <span style={{ fontSize: '11px', fontWeight: '700', background: '#e3f2fd', color: '#1565c0', padding: '2px 8px', borderRadius: '4px' }}>{t('papers.total')}: {entry.total_hours}</span>
-                            {greenEntries[day]?.kg_picked && (
+                            {greenEntries[day]?.kg_picked != null && (
                               <span style={{ fontSize: '11px', fontWeight: '700', background: '#e8f5e9', color: '#2d6a2d', padding: '2px 8px', borderRadius: '4px', border: '1px solid #c8e6c9' }}>
                                 KG: {greenEntries[day].kg_picked}
                               </span>
                             )}
                             {entry.what_work && <span style={{ fontSize: '11px', color: '#888' }}>{entry.what_work}</span>}
                           </div>
+                        ) : hasGreenEntry ? (
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginTop: '4px' }}>
+                            {greenEntries[day]?.start_time && (
+                              <span style={{ fontSize: '12px', color: '#555' }}>{greenEntries[day].start_time?.slice(0,5)} {t('dashboard.to')} {greenEntries[day].finish_time?.slice(0,5)}</span>
+                            )}
+                            {greenEntries[day]?.kg_picked != null && (
+                              <span style={{ fontSize: '11px', fontWeight: '700', background: '#e8f5e9', color: '#2d6a2d', padding: '2px 8px', borderRadius: '4px', border: '1px solid #c8e6c9' }}>
+                                KG: {greenEntries[day].kg_picked}
+                              </span>
+                            )}
+                            {greenEntries[day]?.what_picked && <span style={{ fontSize: '11px', color: '#888' }}>{greenEntries[day].what_picked}</span>}
+                          </div>
                         ) : (
                           <span style={{ fontSize: '13px', color: '#bbb' }}>{t('days.noEntry')}</span>
                         )}
                       </div>
                       <div style={{ display: 'flex', gap: '6px', marginLeft: '8px' }}>
-                        {hasEntry && (
+                        {hasAnyEntry && (
                           <button
                             onClick={() => setViewDay(viewDay === day ? null : day)}
                             style={{ padding: '5px 10px', background: viewDay === day ? '#2d6a2d' : '#e8f5e9', border: '1px solid #2d6a2d', borderRadius: '6px', fontSize: '12px', color: viewDay === day ? '#fff' : '#2d6a2d', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>
@@ -1047,16 +1068,16 @@ export default function Dashboard() {
                         )}
                         <button
                           onClick={() => { openEdit(editDay === day ? null : day) }}
-                          style={{ padding: '5px 12px', background: hasEntry ? '#fff' : '#2d6a2d', border: hasEntry ? '1px solid #ccc' : 'none', borderRadius: '6px', fontSize: '12px', color: hasEntry ? '#333' : '#fff', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>
-                          {editDay === day ? t('dashboard.close') : hasEntry ? t('days.edit') : t('days.add')}
+                          style={{ padding: '5px 12px', background: hasAnyEntry ? '#fff' : '#2d6a2d', border: hasAnyEntry ? '1px solid #ccc' : 'none', borderRadius: '6px', fontSize: '12px', color: hasAnyEntry ? '#333' : '#fff', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>
+                          {editDay === day ? t('dashboard.close') : hasAnyEntry ? t('days.edit') : t('days.add')}
                         </button>
-                        {hasEntry && confirmDelete !== day && (
+                        {hasAnyEntry && confirmDelete !== day && (
                           <button onClick={() => setConfirmDelete(day)}
                             style={{ padding: '5px 10px', background: '#fdecea', border: '1px solid #ffc1c0', borderRadius: '6px', fontSize: '12px', color: '#c0392b', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>
                             {t('days.delete')}
                           </button>
                         )}
-                        {hasEntry && confirmDelete === day && (
+                        {hasAnyEntry && confirmDelete === day && (
                           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <div style={{ background: '#fff', borderRadius: '12px', padding: '28px 32px', maxWidth: '340px', width: '90%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
                               <h3 style={{ fontSize: '17px', fontWeight: '700', marginBottom: '8px' }}>{t('dashboard.deleteDayTitle')} {day}?</h3>
@@ -1083,12 +1104,12 @@ export default function Dashboard() {
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                           <div style={{ flex: 1, minWidth: '130px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('dashboard.actualStartTime')}</label>
-                            <input style={inp} placeholder={t('dashboard.startTimePlaceholder')} value={form.start} onChange={e => setForm({...form, start: e.target.value})} onBlur={e => setForm(f => ({...f, start: parseTimeInput(e.target.value)}))} />
+                            <input style={inp} placeholder={t('dashboard.startTimePlaceholder')} value={form.start} onChange={e => setForm(f => ({...f, start: parseTimeInput(e.target.value)}))} onBlur={e => setForm(f => ({...f, start: parseTimeInput(e.target.value)}))} />
                             {form.start && !VALID.includes(form.start) && <p style={{ color: 'orange', fontSize: '11px', margin: '2px 0 0' }}>{t('dashboard.shouldBeTime')}</p>}
                           </div>
                           <div style={{ flex: 1, minWidth: '130px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('dashboard.actualFinishTime')}</label>
-                            <input style={inp} placeholder={t('dashboard.finishTimePlaceholder')} value={form.finish} onChange={e => setForm({...form, finish: e.target.value})} onBlur={e => setForm(f => ({...f, finish: parseTimeInput(e.target.value)}))} />
+                            <input style={inp} placeholder={t('dashboard.finishTimePlaceholder')} value={form.finish} onChange={e => setForm(f => ({...f, finish: parseTimeInput(e.target.value)}))} onBlur={e => setForm(f => ({...f, finish: parseTimeInput(e.target.value)}))} />
                           </div>
                           <div style={{ flex: 1, minWidth: '130px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.breakMins')}</label>
@@ -1107,11 +1128,11 @@ export default function Dashboard() {
                             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                               <div style={{ flex: 1, minWidth: '120px' }}>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.startTime')}</label>
-                                <input style={inp} placeholder={t('dashboard.hhmmPlaceholder')} value={greenForm.start} onChange={e => setGreenForm({...greenForm, start: e.target.value})} onBlur={e => setGreenForm(f => ({...f, start: parseTimeInput(e.target.value)}))} />
+                                <input style={inp} placeholder={t('dashboard.hhmmPlaceholder')} value={greenForm.start} onChange={e => setGreenForm(f => ({...f, start: parseTimeInput(e.target.value)}))} onBlur={e => setGreenForm(f => ({...f, start: parseTimeInput(e.target.value)}))} />
                               </div>
                               <div style={{ flex: 1, minWidth: '120px' }}>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.finishTime')}</label>
-                                <input style={inp} placeholder={t('dashboard.hhmmPlaceholder')} value={greenForm.finish} onChange={e => setGreenForm({...greenForm, finish: e.target.value})} onBlur={e => setGreenForm(f => ({...f, finish: parseTimeInput(e.target.value)}))} />
+                                <input style={inp} placeholder={t('dashboard.hhmmPlaceholder')} value={greenForm.finish} onChange={e => setGreenForm(f => ({...f, finish: parseTimeInput(e.target.value)}))} onBlur={e => setGreenForm(f => ({...f, finish: parseTimeInput(e.target.value)}))} />
                               </div>
                               <div style={{ flex: 1, minWidth: '120px' }}>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>{t('days.kgPicked')}</label>
@@ -1132,7 +1153,7 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    {viewDay === day && hasEntry && InlineDayView({ day, entry, ge: greenEntries[day] })}
+                    {viewDay === day && hasAnyEntry && InlineDayView({ day, entry, ge: greenEntries[day] })}
                   </div>
                 )
               })}
