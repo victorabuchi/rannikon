@@ -3,6 +3,25 @@
 const bcrypt = require('bcrypt')
 const db = require('../db/index')
 
+async function findOrCreateGoogleWorker(profile) {
+  let worker = await db.query('SELECT * FROM workers WHERE google_id = $1', [profile.id])
+
+  if (!worker.rows[0]) {
+    worker = await db.query('SELECT * FROM workers WHERE email = $1', [profile.email])
+    if (worker.rows[0]) {
+      await db.query('UPDATE workers SET google_id = $1 WHERE email = $2', [profile.id, profile.email])
+    } else {
+      worker = await db.query(
+        `INSERT INTO workers (work_number, full_name, email, google_id, is_active)
+         VALUES ($1, $2, $3, $4, true) RETURNING *`,
+        ['G-' + profile.id.slice(-6), profile.name, profile.email, profile.id]
+      )
+    }
+  }
+
+  return worker.rows[0]
+}
+
 module.exports = async function authRoutes(fastify) {
 
   fastify.post('/api/auth/register', async (request, reply) => {
@@ -190,92 +209,47 @@ module.exports = async function authRoutes(fastify) {
     return reply.send({ message: 'Password reset successfully' })
   })
 
-  fastify.post('/api/auth/google/mobile', async (request, reply) => {
-    const { idToken } = request.body
-    if (!idToken) return reply.status(400).send({ error: 'idToken is required' })
-
-    const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`)
-    const profile = await res.json()
-
-    if (profile.error || !profile.email) {
-      return reply.status(401).send({ error: 'Invalid or expired Google token' })
-    }
-
-    let workerResult = await db.query('SELECT * FROM workers WHERE google_id = $1', [profile.sub])
-
-    if (!workerResult.rows[0]) {
-      workerResult = await db.query('SELECT * FROM workers WHERE email = $1', [profile.email])
-      if (workerResult.rows[0]) {
-        await db.query('UPDATE workers SET google_id = $1 WHERE email = $2', [profile.sub, profile.email])
-        workerResult = await db.query('SELECT * FROM workers WHERE email = $1', [profile.email])
-      } else {
-        const result = await db.query(
-          `INSERT INTO workers (work_number, full_name, email, google_id, is_active)
-           VALUES ($1, $2, $3, $4, true) RETURNING *`,
-          ['G-' + profile.sub.slice(-6), profile.name, profile.email, profile.sub]
-        )
-        workerResult = result
-      }
-    }
-
-    const w = workerResult.rows[0]
-    if (!w.is_active) {
-      return reply.status(403).send({ error: 'Account is deactivated' })
-    }
-
-    const jwtToken = fastify.jwt.sign(
-      { id: w.id, work_number: w.work_number, full_name: w.full_name },
-      { expiresIn: '30d' }
-    )
-
-    return reply.send({
-      token: jwtToken,
-      worker: {
-        id: w.id,
-        work_number: w.work_number,
-        full_name: w.full_name,
-        email: w.email,
-        role: w.role,
-      },
-    })
-  })
-
   fastify.get('/api/auth/google/callback', async (request, reply) => {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4004'
     try {
       const token = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
       const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
         headers: { Authorization: 'Bearer ' + token.token.access_token }
       })
       const profile = await res.json()
+      const w = await findOrCreateGoogleWorker(profile)
 
-      let worker = await db.query('SELECT * FROM workers WHERE google_id = $1', [profile.id])
-
-      if (!worker.rows[0]) {
-        worker = await db.query('SELECT * FROM workers WHERE email = $1', [profile.email])
-        if (worker.rows[0]) {
-          await db.query('UPDATE workers SET google_id = $1 WHERE email = $2', [profile.id, profile.email])
-        } else {
-          const result = await db.query(
-            `INSERT INTO workers (work_number, full_name, email, google_id, is_active)
-             VALUES ($1, $2, $3, $4, true) RETURNING *`,
-            ['G-' + profile.id.slice(-6), profile.name, profile.email, profile.id]
-          )
-          worker = result
-        }
-      }
-
-      const w = worker.rows[0]
       const jwtToken = fastify.jwt.sign(
         { id: w.id, work_number: w.work_number, full_name: w.full_name },
         { expiresIn: '30d' }
       )
 
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4004'
       return reply.redirect(`${frontendUrl}/auth/callback?token=${jwtToken}&worker=${encodeURIComponent(JSON.stringify({ id: w.id, work_number: w.work_number, full_name: w.full_name, email: w.email }))}`)
     } catch (err) {
       fastify.log.error(err)
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4004'
       return reply.redirect(`${frontendUrl}/login?error=google_auth_failed`)
+    }
+  })
+
+  fastify.get('/api/auth/google/mobile/callback', async (request, reply) => {
+    try {
+      const token = await fastify.googleOAuth2Mobile.getAccessTokenFromAuthorizationCodeFlow(request)
+      const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: 'Bearer ' + token.token.access_token }
+      })
+      const profile = await res.json()
+      const w = await findOrCreateGoogleWorker(profile)
+
+      const jwtToken = fastify.jwt.sign(
+        { id: w.id, work_number: w.work_number, full_name: w.full_name },
+        { expiresIn: '30d' }
+      )
+
+      const worker = { id: w.id, work_number: w.work_number, full_name: w.full_name, email: w.email, role: w.role }
+      return reply.redirect(`rannikon://auth-callback?token=${jwtToken}&worker=${encodeURIComponent(JSON.stringify(worker))}`)
+    } catch (err) {
+      fastify.log.error(err)
+      return reply.redirect('rannikon://auth-callback?error=google_auth_failed')
     }
   })
 

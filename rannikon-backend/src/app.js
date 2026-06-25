@@ -42,6 +42,24 @@ fastify.register(require('@fastify/oauth2'), {
     : 'http://localhost:4003/api/auth/google/callback'
 })
 
+// Same Google Web client, separate callback so the mobile app can be
+// handed back a rannikon:// deep link instead of a frontend page.
+fastify.register(require('@fastify/oauth2'), {
+  name: 'googleOAuth2Mobile',
+  scope: ['profile', 'email'],
+  credentials: {
+    client: {
+      id: process.env.GOOGLE_CLIENT_ID,
+      secret: process.env.GOOGLE_CLIENT_SECRET
+    },
+    auth: require('@fastify/oauth2').GOOGLE_CONFIGURATION
+  },
+  startRedirectPath: '/api/auth/google/mobile/start',
+  callbackUri: process.env.NODE_ENV === 'production'
+    ? 'https://api.rannikon.com/api/auth/google/mobile/callback'
+    : 'http://localhost:4003/api/auth/google/mobile/callback'
+})
+
 fastify.decorate('authenticate', async function (request, reply) {
   try {
     await request.jwtVerify()
