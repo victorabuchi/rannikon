@@ -10,8 +10,9 @@ export default function AuthCallback() {
     const { token, worker } = router.query
     if (token && worker) {
       try {
-        saveAuth(token, JSON.parse(decodeURIComponent(worker)))
-        router.push('/dashboard')
+        const parsedWorker = JSON.parse(decodeURIComponent(worker))
+        saveAuth(token, parsedWorker)
+        router.push(parsedWorker.work_number?.startsWith('G-') ? '/complete-profile' : '/dashboard')
       } catch {
         router.push('/login?error=invalid_callback')
       }
