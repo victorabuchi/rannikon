@@ -171,6 +171,7 @@ module.exports = async function timesheetRoutes(fastify) {
   fastify.post('/api/timesheet/submit-to-payroll', {
     onRequest: [fastify.authenticate]
   }, async (request, reply) => {
+    try {
     const { month, year, papers, notes } = request.body
     if (!month || !year) return reply.status(400).send({ error: 'month and year are required' })
     if (!papers || !papers.length) return reply.status(400).send({ error: 'At least one paper must be selected' })
@@ -272,6 +273,10 @@ module.exports = async function timesheetRoutes(fastify) {
     }
 
     return reply.send({ success: true, submission_id })
+    } catch (err) {
+      fastify.log.error(err)
+      return reply.status(500).send({ error: err.message || 'Internal Server Error' })
+    }
   })
 
 }
