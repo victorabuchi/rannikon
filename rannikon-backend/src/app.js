@@ -2,7 +2,17 @@
 
 require('dotenv').config()
 
+const path = require('path')
 const fastify = require('fastify')({ logger: true })
+
+fastify.register(require('@fastify/multipart'), {
+  limits: { fileSize: 5 * 1024 * 1024 }
+})
+
+fastify.register(require('@fastify/static'), {
+  root: path.join(__dirname, '..', 'uploads'),
+  prefix: '/uploads/'
+})
 
 fastify.register(require('@fastify/cors'), {
   origin: (origin, callback) => {
@@ -73,6 +83,7 @@ fastify.register(require('./routes/timesheet'))
 fastify.register(require('./routes/admin'))
 fastify.register(require('./routes/supervisor'))
 fastify.register(require('./routes/green'))
+fastify.register(require('./routes/payroll'))
 
 
 fastify.get('/health', async (request, reply) => {

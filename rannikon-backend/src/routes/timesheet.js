@@ -155,4 +155,134 @@ module.exports = async function timesheetRoutes(fastify) {
     }
   })
 
+  fastify.get('/api/timesheet/my-submissions', {
+    onRequest: [fastify.authenticate]
+  }, async (request, reply) => {
+    const result = await db.query(
+      `SELECT id, month, year, papers_included, notes, status, submitted_at
+       FROM worker_submissions
+       WHERE worker_id = $1
+       ORDER BY submitted_at DESC`,
+      [request.user.id]
+    )
+    return reply.send({ submissions: result.rows })
+  })
+
+  fastify.post('/api/timesheet/submit-to-payroll', {
+    onRequest: [fastify.authenticate]
+  }, async (request, reply) => {
+    const { month, year, papers, notes } = request.body
+    if (!month || !year) return reply.status(400).send({ error: 'month and year are required' })
+    if (!papers || !papers.length) return reply.status(400).send({ error: 'At least one paper must be selected' })
+
+    const workerResult = await db.query(
+      'SELECT id, work_number, full_name, email, house_group FROM workers WHERE id = $1',
+      [request.user.id]
+    )
+    const worker = workerResult.rows[0]
+
+    let white_data = null, orange_data = null, weekly_data = null, green_data = null
+
+    if (papers.includes('white') || papers.includes('orange') || papers.includes('weekly')) {
+      const tsResult = await db.query(
+        `SELECT * FROM timesheet_entries
+         WHERE worker_id = $1
+         AND EXTRACT(MONTH FROM entry_date) = $2
+         AND EXTRACT(YEAR FROM entry_date) = $3
+         ORDER BY entry_date ASC`,
+        [request.user.id, month, year]
+      )
+      const entries = tsResult.rows
+      if (papers.includes('white')) white_data = entries
+      if (papers.includes('orange')) orange_data = entries.filter(e => e.orange_hours && e.orange_hours !== '0:00' && e.orange_hours !== '0:0')
+      if (papers.includes('weekly')) weekly_data = entries
+    }
+
+    if (papers.includes('green')) {
+      const greenResult = await db.query(
+        `SELECT * FROM green_paper_entries
+         WHERE worker_id = $1
+         AND EXTRACT(MONTH FROM entry_date) = $2
+         AND EXTRACT(YEAR FROM entry_date) = $3
+         ORDER BY entry_date ASC`,
+        [request.user.id, month, year]
+      )
+      green_data = greenResult.rows
+    }
+
+    const allEntries = white_data || weekly_data || []
+    const totalWhiteMins = allEntries.reduce((s, e) => s + toMins2(e.white_hours), 0)
+    const totalOrangeMins = allEntries.reduce((s, e) => s + toMins2(e.orange_hours), 0)
+    const totalMins = allEntries.reduce((s, e) => s + toMins2(e.total_hours), 0)
+
+    const result = await db.query(
+      `INSERT INTO worker_submissions
+       (worker_id, month, year, papers_included, white_paper_data, orange_paper_data, weekly_data, green_paper_data, notes, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'submitted')
+       RETURNING id`,
+      [
+        request.user.id, month, year, papers,
+        white_data ? JSON.stringify(white_data) : null,
+        orange_data ? JSON.stringify(orange_data) : null,
+        weekly_data ? JSON.stringify(weekly_data) : null,
+        green_data ? JSON.stringify(green_data) : null,
+        notes || null
+      ]
+    )
+    const submission_id = result.rows[0].id
+
+    const payrollUsers = await db.query(
+      "SELECT email, full_name FROM workers WHERE role = 'payroll' AND is_active = true"
+    )
+
+    if (payrollUsers.rows.length > 0) {
+      const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+      const monthLabel = MONTHS[parseInt(month) - 1] + ' ' + year
+      const paperLabels = { white: 'White paper', orange: 'Orange paper', weekly: 'Weekly summary', green: 'Green paper' }
+      const papersLabel = papers.map(p => paperLabels[p] || p).join(', ')
+
+      const { Resend } = require('resend')
+      const resend = new Resend(process.env.RESEND_API_KEY)
+
+      for (const pu of payrollUsers.rows) {
+        await resend.emails.send({
+          from: process.env.RESEND_FROM,
+          to: pu.email,
+          subject: `Monthly submission from ${worker.full_name} #${worker.work_number} — ${monthLabel}`,
+          html: `
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+              <img src="https://www.rannikon.com/rannikkopuutarhalogo.png" alt="Rannikon" style="height:40px;margin-bottom:16px"/>
+              <h2 style="color:#2d6a2d;margin:0 0 4px">Monthly Paper Submission</h2>
+              <p style="color:#555;margin:0 0 20px;font-size:14px">${monthLabel}</p>
+              <table style="width:100%;border-collapse:collapse;font-size:14px">
+                <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#888;width:140px">Worker</td><td style="padding:8px;border-bottom:1px solid #eee;font-weight:700">${worker.full_name}</td></tr>
+                <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#888">Work number</td><td style="padding:8px;border-bottom:1px solid #eee;font-weight:700">#${worker.work_number}</td></tr>
+                <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#888">House group</td><td style="padding:8px;border-bottom:1px solid #eee">${worker.house_group || '—'}</td></tr>
+                <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#888">Papers included</td><td style="padding:8px;border-bottom:1px solid #eee">${papersLabel}</td></tr>
+                <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#888">Regular hours</td><td style="padding:8px;border-bottom:1px solid #eee;font-weight:700;color:#2d6a2d">${toHHMM2(totalWhiteMins)}</td></tr>
+                <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#888">Extra hours</td><td style="padding:8px;border-bottom:1px solid #eee;font-weight:700;color:#b45309">${toHHMM2(totalOrangeMins)}</td></tr>
+                <tr><td style="padding:8px;color:#888">Total hours</td><td style="padding:8px;font-weight:700;font-size:16px">${toHHMM2(totalMins)}</td></tr>
+              </table>
+              ${notes ? `<p style="margin-top:16px;padding:12px;background:#f5f5f5;border-radius:8px;font-size:13px;color:#555"><b>Notes:</b> ${notes}</p>` : ''}
+              <p style="font-size:12px;color:#999;margin-top:20px">Log in to view and verify this submission: <a href="https://www.rannikon.com/payroll" style="color:#2d6a2d">www.rannikon.com/payroll</a></p>
+            </div>
+          `
+        })
+      }
+    }
+
+    return reply.send({ success: true, submission_id })
+  })
+
+}
+
+function toMins2(t) {
+  if (!t) return 0
+  const parts = String(t).split(':')
+  return parseInt(parts[0]) * 60 + (parseInt(parts[1]) || 0)
+}
+
+function toHHMM2(m) {
+  if (!m || m <= 0) return '0:00'
+  return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0')
 }

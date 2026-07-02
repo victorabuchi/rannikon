@@ -130,6 +130,14 @@ export default function Dashboard() {
   const [workNumError, setWorkNumError] = useState('')
   const [workNumSaving, setWorkNumSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [payrollSubmitMonth, setPayrollSubmitMonth] = useState(new Date().getMonth() + 1)
+  const [payrollSubmitYear, setPayrollSubmitYear] = useState(new Date().getFullYear())
+  const [payrollPapers, setPayrollPapers] = useState(['white', 'orange', 'weekly', 'green'])
+  const [payrollNotes, setPayrollNotes] = useState('')
+  const [payrollSubmitting, setPayrollSubmitting] = useState(false)
+  const [payrollSuccess, setPayrollSuccess] = useState('')
+  const [mySubmissions, setMySubmissions] = useState([])
+  const [mySubsLoaded, setMySubsLoaded] = useState(false)
 
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/login'); return }
@@ -233,6 +241,37 @@ export default function Dashboard() {
     } catch (err) {
       const msg = err?.response?.data?.error || err?.response?.status || err?.message || t('housemaster.unknown')
       alert(t('dashboard.deleteFailedPrefix') + msg)
+    }
+  }
+
+  async function loadMySubmissions() {
+    setMySubsLoaded(true)
+    try {
+      const res = await api.get('/api/timesheet/my-submissions')
+      setMySubmissions(res.data.submissions)
+    } catch (err) {
+      console.error('Failed to load submissions')
+    }
+  }
+
+  async function submitToPayroll() {
+    if (!payrollPapers.length) { alert('Please select at least one paper'); return }
+    setPayrollSubmitting(true)
+    setPayrollSuccess('')
+    try {
+      await api.post('/api/timesheet/submit-to-payroll', {
+        month: payrollSubmitMonth,
+        year: payrollSubmitYear,
+        papers: payrollPapers,
+        notes: payrollNotes
+      })
+      setPayrollSuccess(`Papers submitted to payroll for ${MONTHS[payrollSubmitMonth - 1]} ${payrollSubmitYear}`)
+      setPayrollNotes('')
+      loadMySubmissions()
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to submit to payroll')
+    } finally {
+      setPayrollSubmitting(false)
     }
   }
 
@@ -1013,7 +1052,7 @@ export default function Dashboard() {
             </div>
             <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
               <button onClick={() => setView('list')} style={{ padding: '7px 13px', background: view === 'list' ? '#2d6a2d' : '#fff', color: view === 'list' ? '#fff' : '#333', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>{t('dashboard.daysTab')}</button>
-              <button onClick={() => setView('papers')} style={{ padding: '7px 13px', background: view === 'papers' ? '#2d6a2d' : '#fff', color: view === 'papers' ? '#fff' : '#333', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>{t('dashboard.papersLabel')}</button>
+              <button onClick={() => { setView('papers'); if (!mySubsLoaded) loadMySubmissions() }} style={{ padding: '7px 13px', background: view === 'papers' ? '#2d6a2d' : '#fff', color: view === 'papers' ? '#fff' : '#333', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>{t('dashboard.papersLabel')}</button>
             </div>
           </div>
 
@@ -1161,6 +1200,92 @@ export default function Dashboard() {
           )}
 
           {view === 'papers' && PapersFullView()}
+
+          {view === 'papers' && (
+            <div style={{ marginTop: '24px', background: '#fff', border: '1px solid #e8e8e3', borderRadius: '10px', overflow: 'hidden' }}>
+              <div style={{ background: '#2d6a2d', padding: '14px 18px' }}>
+                <p style={{ color: '#fff', fontWeight: '800', fontSize: '14px', margin: 0 }}>Submit monthly papers to payroll</p>
+              </div>
+              <div style={{ padding: '18px' }}>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px', color: '#555' }}>Month</label>
+                    <select value={payrollSubmitMonth} onChange={e => setPayrollSubmitMonth(parseInt(e.target.value))}
+                      style={{ padding: '8px 10px', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', fontFamily: 'inherit' }}>
+                      {MONTHS.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px', color: '#555' }}>Year</label>
+                    <input type="number" value={payrollSubmitYear} onChange={e => setPayrollSubmitYear(parseInt(e.target.value))}
+                      style={{ padding: '8px 10px', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', fontFamily: 'inherit', width: '80px' }} />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#555' }}>Papers to include</label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[['white','White paper'],['orange','Orange paper'],['weekly','Weekly summary'],['green','Green paper']].map(([key, label]) => {
+                      const checked = payrollPapers.includes(key)
+                      return (
+                        <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '6px 12px', border: `1px solid ${checked ? '#2d6a2d' : '#ddd'}`, borderRadius: '6px', background: checked ? '#e8f5e9' : '#fff', fontSize: '13px', fontWeight: '600', color: checked ? '#2d6a2d' : '#555' }}>
+                          <input type="checkbox" checked={checked} onChange={e => {
+                            if (e.target.checked) setPayrollPapers(p => [...p, key])
+                            else setPayrollPapers(p => p.filter(x => x !== key))
+                          }} style={{ cursor: 'pointer' }} />
+                          {label}
+                        </label>
+                      )
+                    })}
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '6px 12px', border: '1px solid #ddd', borderRadius: '6px', background: '#f5f5f5', fontSize: '12px', fontWeight: '600', color: '#555' }}>
+                      <input type="checkbox" checked={payrollPapers.length === 4} onChange={e => setPayrollPapers(e.target.checked ? ['white','orange','weekly','green'] : [])} style={{ cursor: 'pointer' }} />
+                      Select all
+                    </label>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px', color: '#555' }}>Notes for payroll (optional)</label>
+                  <textarea value={payrollNotes} onChange={e => setPayrollNotes(e.target.value)} rows={2} placeholder="Any notes for payroll…"
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
+                </div>
+
+                {payrollSuccess && (
+                  <div style={{ background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: '8px', padding: '10px 14px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#2d6a2d', fontSize: '16px' }}>✓</span>
+                    <span style={{ color: '#2d6a2d', fontSize: '13px', fontWeight: '600' }}>{payrollSuccess}</span>
+                  </div>
+                )}
+
+                <button onClick={submitToPayroll} disabled={payrollSubmitting || !payrollPapers.length}
+                  style={{ padding: '10px 24px', background: payrollSubmitting || !payrollPapers.length ? '#aaa' : '#2d6a2d', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '700', cursor: payrollSubmitting || !payrollPapers.length ? 'not-allowed' : 'pointer' }}>
+                  {payrollSubmitting ? 'Submitting…' : 'Submit to payroll'}
+                </button>
+
+                {mySubmissions.length > 0 && (
+                  <div style={{ marginTop: '20px', borderTop: '1px solid #f0f0f0', paddingTop: '16px' }}>
+                    <p style={{ fontSize: '12px', fontWeight: '700', color: '#555', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Previous submissions</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {mySubmissions.map(sub => {
+                        const st = { submitted: { bg: '#e3f2fd', text: '#1565c0' }, approved: { bg: '#e8f5e9', text: '#2d6a2d' }, rejected: { bg: '#fdecea', text: '#c0392b' }, needs_review: { bg: '#fff3e0', text: '#e65100' } }[sub.status] || { bg: '#f5f5f5', text: '#555' }
+                        const paperLabels = { white: 'White', orange: 'Orange', weekly: 'Weekly', green: 'Green' }
+                        return (
+                          <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', padding: '8px 0', borderBottom: '1px solid #f5f5f5' }}>
+                            <span style={{ fontWeight: '700', fontSize: '13px', color: '#2d6a2d' }}>{MONTHS[sub.month - 1]} {sub.year}</span>
+                            <span style={{ fontSize: '11px', color: '#888' }}>{(sub.papers_included || []).map(p => paperLabels[p] || p).join(', ')}</span>
+                            <span style={{ fontSize: '11px', color: '#aaa' }}>{new Date(sub.submitted_at).toLocaleDateString('en-GB')}</span>
+                            <span style={{ background: st.bg, color: st.text, padding: '2px 8px', borderRadius: '8px', fontSize: '11px', fontWeight: '700' }}>
+                              {{ submitted: 'Submitted', approved: 'Approved', rejected: 'Rejected', needs_review: 'Needs Review' }[sub.status] || sub.status}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

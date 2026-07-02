@@ -183,9 +183,11 @@ module.exports = async function adminRoutes(fastify) {
     const { house_group, date, logs } = request.body
     if (!house_group || !logs?.length) return reply.status(400).send({ error: 'house_group and logs required' })
 
+    const sessionDate = date || new Date().toISOString().split('T')[0]
+
     await db.query(
       'INSERT INTO housemaster_worklogs (house_group, session_date, sent_by, logs) VALUES ($1, $2, $3, $4)',
-      [house_group, date || new Date().toISOString().split('T')[0], request.user.id, JSON.stringify(logs)]
+      [house_group, sessionDate, request.user.id, JSON.stringify(logs)]
     )
 
     const hmResult = await db.query(
@@ -193,12 +195,7 @@ module.exports = async function adminRoutes(fastify) {
       [house_group]
     )
 
-    if (!hmResult.rows[0]) {
-      return reply.send({ success: true, warning: 'No housemaster found for this group — saved to app only' })
-    }
-
-    const hm = hmResult.rows[0]
-    const dateLabel = new Date(date || new Date()).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+    const dateLabel = new Date(sessionDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
 
     const tableRows = logs.map(r =>
       `<tr style="border-bottom:1px solid #f0f0f0">
@@ -212,41 +209,73 @@ module.exports = async function adminRoutes(fastify) {
       </tr>`
     ).join('')
 
+    const emailBody = (subject) => `
+      <div style="font-family:sans-serif;max-width:700px;margin:0 auto;padding:24px">
+        <img src="https://www.rannikon.com/rannikkopuutarhalogo.png" alt="Rannikon" style="height:40px;margin-bottom:16px"/>
+        <h2 style="color:#2d6a2d;margin:0 0 4px">${house_group} — Work Log</h2>
+        <p style="color:#555;margin:0 0 20px;font-size:14px">${dateLabel} &nbsp;|&nbsp; ${logs.length} workers</p>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:#2d6a2d;color:#fff">
+              <th style="padding:8px 10px;text-align:left">Work#</th>
+              <th style="padding:8px 10px;text-align:left">Name</th>
+              <th style="padding:8px 10px;text-align:left">Start</th>
+              <th style="padding:8px 10px;text-align:left">Finish</th>
+              <th style="padding:8px 10px;text-align:left">Break</th>
+              <th style="padding:8px 10px;text-align:left">Total hrs</th>
+              <th style="padding:8px 10px;text-align:left">Work done</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+        <p style="font-size:12px;color:#999;margin-top:20px">
+          Log in to Rannikon to view and download this worklog:
+          <a href="https://www.rannikon.com" style="color:#2d6a2d">www.rannikon.com</a>
+        </p>
+      </div>
+    `
+
     const { Resend } = require('resend')
     const resend = new Resend(process.env.RESEND_API_KEY)
 
-    await resend.emails.send({
-      from: process.env.RESEND_FROM,
-      to: hm.email,
-      subject: `Work log — ${house_group} — ${dateLabel}`,
-      html: `
-        <div style="font-family:sans-serif;max-width:700px;margin:0 auto;padding:24px">
-          <img src="https://www.rannikon.com/rannikkopuutarhalogo.png" alt="Rannikon" style="height:40px;margin-bottom:16px"/>
-          <h2 style="color:#2d6a2d;margin:0 0 4px">${house_group} — Work Log</h2>
-          <p style="color:#555;margin:0 0 20px;font-size:14px">${dateLabel} &nbsp;|&nbsp; ${logs.length} workers</p>
-          <table style="width:100%;border-collapse:collapse;font-size:13px">
-            <thead>
-              <tr style="background:#2d6a2d;color:#fff">
-                <th style="padding:8px 10px;text-align:left">Work#</th>
-                <th style="padding:8px 10px;text-align:left">Name</th>
-                <th style="padding:8px 10px;text-align:left">Start</th>
-                <th style="padding:8px 10px;text-align:left">Finish</th>
-                <th style="padding:8px 10px;text-align:left">Break</th>
-                <th style="padding:8px 10px;text-align:left">Total hrs</th>
-                <th style="padding:8px 10px;text-align:left">Work done</th>
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-          </table>
-          <p style="font-size:12px;color:#999;margin-top:20px">
-            Log in to Rannikon to view and download this worklog:
-            <a href="https://www.rannikon.com" style="color:#2d6a2d">www.rannikon.com</a>
-          </p>
-        </div>
-      `
-    })
+    let sentTo = null
 
-    return reply.send({ success: true, sent_to: hm.email })
+    if (hmResult.rows[0]) {
+      const hm = hmResult.rows[0]
+      await resend.emails.send({
+        from: process.env.RESEND_FROM,
+        to: hm.email,
+        subject: `Work log — ${house_group} — ${dateLabel}`,
+        html: emailBody()
+      })
+      sentTo = hm.email
+    }
+
+    // Also send to all payroll users for verification purposes
+    const payrollUsers = await db.query(
+      "SELECT email, full_name FROM workers WHERE role = 'payroll' AND is_active = true"
+    )
+    for (const pu of payrollUsers.rows) {
+      await resend.emails.send({
+        from: process.env.RESEND_FROM,
+        to: pu.email,
+        subject: `Daily worklog — ${dateLabel} — For verification`,
+        html: emailBody()
+      })
+    }
+
+    if (payrollUsers.rows.length > 0) {
+      await db.query(
+        'INSERT INTO housemaster_worklogs (house_group, session_date, sent_by, logs, for_payroll) VALUES ($1, $2, $3, $4, true)',
+        [house_group, sessionDate, request.user.id, JSON.stringify(logs)]
+      )
+    }
+
+    if (!sentTo && payrollUsers.rows.length === 0) {
+      return reply.send({ success: true, warning: 'No housemaster found for this group — saved to app only' })
+    }
+
+    return reply.send({ success: true, sent_to: sentTo })
   })
 
   fastify.get('/api/admin/housemaster-worklogs', { onRequest: [fastify.authenticate] }, async (request, reply) => {
