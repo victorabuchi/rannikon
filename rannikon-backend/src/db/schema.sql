@@ -34,15 +34,15 @@ CREATE TABLE IF NOT EXISTS worker_submissions (
   worker_id UUID REFERENCES workers(id) ON DELETE CASCADE,
   month INTEGER NOT NULL,
   year INTEGER NOT NULL,
-  papers_included TEXT[] NOT NULL,
-  white_paper_data JSONB,
-  orange_paper_data JSONB,
-  weekly_data JSONB,
-  green_paper_data JSONB,
-  notes TEXT,
-  status TEXT DEFAULT 'submitted',
   submitted_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE worker_submissions ADD COLUMN IF NOT EXISTS papers_included TEXT[];
+ALTER TABLE worker_submissions ADD COLUMN IF NOT EXISTS white_paper_data JSONB;
+ALTER TABLE worker_submissions ADD COLUMN IF NOT EXISTS orange_paper_data JSONB;
+ALTER TABLE worker_submissions ADD COLUMN IF NOT EXISTS weekly_data JSONB;
+ALTER TABLE worker_submissions ADD COLUMN IF NOT EXISTS green_paper_data JSONB;
+ALTER TABLE worker_submissions ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE worker_submissions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'submitted';
 
 CREATE TABLE IF NOT EXISTS timesheet_entries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
