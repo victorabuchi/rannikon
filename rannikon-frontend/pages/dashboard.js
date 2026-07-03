@@ -1215,6 +1215,7 @@ export default function Dashboard() {
           {view === 'papers' && PapersFullView()}
 
           {view === 'papers' && (
+            <>
             <div style={{ marginTop: '24px', background: '#fff', border: '1px solid #e8e8e3', borderRadius: '10px', overflow: 'hidden' }}>
               <div style={{ background: '#2d6a2d', padding: '14px 18px' }}>
                 <p style={{ color: '#fff', fontWeight: '800', fontSize: '14px', margin: 0 }}>Submit monthly papers to payroll</p>
@@ -1359,6 +1360,7 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+            </>
           )}
 
         </div>
