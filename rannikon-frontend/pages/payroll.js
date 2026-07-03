@@ -335,7 +335,13 @@ export default function PayrollPage() {
   const [logs, setLogs] = useState([])
   const [logsLoading, setLogsLoading] = useState(false)
 
-  // Verify tab
+  // Delete confirmation modal
+  const [confirmDeleteSub, setConfirmDeleteSub] = useState(null) // { id, name, monthLabel }
+
+  // Submissions tab — expanded months
+  const [expandedMonths, setExpandedMonths] = useState(new Set())
+
+  // Verify tab — manual
   const [allWorkers, setAllWorkers] = useState([])
   const [workerSearch, setWorkerSearch] = useState('')
   const [showWorkerList, setShowWorkerList] = useState(false)
@@ -345,6 +351,15 @@ export default function PayrollPage() {
   const [verifyResult, setVerifyResult] = useState(null)
   const [verifying, setVerifying] = useState(false)
   const searchRef = useRef(null)
+
+  // Verify tab — monthly board
+  const [boardMonth, setBoardMonth] = useState(new Date().getMonth() + 1)
+  const [boardYear, setBoardYear] = useState(new Date().getFullYear())
+  const [boardData, setBoardData] = useState([])
+  const [boardLoading, setBoardLoading] = useState(false)
+  const [boardExpandedId, setBoardExpandedId] = useState(null)
+  const [boardDetail, setBoardDetail] = useState({})
+  const [boardDetailLoading, setBoardDetailLoading] = useState(null)
 
   useEffect(() => {
     api.get('/api/auth/me').then(res => {
@@ -393,14 +408,44 @@ export default function PayrollPage() {
     }
   }
 
-  async function deleteSubmission(id) {
-    if (!window.confirm('Delete this submission? This cannot be undone.')) return
+  async function doDeleteSub() {
+    const { id } = confirmDeleteSub
+    setConfirmDeleteSub(null)
     try {
       await api.delete('/api/payroll/submissions/' + id)
       setSubmissions(prev => prev.filter(s => s.id !== id))
       if (expandedSub === id) setExpandedSub(null)
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to delete submission')
+    }
+  }
+
+  async function loadMonthBoard() {
+    setBoardLoading(true)
+    setBoardData([])
+    setBoardExpandedId(null)
+    setBoardDetail({})
+    try {
+      const res = await api.get(`/api/payroll/month-summary/${boardMonth}/${boardYear}`)
+      setBoardData(res.data.summaries)
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to load monthly summary')
+    } finally {
+      setBoardLoading(false)
+    }
+  }
+
+  async function loadBoardDetail(workerId) {
+    if (boardExpandedId === workerId) { setBoardExpandedId(null); return }
+    setBoardDetailLoading(workerId)
+    try {
+      const res = await api.get(`/api/payroll/verify/${workerId}/${boardMonth}/${boardYear}`)
+      setBoardDetail(prev => ({ ...prev, [workerId]: res.data }))
+      setBoardExpandedId(workerId)
+    } catch (err) {
+      alert(err.response?.data?.error || 'Verification failed')
+    } finally {
+      setBoardDetailLoading(null)
     }
   }
 
@@ -469,24 +514,29 @@ export default function PayrollPage() {
     doc.save(`verification-${worker.work_number}-${monthLabel}.pdf`)
   }
 
-  // Sort submissions: by house group order, then numerically by work number
-  const sortedSubmissions = [...submissions].sort((a, b) => {
-    const ai = HOUSE_GROUP_ORDER.indexOf(a.house_group)
-    const bi = HOUSE_GROUP_ORDER.indexOf(b.house_group)
-    const groupDiff = (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
-    if (groupDiff !== 0) return groupDiff
-    const an = parseInt(a.work_number) || 9999
-    const bn = parseInt(b.work_number) || 9999
-    return an - bn
-  })
-
-  // Group by house_group for display
-  const grouped = {}
-  sortedSubmissions.forEach(sub => {
+  // Group submissions by month/year (newest first), then by house group (sorted), then by work number
+  const byMonthMap = {}
+  submissions.forEach(sub => {
+    const key = `${sub.year}-${String(sub.month).padStart(2,'0')}`
+    if (!byMonthMap[key]) byMonthMap[key] = { month: sub.month, year: sub.year, byGroup: {} }
     const g = sub.house_group || 'Unknown'
-    if (!grouped[g]) grouped[g] = []
-    grouped[g].push(sub)
+    if (!byMonthMap[key].byGroup[g]) byMonthMap[key].byGroup[g] = []
+    byMonthMap[key].byGroup[g].push(sub)
   })
+  // Sort each house group by work number
+  Object.values(byMonthMap).forEach(mv => {
+    Object.values(mv.byGroup).forEach(arr => {
+      arr.sort((a, b) => (parseInt(a.work_number)||9999) - (parseInt(b.work_number)||9999))
+    })
+  })
+  const monthKeys = Object.keys(byMonthMap).sort().reverse()
+  function toggleMonth(key) {
+    setExpandedMonths(prev => {
+      const n = new Set(prev)
+      n.has(key) ? n.delete(key) : n.add(key)
+      return n
+    })
+  }
 
   const filteredWorkers = allWorkers.filter(w =>
     !workerSearch ||
@@ -566,92 +616,120 @@ export default function PayrollPage() {
                 </div>
               )}
 
-              {/* Grouped by house group */}
-              {Object.entries(grouped).map(([group, subs]) => (
-                <div key={group} style={{ marginBottom:'28px' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px' }}>
-                    <div style={{ height:'2px', flex:1, background:'#2d6a2d', opacity:0.2 }} />
-                    <span style={{ fontSize:'12px', fontWeight:'800', color:'#2d6a2d', textTransform:'uppercase', letterSpacing:'1px', whiteSpace:'nowrap' }}>{group}</span>
-                    <span style={{ fontSize:'11px', color:'#888', background:'#f0f7f0', padding:'2px 8px', borderRadius:'10px' }}>{subs.length} submission{subs.length!==1?'s':''}</span>
-                    <div style={{ height:'2px', flex:1, background:'#2d6a2d', opacity:0.2 }} />
-                  </div>
+              {/* Grouped by month, then by house group */}
+              {monthKeys.map(mKey => {
+                const mv = byMonthMap[mKey]
+                const mLabel = MONTHS[mv.month - 1] + ' ' + mv.year
+                const totalSubs = Object.values(mv.byGroup).reduce((s,a)=>s+a.length,0)
+                const isMonthOpen = expandedMonths.has(mKey)
+                const sortedGroups = Object.keys(mv.byGroup).sort((a,b) => {
+                  const ai = HOUSE_GROUP_ORDER.indexOf(a), bi = HOUSE_GROUP_ORDER.indexOf(b)
+                  return (ai===-1?99:ai) - (bi===-1?99:bi)
+                })
+                return (
+                  <div key={mKey} style={{ marginBottom:'16px', border:'1px solid #dde8dd', borderRadius:'12px', overflow:'hidden' }}>
+                    {/* Month header — click to expand/collapse */}
+                    <div onClick={() => toggleMonth(mKey)}
+                      style={{ padding:'14px 20px', background: isMonthOpen ? '#2d6a2d' : '#f0f7f0', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', userSelect:'none' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                        <span style={{ fontSize:'17px', fontWeight:'800', color: isMonthOpen ? '#fff' : '#2d6a2d' }}>{mLabel}</span>
+                        <span style={{ fontSize:'12px', fontWeight:'700', background: isMonthOpen ? 'rgba(255,255,255,0.25)' : '#d4edda', color: isMonthOpen ? '#fff' : '#2d6a2d', padding:'2px 10px', borderRadius:'10px' }}>
+                          {totalSubs} submission{totalSubs!==1?'s':''}
+                        </span>
+                        <span style={{ fontSize:'11px', color: isMonthOpen ? '#cfffcf' : '#888' }}>{sortedGroups.length} house group{sortedGroups.length!==1?'s':''}</span>
+                      </div>
+                      <span style={{ color: isMonthOpen ? '#fff' : '#2d6a2d', fontSize:'18px', fontWeight:'700' }}>{isMonthOpen ? '▲' : '▼'}</span>
+                    </div>
 
-                  <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
-                    {subs.map(sub => {
-                      const isExpanded = expandedSub === sub.id
-                      const activeTab = expandedSubTabs[sub.id] || (sub.papers_included||['white'])[0]
-                      const monthLabel = MONTHS[sub.month - 1] + ' ' + sub.year
-                      const paperLabels = { white:'White', orange:'Orange', weekly:'Weekly', green:'Green' }
-                      return (
-                        <div key={sub.id} style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', overflow:'hidden', boxShadow: isExpanded ? '0 2px 12px rgba(45,106,45,0.10)' : 'none' }}>
-
-                          {/* Header row — click to expand */}
-                          <div onClick={() => toggleSub(sub.id, sub.papers_included)}
-                            style={{ padding:'14px 18px', cursor:'pointer', display:'flex', flexWrap:'wrap', gap:'10px', alignItems:'center', justifyContent:'space-between', userSelect:'none' }}>
-                            <div style={{ display:'flex', flexWrap:'wrap', gap:'8px', alignItems:'center' }}>
-                              <span style={{ fontWeight:'800', fontSize:'14px' }}>{sub.full_name}</span>
-                              <span style={{ fontSize:'12px', background:'#f0f7f0', border:'1px solid #c8e6c9', padding:'2px 8px', borderRadius:'6px', fontWeight:'700', color:'#2d6a2d' }}>#{sub.work_number}</span>
-                              <span style={{ fontSize:'13px', fontWeight:'700', color:'#1565c0' }}>{monthLabel}</span>
-                              <span style={{ fontSize:'11px', color:'#888' }}>{(sub.papers_included||[]).map(p=>paperLabels[p]||p).join(', ')}</span>
-                            </div>
-                            <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
-                              <span style={{ fontSize:'11px', color:'#999' }}>{new Date(sub.submitted_at).toLocaleDateString('en-GB')}</span>
-                              <StatusBadge status={sub.status} />
-                              <span style={{ color:'#aaa', fontSize:'14px', fontWeight:'700' }}>{isExpanded ? '▲' : '▼'}</span>
-                            </div>
-                          </div>
-
-                          {isExpanded && (
-                            <div style={{ padding:'0 16px 16px', borderTop:'1px solid #f0f0f0', background:'#fafafa' }}>
-                              {sub.notes && (
-                                <p style={{ fontSize:'13px', color:'#555', margin:'12px 0', fontStyle:'italic', padding:'8px 12px', background:'#fff', borderRadius:'6px', border:'1px solid #eee' }}>
-                                  Notes: {sub.notes}
-                                </p>
-                              )}
-
-                              {/* Paper view — exact dashboard copy */}
-                              <div style={{ marginTop:'12px' }}>
-                                <SubmissionPaperView
-                                  sub={sub}
-                                  activeTab={activeTab}
-                                  onTabChange={t => setExpandedSubTabs(prev => ({ ...prev, [sub.id]: t }))}
-                                />
+                    {isMonthOpen && (
+                      <div style={{ padding:'16px', background:'#fafefe' }}>
+                        {sortedGroups.map(group => {
+                          const subs = mv.byGroup[group]
+                          return (
+                            <div key={group} style={{ marginBottom:'20px' }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'8px' }}>
+                                <div style={{ height:'2px', flex:1, background:'#2d6a2d', opacity:0.15 }} />
+                                <span style={{ fontSize:'11px', fontWeight:'800', color:'#2d6a2d', textTransform:'uppercase', letterSpacing:'1px', whiteSpace:'nowrap' }}>{group}</span>
+                                <span style={{ fontSize:'11px', color:'#888', background:'#f0f7f0', padding:'2px 8px', borderRadius:'10px' }}>{subs.length}</span>
+                                <div style={{ height:'2px', flex:1, background:'#2d6a2d', opacity:0.15 }} />
                               </div>
 
-                              {/* Status buttons */}
-                              <div style={{ display:'flex', gap:'8px', marginTop:'16px', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between' }}>
-                                <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
-                                  {['approved','rejected','needs_review'].map(s => {
-                                    const st = STATUS_STYLE[s]
-                                    const busy = statusUpdating === sub.id + s
-                                    return (
-                                      <button key={s} disabled={!!statusUpdating || sub.status===s} onClick={() => updateStatus(sub.id, s)}
-                                        style={{
-                                          padding:'7px 18px', fontSize:'12px', fontWeight:'700',
-                                          cursor: sub.status===s ? 'default' : 'pointer',
-                                          border:`1px solid ${st.border}`, borderRadius:'6px',
-                                          background: sub.status===s ? st.bg : '#fff',
-                                          color: sub.status===s ? st.text : '#555',
-                                          opacity: !!statusUpdating && !busy ? 0.5 : 1
-                                        }}>
-                                        {busy ? '…' : st.label}
-                                      </button>
-                                    )
-                                  })}
-                                </div>
-                                <button onClick={() => deleteSubmission(sub.id)}
-                                  style={{ padding:'7px 16px', fontSize:'12px', fontWeight:'700', cursor:'pointer', border:'1px solid #f5c6c6', borderRadius:'6px', background:'#fff', color:'#c0392b' }}>
-                                  Delete
-                                </button>
+                              <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+                                {subs.map(sub => {
+                                  const isExpanded = expandedSub === sub.id
+                                  const activeSubTab = expandedSubTabs[sub.id] || (sub.papers_included||['white'])[0]
+                                  const paperLabels = { white:'White', orange:'Orange', weekly:'Weekly', green:'Green' }
+                                  return (
+                                    <div key={sub.id} style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', overflow:'hidden', boxShadow: isExpanded ? '0 2px 12px rgba(45,106,45,0.10)' : 'none' }}>
+                                      {/* Card header */}
+                                      <div style={{ padding:'12px 16px', display:'flex', flexWrap:'wrap', gap:'8px', alignItems:'center', justifyContent:'space-between' }}>
+                                        <div onClick={() => toggleSub(sub.id, sub.papers_included)}
+                                          style={{ display:'flex', flexWrap:'wrap', gap:'8px', alignItems:'center', cursor:'pointer', flex:1, userSelect:'none' }}>
+                                          <span style={{ fontWeight:'800', fontSize:'14px' }}>{sub.full_name}</span>
+                                          <span style={{ fontSize:'12px', background:'#f0f7f0', border:'1px solid #c8e6c9', padding:'2px 8px', borderRadius:'6px', fontWeight:'700', color:'#2d6a2d' }}>#{sub.work_number}</span>
+                                          <span style={{ fontSize:'11px', color:'#888' }}>{(sub.papers_included||[]).map(p=>paperLabels[p]||p).join(', ')}</span>
+                                        </div>
+                                        <div style={{ display:'flex', gap:'8px', alignItems:'center', flexShrink:0 }}>
+                                          <span style={{ fontSize:'11px', color:'#999' }}>{new Date(sub.submitted_at).toLocaleDateString('en-GB')}</span>
+                                          <StatusBadge status={sub.status} />
+                                          <button
+                                            onClick={e => { e.stopPropagation(); setConfirmDeleteSub({ id: sub.id, name: sub.full_name, monthLabel: mLabel }) }}
+                                            style={{ padding:'4px 10px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #f5c6c6', borderRadius:'6px', background:'#fff5f5', color:'#c0392b', whiteSpace:'nowrap' }}>
+                                            Delete
+                                          </button>
+                                          <span onClick={() => toggleSub(sub.id, sub.papers_included)}
+                                            style={{ color:'#aaa', fontSize:'14px', fontWeight:'700', cursor:'pointer' }}>{isExpanded ? '▲' : '▼'}</span>
+                                        </div>
+                                      </div>
+
+                                      {isExpanded && (
+                                        <div style={{ padding:'0 16px 16px', borderTop:'1px solid #f0f0f0', background:'#fafafa' }}>
+                                          {sub.notes && (
+                                            <p style={{ fontSize:'13px', color:'#555', margin:'12px 0', fontStyle:'italic', padding:'8px 12px', background:'#fff', borderRadius:'6px', border:'1px solid #eee' }}>
+                                              Notes: {sub.notes}
+                                            </p>
+                                          )}
+                                          <div style={{ marginTop:'12px' }}>
+                                            <SubmissionPaperView
+                                              sub={sub}
+                                              activeTab={activeSubTab}
+                                              onTabChange={t => setExpandedSubTabs(prev => ({ ...prev, [sub.id]: t }))}
+                                            />
+                                          </div>
+                                          {/* Status buttons */}
+                                          <div style={{ display:'flex', gap:'8px', marginTop:'16px', flexWrap:'wrap' }}>
+                                            {['approved','rejected','needs_review'].map(s => {
+                                              const st = STATUS_STYLE[s]
+                                              const busy = statusUpdating === sub.id + s
+                                              return (
+                                                <button key={s} disabled={!!statusUpdating || sub.status===s} onClick={() => updateStatus(sub.id, s)}
+                                                  style={{
+                                                    padding:'7px 18px', fontSize:'12px', fontWeight:'700',
+                                                    cursor: sub.status===s ? 'default' : 'pointer',
+                                                    border:`1px solid ${st.border}`, borderRadius:'6px',
+                                                    background: sub.status===s ? st.bg : '#fff',
+                                                    color: sub.status===s ? st.text : '#555',
+                                                    opacity: !!statusUpdating && !busy ? 0.5 : 1
+                                                  }}>
+                                                  {busy ? '…' : st.label}
+                                                </button>
+                                              )
+                                            })}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })}
                               </div>
                             </div>
-                          )}
-                        </div>
-                      )
-                    })}
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
 
@@ -836,11 +914,172 @@ export default function PayrollPage() {
                   </div>
                 </div>
               )}
+
+              {/* ── MONTHLY VERIFICATION BOARD ── */}
+              <div style={{ marginTop:'36px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'16px' }}>
+                  <div style={{ height:'2px', flex:1, background:'#2d6a2d', opacity:0.2 }} />
+                  <span style={{ fontSize:'13px', fontWeight:'800', color:'#2d6a2d', textTransform:'uppercase', letterSpacing:'1px', whiteSpace:'nowrap' }}>Monthly Verification Board</span>
+                  <div style={{ height:'2px', flex:1, background:'#2d6a2d', opacity:0.2 }} />
+                </div>
+                <p style={{ fontSize:'13px', color:'#666', marginBottom:'16px' }}>Auto-verify all workers who submitted papers for a given month.</p>
+
+                <div style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', padding:'16px 20px', marginBottom:'16px', display:'flex', gap:'12px', flexWrap:'wrap', alignItems:'flex-end' }}>
+                  <div style={{ minWidth:'130px' }}>
+                    <label style={{ display:'block', fontSize:'12px', fontWeight:'600', marginBottom:'6px', color:'#555' }}>Month</label>
+                    <select value={boardMonth} onChange={e => setBoardMonth(parseInt(e.target.value))}
+                      style={{ width:'100%', padding:'9px 12px', border:'1px solid #ccc', borderRadius:'8px', fontSize:'13px', fontFamily:'inherit' }}>
+                      {MONTHS.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ minWidth:'90px' }}>
+                    <label style={{ display:'block', fontSize:'12px', fontWeight:'600', marginBottom:'6px', color:'#555' }}>Year</label>
+                    <input type="number" value={boardYear} onChange={e => setBoardYear(parseInt(e.target.value))}
+                      style={{ width:'100%', padding:'9px 12px', border:'1px solid #ccc', borderRadius:'8px', fontSize:'13px', fontFamily:'inherit' }} />
+                  </div>
+                  <button onClick={loadMonthBoard} disabled={boardLoading}
+                    style={{ padding:'10px 24px', background: boardLoading ? '#aaa' : '#2d6a2d', color:'#fff', border:'none', borderRadius:'8px', fontSize:'14px', fontWeight:'700', cursor: boardLoading ? 'not-allowed' : 'pointer' }}>
+                    {boardLoading ? 'Loading…' : 'Load'}
+                  </button>
+                </div>
+
+                {boardData.length > 0 && (
+                  <div style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', overflow:'hidden' }}>
+                    <div style={{ overflowX:'auto' }}>
+                      <table style={{ borderCollapse:'collapse', width:'100%', fontSize:'12px' }}>
+                        <thead>
+                          <tr>
+                            <th style={thTd()}>Work#</th>
+                            <th style={thTd()}>Name</th>
+                            <th style={thTd()}>Group</th>
+                            <th style={thTd()}>Sub Status</th>
+                            <th style={thTd({textAlign:'center'})}>Days</th>
+                            <th style={thTd({textAlign:'center',background:'#2e7d32'})}>Match</th>
+                            <th style={thTd({textAlign:'center',background:'#b71c1c'})}>Mismatch</th>
+                            <th style={thTd({textAlign:'center',background:'#e65100'})}>Missing</th>
+                            <th style={thTd()}>Total hrs</th>
+                            <th style={thTd()}>Verify Status</th>
+                            <th style={thTd()}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {boardData.map((row,i) => {
+                            const vs = row.verification_status
+                            const isRowExpanded = boardExpandedId === row.worker_id
+                            const detail = boardDetail[row.worker_id]
+                            return (
+                              <React.Fragment key={row.id}>
+                                <tr style={{ background: i%2===0 ? '#fff' : '#fafafa', borderBottom: isRowExpanded ? 'none' : '1px solid #f0f0f0' }}>
+                                  <td style={bodyTd({fontWeight:'700'})}>{row.work_number}</td>
+                                  <td style={bodyTd()}>{row.full_name}</td>
+                                  <td style={bodyTd({fontSize:'11px',color:'#666'})}>{row.house_group||'—'}</td>
+                                  <td style={bodyTd()}><StatusBadge status={row.status} /></td>
+                                  <td style={bodyTd({textAlign:'center',fontWeight:'700'})}>{row.total_days_worked}</td>
+                                  <td style={bodyTd({textAlign:'center',color:'#2d6a2d',fontWeight:'700'})}>{row.days_match}</td>
+                                  <td style={bodyTd({textAlign:'center',color:'#c0392b',fontWeight:'700'})}>{row.days_mismatch}</td>
+                                  <td style={bodyTd({textAlign:'center',color:'#e65100',fontWeight:'700'})}>{row.days_missing}</td>
+                                  <td style={bodyTd({fontWeight:'700'})}>{row.total_hours}</td>
+                                  <td style={bodyTd()}>
+                                    <span style={{
+                                      padding:'2px 8px', borderRadius:'8px', fontSize:'11px', fontWeight:'700',
+                                      background: vs==='verified'?'#e8f5e9':vs==='discrepancies_found'?'#fdecea':'#fff3e0',
+                                      color: vs==='verified'?'#2d6a2d':vs==='discrepancies_found'?'#c0392b':'#e65100'
+                                    }}>
+                                      {vs==='verified'?'✓ Verified':vs==='discrepancies_found'?'✗ Issues':'⚠ Incomplete'}
+                                    </span>
+                                  </td>
+                                  <td style={bodyTd()}>
+                                    <button onClick={() => loadBoardDetail(row.worker_id)} disabled={boardDetailLoading === row.worker_id}
+                                      style={{ padding:'4px 10px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #ccc', borderRadius:'6px', background:'#fff', color:'#333', whiteSpace:'nowrap' }}>
+                                      {boardDetailLoading === row.worker_id ? '…' : isRowExpanded ? 'Close' : 'Details'}
+                                    </button>
+                                  </td>
+                                </tr>
+                                {isRowExpanded && detail && (
+                                  <tr>
+                                    <td colSpan={11} style={{ padding:'0', background:'#f5faf5', borderBottom:'1px solid #f0f0f0' }}>
+                                      <div style={{ padding:'12px 16px', overflowX:'auto' }}>
+                                        <table style={{ borderCollapse:'collapse', width:'100%', fontSize:'11px' }}>
+                                          <thead>
+                                            <tr>
+                                              <th style={thTd({fontSize:'11px'})}>Date</th>
+                                              <th style={thTd({fontSize:'11px',background:'#2e7d32'})}>Sup Start</th>
+                                              <th style={thTd({fontSize:'11px',background:'#2e7d32'})}>Sup Finish</th>
+                                              <th style={thTd({fontSize:'11px',background:'#2e7d32'})}>Sup Total</th>
+                                              <th style={thTd({fontSize:'11px',background:'#6a1b9a'})}>Worker Start</th>
+                                              <th style={thTd({fontSize:'11px',background:'#6a1b9a'})}>Worker Finish</th>
+                                              <th style={thTd({fontSize:'11px',background:'#6a1b9a'})}>Worker Total</th>
+                                              <th style={thTd({fontSize:'11px'})}>Status</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {detail.matches.map((m,mi) => {
+                                              const vs2 = VERIFY_STYLE[m.status]
+                                              return (
+                                                <tr key={mi} style={{ background: vs2?.bg||'#fff' }}>
+                                                  <td style={{ padding:'5px 8px', fontWeight:'700', fontSize:'11px' }}>{m.date}</td>
+                                                  <td style={{ padding:'5px 8px', fontSize:'11px' }}>{m.supervisor_recorded?.start||'—'}</td>
+                                                  <td style={{ padding:'5px 8px', fontSize:'11px' }}>{m.supervisor_recorded?.finish||'—'}</td>
+                                                  <td style={{ padding:'5px 8px', fontWeight:'700', fontSize:'11px' }}>{m.supervisor_recorded?.total||'—'}</td>
+                                                  <td style={{ padding:'5px 8px', fontSize:'11px' }}>{m.worker_submitted?.start||'—'}</td>
+                                                  <td style={{ padding:'5px 8px', fontSize:'11px' }}>{m.worker_submitted?.finish||'—'}</td>
+                                                  <td style={{ padding:'5px 8px', fontWeight:'700', fontSize:'11px' }}>{m.worker_submitted?.total||'—'}</td>
+                                                  <td style={{ padding:'5px 8px' }}><VerifyBadge status={m.status} /></td>
+                                                </tr>
+                                              )
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div style={{ padding:'8px 16px', background:'#f9f9f9', borderTop:'1px solid #f0f0f0', fontSize:'12px', color:'#666' }}>
+                      {boardData.length} workers submitted for {MONTHS[boardMonth-1]} {boardYear}
+                    </div>
+                  </div>
+                )}
+
+                {!boardLoading && boardData.length === 0 && boardMonth && (
+                  <div style={{ background:'#fff', borderRadius:'10px', padding:'32px', textAlign:'center', border:'1px solid #e8e8e3' }}>
+                    <p style={{ color:'#aaa', fontSize:'13px' }}>No submissions found — click Load to check a month</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
         </div>
       </div>
+
+      {/* ── CUSTOM DELETE MODAL ── */}
+      {confirmDeleteSub && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ background:'#fff', borderRadius:'14px', padding:'32px', maxWidth:'400px', width:'90%', boxShadow:'0 12px 48px rgba(0,0,0,0.22)' }}>
+            <div style={{ fontSize:'28px', marginBottom:'12px' }}>🗑️</div>
+            <p style={{ fontWeight:'800', fontSize:'17px', margin:'0 0 8px', color:'#1a1a18' }}>Delete submission?</p>
+            <p style={{ fontSize:'13px', color:'#666', margin:'0 0 28px', lineHeight:'1.6' }}>
+              You are about to delete <b>{confirmDeleteSub.name}</b>'s submission for <b>{confirmDeleteSub.monthLabel}</b>. This cannot be undone.
+            </p>
+            <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+              <button onClick={() => setConfirmDeleteSub(null)}
+                style={{ padding:'9px 22px', border:'1px solid #ccc', borderRadius:'8px', background:'#fff', cursor:'pointer', fontSize:'14px', fontWeight:'600', color:'#555' }}>
+                Cancel
+              </button>
+              <button onClick={doDeleteSub}
+                style={{ padding:'9px 22px', border:'none', borderRadius:'8px', background:'#c0392b', color:'#fff', cursor:'pointer', fontSize:'14px', fontWeight:'700' }}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

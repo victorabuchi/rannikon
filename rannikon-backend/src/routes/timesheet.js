@@ -155,6 +155,95 @@ module.exports = async function timesheetRoutes(fastify) {
     }
   })
 
+  fastify.get('/api/timesheet/self-verify/:month/:year', {
+    onRequest: [fastify.authenticate]
+  }, async (request, reply) => {
+    try {
+      const { month, year } = request.params
+      const workerResult = await db.query('SELECT work_number FROM workers WHERE id = $1', [request.user.id])
+      const worker = workerResult.rows[0]
+      if (!worker) return reply.status(404).send({ error: 'Worker not found' })
+
+      const [tsResult, supResult] = await Promise.all([
+        db.query(
+          `SELECT entry_date, actual_start, actual_finish, break_mins, total_hours
+           FROM timesheet_entries
+           WHERE worker_id = $1 AND EXTRACT(MONTH FROM entry_date) = $2 AND EXTRACT(YEAR FROM entry_date) = $3
+           ORDER BY entry_date ASC`,
+          [request.user.id, month, year]
+        ),
+        db.query(
+          `SELECT sl.start_time, sl.finish_time, sl.total_break_mins, sl.total_hours, ss.session_date
+           FROM supervisor_logs sl
+           JOIN supervisor_sessions ss ON ss.id = sl.session_id
+           WHERE sl.worker_number = $1 AND EXTRACT(MONTH FROM ss.session_date) = $2 AND EXTRACT(YEAR FROM ss.session_date) = $3
+           ORDER BY ss.session_date ASC`,
+          [worker.work_number, month, year]
+        )
+      ])
+
+      const tsMap = {}
+      tsResult.rows.forEach(e => { tsMap[String(e.entry_date).split('T')[0]] = e })
+      const supMap = {}
+      supResult.rows.forEach(e => { supMap[String(e.session_date).split('T')[0]] = e })
+
+      const allDates = Array.from(new Set([...Object.keys(tsMap), ...Object.keys(supMap)])).sort()
+      let days_match = 0, days_mismatch = 0, days_missing = 0
+
+      const matches = allDates.map(date => {
+        const sup = supMap[date], entry = tsMap[date]
+        if (!sup && !entry) return null
+        let status
+        if (!sup) { status = 'missing_supervisor'; days_missing++ }
+        else if (!entry) { status = 'missing_worker'; days_missing++ }
+        else {
+          const sm = toMins2(String(sup.start_time).slice(0, 5))
+          const em = toMins2(String(entry.actual_start).slice(0, 5))
+          const fm = toMins2(String(sup.finish_time).slice(0, 5))
+          const wfm = toMins2(String(entry.actual_finish).slice(0, 5))
+          status = Math.abs(sm - em) <= 5 && Math.abs(fm - wfm) <= 5 ? 'match' : 'mismatch'
+          if (status === 'match') days_match++; else days_mismatch++
+        }
+        return {
+          date,
+          supervisor_recorded: sup ? {
+            start: String(sup.start_time).slice(0, 5),
+            finish: String(sup.finish_time).slice(0, 5),
+            break: sup.total_break_mins,
+            total: sup.total_hours
+          } : null,
+          worker_submitted: entry ? {
+            start: String(entry.actual_start).slice(0, 5),
+            finish: String(entry.actual_finish).slice(0, 5),
+            break: entry.break_mins,
+            total: entry.total_hours
+          } : null,
+          status
+        }
+      }).filter(Boolean)
+
+      const total_days_worked = days_match + days_mismatch + days_missing
+      const total_mins = tsResult.rows.reduce((s, e) => s + toMins2(e.total_hours), 0)
+
+      return reply.send({
+        matches,
+        summary: {
+          total_days_worked,
+          days_match,
+          days_mismatch,
+          days_missing,
+          total_hours: toHHMM2(total_mins),
+          verification_status: total_days_worked === 0 ? 'incomplete'
+            : (days_mismatch > 0 || days_missing > 0) ? 'discrepancies_found'
+            : 'verified'
+        }
+      })
+    } catch (err) {
+      fastify.log.error(err)
+      return reply.status(500).send({ error: err.message })
+    }
+  })
+
   fastify.get('/api/timesheet/my-submissions', {
     onRequest: [fastify.authenticate]
   }, async (request, reply) => {

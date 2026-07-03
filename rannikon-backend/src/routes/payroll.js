@@ -225,6 +225,92 @@ module.exports = async function payrollRoutes(fastify) {
     })
   })
 
+  // Batch verification summary for all submissions in a given month
+  fastify.get('/api/payroll/month-summary/:month/:year', { onRequest: [isPayroll] }, async (request, reply) => {
+    const { month, year } = request.params
+
+    const subsResult = await db.query(
+      `SELECT ws.id, ws.worker_id, ws.status, ws.submitted_at,
+              w.work_number, w.full_name, w.house_group
+       FROM worker_submissions ws
+       JOIN workers w ON w.id = ws.worker_id
+       WHERE ws.month = $1 AND ws.year = $2
+       ORDER BY CASE WHEN w.work_number ~ '^[0-9]+$' THEN w.work_number::int ELSE 9999 END ASC`,
+      [month, year]
+    )
+    if (subsResult.rows.length === 0) return reply.send({ summaries: [] })
+
+    const workerIds = subsResult.rows.map(r => r.worker_id)
+    const workNumbers = subsResult.rows.map(r => r.work_number)
+
+    const [tsResult, supResult] = await Promise.all([
+      db.query(
+        `SELECT worker_id, entry_date, actual_start, actual_finish, total_hours
+         FROM timesheet_entries
+         WHERE worker_id = ANY($1) AND EXTRACT(MONTH FROM entry_date) = $2 AND EXTRACT(YEAR FROM entry_date) = $3`,
+        [workerIds, month, year]
+      ),
+      db.query(
+        `SELECT sl.worker_number, sl.start_time, sl.finish_time, ss.session_date
+         FROM supervisor_logs sl
+         JOIN supervisor_sessions ss ON ss.id = sl.session_id
+         WHERE sl.worker_number = ANY($1) AND EXTRACT(MONTH FROM ss.session_date) = $2 AND EXTRACT(YEAR FROM ss.session_date) = $3`,
+        [workNumbers, month, year]
+      )
+    ])
+
+    const tsByWorker = {}
+    tsResult.rows.forEach(e => {
+      if (!tsByWorker[e.worker_id]) tsByWorker[e.worker_id] = []
+      tsByWorker[e.worker_id].push(e)
+    })
+    const supByNum = {}
+    supResult.rows.forEach(e => {
+      if (!supByNum[e.worker_number]) supByNum[e.worker_number] = []
+      supByNum[e.worker_number].push(e)
+    })
+
+    const summaries = subsResult.rows.map(sub => {
+      const tsEntries = tsByWorker[sub.worker_id] || []
+      const supEntries = supByNum[sub.work_number] || []
+
+      const tsMap = {}
+      tsEntries.forEach(e => { tsMap[String(e.entry_date).split('T')[0]] = e })
+      const supMap = {}
+      supEntries.forEach(e => { supMap[String(e.session_date).split('T')[0]] = e })
+
+      const allDates = new Set([...Object.keys(tsMap), ...Object.keys(supMap)])
+      let days_match = 0, days_mismatch = 0, days_missing = 0
+      allDates.forEach(date => {
+        const sup = supMap[date], entry = tsMap[date]
+        if (!sup && !entry) return
+        if (!sup || !entry) { days_missing++; return }
+        const sm = toMins(sup.start_time), em = toMins(entry.actual_start)
+        const fm = toMins(sup.finish_time), wfm = toMins(entry.actual_finish)
+        if (sm !== null && em !== null && fm !== null && wfm !== null &&
+            Math.abs(sm - em) <= 5 && Math.abs(fm - wfm) <= 5) days_match++
+        else days_mismatch++
+      })
+
+      const total_days = days_match + days_mismatch + days_missing
+      const total_mins = tsEntries.reduce((s, e) => s + parseHHMM(e.total_hours), 0)
+
+      return {
+        ...sub,
+        total_days_worked: total_days,
+        days_match,
+        days_mismatch,
+        days_missing,
+        total_hours: minsToHHMM(total_mins),
+        verification_status: total_days === 0 ? 'incomplete'
+          : (days_mismatch > 0 || days_missing > 0) ? 'discrepancies_found'
+          : 'verified'
+      }
+    })
+
+    return reply.send({ summaries })
+  })
+
   // Delete a submission
   fastify.delete('/api/payroll/submissions/:id', { onRequest: [isPayroll] }, async (request, reply) => {
     await db.query('DELETE FROM worker_submissions WHERE id = $1', [request.params.id])

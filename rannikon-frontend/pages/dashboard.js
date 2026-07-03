@@ -136,6 +136,8 @@ export default function Dashboard() {
   const [payrollSuccess, setPayrollSuccess] = useState('')
   const [mySubmissions, setMySubmissions] = useState([])
   const [mySubsLoaded, setMySubsLoaded] = useState(false)
+  const [selfVerifyResult, setSelfVerifyResult] = useState(null)
+  const [selfVerifying, setSelfVerifying] = useState(false)
 
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/login'); return }
@@ -270,6 +272,19 @@ export default function Dashboard() {
       alert(err.response?.data?.error || 'Failed to submit to payroll')
     } finally {
       setPayrollSubmitting(false)
+    }
+  }
+
+  async function runSelfVerify() {
+    setSelfVerifying(true)
+    setSelfVerifyResult(null)
+    try {
+      const res = await api.get(`/api/timesheet/self-verify/${month}/${year}`)
+      setSelfVerifyResult(res.data)
+    } catch (err) {
+      alert(err.response?.data?.error || 'Verification failed')
+    } finally {
+      setSelfVerifying(false)
     }
   }
 
@@ -1273,6 +1288,76 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Verify my timesheet against supervisor logs */}
+            <div style={{ marginTop: '20px', background: '#fff', border: '1px solid #e8e8e3', borderRadius: '10px', overflow: 'hidden' }}>
+              <div style={{ background: '#1565c0', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <p style={{ color: '#fff', fontWeight: '800', fontSize: '14px', margin: 0 }}>Verify my timesheet — {MONTHS[month - 1]} {year}</p>
+                <button onClick={runSelfVerify} disabled={selfVerifying}
+                  style={{ padding: '6px 18px', background: selfVerifying ? '#aaa' : '#fff', color: selfVerifying ? '#fff' : '#1565c0', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '13px', cursor: selfVerifying ? 'not-allowed' : 'pointer' }}>
+                  {selfVerifying ? 'Checking…' : 'Run verification'}
+                </button>
+              </div>
+              {selfVerifyResult && (
+                <div style={{ padding: '16px' }}>
+                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '14px' }}>
+                    <span style={{
+                      padding: '6px 16px', borderRadius: '20px', fontWeight: '800', fontSize: '13px',
+                      background: selfVerifyResult.summary.verification_status === 'verified' ? '#e8f5e9' : selfVerifyResult.summary.verification_status === 'discrepancies_found' ? '#fdecea' : '#fff3e0',
+                      color: selfVerifyResult.summary.verification_status === 'verified' ? '#2d6a2d' : selfVerifyResult.summary.verification_status === 'discrepancies_found' ? '#c0392b' : '#e65100'
+                    }}>
+                      {selfVerifyResult.summary.verification_status === 'verified' ? '✓ Verified' : selfVerifyResult.summary.verification_status === 'discrepancies_found' ? '✗ Discrepancies found' : '⚠ No supervisor data yet'}
+                    </span>
+                    {[['Days','total_days_worked',''],['Match','days_match','#2d6a2d'],['Mismatch','days_mismatch','#c0392b'],['Missing','days_missing','#e65100'],['Total hrs','total_hours','#1565c0']].map(([l,k,c])=>(
+                      <div key={k} style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '18px', fontWeight: '800', color: c||'#1a1a18' }}>{selfVerifyResult.summary[k]}</div>
+                        <div style={{ fontSize: '11px', color: '#888' }}>{l}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {selfVerifyResult.matches.length > 0 && (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '12px' }}>
+                        <thead>
+                          <tr>
+                            <th style={{ padding: '7px 10px', background: '#1565c0', color: '#fff', fontWeight: '700', textAlign: 'left' }}>Date</th>
+                            <th style={{ padding: '7px 10px', background: '#2e7d32', color: '#fff', fontWeight: '700' }}>Sup Start</th>
+                            <th style={{ padding: '7px 10px', background: '#2e7d32', color: '#fff', fontWeight: '700' }}>Sup Finish</th>
+                            <th style={{ padding: '7px 10px', background: '#2e7d32', color: '#fff', fontWeight: '700' }}>Sup Total</th>
+                            <th style={{ padding: '7px 10px', background: '#6a1b9a', color: '#fff', fontWeight: '700' }}>Your Start</th>
+                            <th style={{ padding: '7px 10px', background: '#6a1b9a', color: '#fff', fontWeight: '700' }}>Your Finish</th>
+                            <th style={{ padding: '7px 10px', background: '#6a1b9a', color: '#fff', fontWeight: '700' }}>Your Total</th>
+                            <th style={{ padding: '7px 10px', background: '#1565c0', color: '#fff', fontWeight: '700' }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selfVerifyResult.matches.map((m, i) => {
+                            const vs = { match: { bg:'#e8f5e9',text:'#2d6a2d',label:'Match' }, mismatch: { bg:'#fdecea',text:'#c0392b',label:'Mismatch' }, missing_supervisor: { bg:'#fff3e0',text:'#e65100',label:'No supervisor log' }, missing_worker: { bg:'#f3f3f3',text:'#666',label:'Not in your timesheet' } }[m.status] || { bg:'#fff',text:'#333',label:m.status }
+                            return (
+                              <tr key={i} style={{ background: vs.bg }}>
+                                <td style={{ padding: '6px 10px', fontWeight: '700' }}>{m.date}</td>
+                                <td style={{ padding: '6px 10px', textAlign: 'center' }}>{m.supervisor_recorded?.start||'—'}</td>
+                                <td style={{ padding: '6px 10px', textAlign: 'center' }}>{m.supervisor_recorded?.finish||'—'}</td>
+                                <td style={{ padding: '6px 10px', textAlign: 'center', fontWeight: '700' }}>{m.supervisor_recorded?.total||'—'}</td>
+                                <td style={{ padding: '6px 10px', textAlign: 'center' }}>{m.worker_submitted?.start||'—'}</td>
+                                <td style={{ padding: '6px 10px', textAlign: 'center' }}>{m.worker_submitted?.finish||'—'}</td>
+                                <td style={{ padding: '6px 10px', textAlign: 'center', fontWeight: '700' }}>{m.worker_submitted?.total||'—'}</td>
+                                <td style={{ padding: '6px 10px' }}><span style={{ background: vs.bg, color: vs.text, fontWeight: '700', fontSize: '11px' }}>{vs.label}</span></td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!selfVerifyResult && !selfVerifying && (
+                <div style={{ padding: '16px', fontSize: '13px', color: '#888' }}>
+                  Click "Run verification" to compare your {MONTHS[month - 1]} timesheet entries against what your supervisor recorded.
+                </div>
+              )}
             </div>
           )}
 
