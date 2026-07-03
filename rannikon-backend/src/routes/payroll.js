@@ -225,6 +225,12 @@ module.exports = async function payrollRoutes(fastify) {
     })
   })
 
+  // Delete a submission
+  fastify.delete('/api/payroll/submissions/:id', { onRequest: [isPayroll] }, async (request, reply) => {
+    await db.query('DELETE FROM worker_submissions WHERE id = $1', [request.params.id])
+    return reply.send({ success: true })
+  })
+
   // Update submission status
   fastify.post('/api/payroll/submissions/:id/status', { onRequest: [isPayroll] }, async (request, reply) => {
     const { status } = request.body

@@ -130,8 +130,6 @@ export default function Dashboard() {
   const [workNumError, setWorkNumError] = useState('')
   const [workNumSaving, setWorkNumSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
-  const [payrollSubmitMonth, setPayrollSubmitMonth] = useState(new Date().getMonth() + 1)
-  const [payrollSubmitYear, setPayrollSubmitYear] = useState(new Date().getFullYear())
   const [payrollPapers, setPayrollPapers] = useState(['white', 'orange', 'weekly', 'green'])
   const [payrollNotes, setPayrollNotes] = useState('')
   const [payrollSubmitting, setPayrollSubmitting] = useState(false)
@@ -260,12 +258,12 @@ export default function Dashboard() {
     setPayrollSuccess('')
     try {
       await api.post('/api/timesheet/submit-to-payroll', {
-        month: payrollSubmitMonth,
-        year: payrollSubmitYear,
+        month,
+        year,
         papers: payrollPapers,
         notes: payrollNotes
       })
-      setPayrollSuccess(`Papers submitted to payroll for ${MONTHS[payrollSubmitMonth - 1]} ${payrollSubmitYear}`)
+      setPayrollSuccess(`Papers submitted to payroll for ${MONTHS[month - 1]} ${year}`)
       setPayrollNotes('')
       loadMySubmissions()
     } catch (err) {
@@ -1207,19 +1205,10 @@ export default function Dashboard() {
                 <p style={{ color: '#fff', fontWeight: '800', fontSize: '14px', margin: 0 }}>Submit monthly papers to payroll</p>
               </div>
               <div style={{ padding: '18px' }}>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px', color: '#555' }}>Month</label>
-                    <select value={payrollSubmitMonth} onChange={e => setPayrollSubmitMonth(parseInt(e.target.value))}
-                      style={{ padding: '8px 10px', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', fontFamily: 'inherit' }}>
-                      {MONTHS.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px', color: '#555' }}>Year</label>
-                    <input type="number" value={payrollSubmitYear} onChange={e => setPayrollSubmitYear(parseInt(e.target.value))}
-                      style={{ padding: '8px 10px', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', fontFamily: 'inherit', width: '80px' }} />
-                  </div>
+                <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '600', color: '#555' }}>Submitting for:</span>
+                  <span style={{ fontSize: '14px', fontWeight: '800', color: '#2d6a2d', background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: '6px', padding: '4px 12px' }}>{MONTHS[month - 1]} {year}</span>
+                  <span style={{ fontSize: '11px', color: '#888' }}>(navigate months using the arrows above to change)</span>
                 </div>
 
                 <div style={{ marginBottom: '14px' }}>

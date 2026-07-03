@@ -393,6 +393,17 @@ export default function PayrollPage() {
     }
   }
 
+  async function deleteSubmission(id) {
+    if (!window.confirm('Delete this submission? This cannot be undone.')) return
+    try {
+      await api.delete('/api/payroll/submissions/' + id)
+      setSubmissions(prev => prev.filter(s => s.id !== id))
+      if (expandedSub === id) setExpandedSub(null)
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete submission')
+    }
+  }
+
   async function updateStatus(id, status) {
     setStatusUpdating(id + status)
     try {
@@ -608,24 +619,30 @@ export default function PayrollPage() {
                               </div>
 
                               {/* Status buttons */}
-                              <div style={{ display:'flex', gap:'8px', marginTop:'16px', flexWrap:'wrap' }}>
-                                {['approved','rejected','needs_review'].map(s => {
-                                  const st = STATUS_STYLE[s]
-                                  const busy = statusUpdating === sub.id + s
-                                  return (
-                                    <button key={s} disabled={!!statusUpdating || sub.status===s} onClick={() => updateStatus(sub.id, s)}
-                                      style={{
-                                        padding:'7px 18px', fontSize:'12px', fontWeight:'700',
-                                        cursor: sub.status===s ? 'default' : 'pointer',
-                                        border:`1px solid ${st.border}`, borderRadius:'6px',
-                                        background: sub.status===s ? st.bg : '#fff',
-                                        color: sub.status===s ? st.text : '#555',
-                                        opacity: !!statusUpdating && !busy ? 0.5 : 1
-                                      }}>
-                                      {busy ? '…' : st.label}
-                                    </button>
-                                  )
-                                })}
+                              <div style={{ display:'flex', gap:'8px', marginTop:'16px', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between' }}>
+                                <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+                                  {['approved','rejected','needs_review'].map(s => {
+                                    const st = STATUS_STYLE[s]
+                                    const busy = statusUpdating === sub.id + s
+                                    return (
+                                      <button key={s} disabled={!!statusUpdating || sub.status===s} onClick={() => updateStatus(sub.id, s)}
+                                        style={{
+                                          padding:'7px 18px', fontSize:'12px', fontWeight:'700',
+                                          cursor: sub.status===s ? 'default' : 'pointer',
+                                          border:`1px solid ${st.border}`, borderRadius:'6px',
+                                          background: sub.status===s ? st.bg : '#fff',
+                                          color: sub.status===s ? st.text : '#555',
+                                          opacity: !!statusUpdating && !busy ? 0.5 : 1
+                                        }}>
+                                        {busy ? '…' : st.label}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                                <button onClick={() => deleteSubmission(sub.id)}
+                                  style={{ padding:'7px 16px', fontSize:'12px', fontWeight:'700', cursor:'pointer', border:'1px solid #f5c6c6', borderRadius:'6px', background:'#fff', color:'#c0392b' }}>
+                                  Delete
+                                </button>
                               </div>
                             </div>
                           )}
