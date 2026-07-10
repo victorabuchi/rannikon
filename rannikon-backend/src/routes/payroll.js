@@ -42,7 +42,7 @@ module.exports = async function payrollRoutes(fastify) {
     if (q) {
       result = await db.query(
         `SELECT id, work_number, full_name, house_group FROM workers
-         WHERE is_active = true AND (
+         WHERE is_active = true AND work_number IS NOT NULL AND work_number != '' AND (
            LOWER(full_name) LIKE $1 OR work_number LIKE $1
          )
          ORDER BY
@@ -53,7 +53,7 @@ module.exports = async function payrollRoutes(fastify) {
     } else {
       result = await db.query(
         `SELECT id, work_number, full_name, house_group FROM workers
-         WHERE is_active = true AND role = 'worker'
+         WHERE is_active = true AND work_number IS NOT NULL AND work_number != ''
          ORDER BY
            CASE WHEN work_number ~ '^[0-9]+$' THEN work_number::int ELSE 9999 END ASC`
       )
