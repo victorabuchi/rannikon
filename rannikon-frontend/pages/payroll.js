@@ -318,48 +318,35 @@ function SubmissionPaperView({ sub, activeTab, onTabChange }) {
   )
 }
 
+const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
 export default function PayrollPage() {
   const router = useRouter()
   const [me, setMe] = useState(null)
   const [tab, setTab] = useState('submissions')
 
+  const now = new Date()
   // Submissions tab
   const [submissions, setSubmissions] = useState([])
   const [subsLoading, setSubsLoading] = useState(false)
+  const [subMonth, setSubMonth] = useState(now.getMonth() + 1)
+  const [subYear, setSubYear] = useState(now.getFullYear())
   const [expandedSub, setExpandedSub] = useState(null)
-  const [expandedSubTabs, setExpandedSubTabs] = useState({}) // subId → active paper tab
+  const [expandedSubTabs, setExpandedSubTabs] = useState({})
   const [statusUpdating, setStatusUpdating] = useState(null)
+  const [confirmDeleteSub, setConfirmDeleteSub] = useState(null)
 
   // Daily logs tab
-  const [logsDate, setLogsDate] = useState(new Date().toISOString().split('T')[0])
+  const [logsDate, setLogsDate] = useState(now.toISOString().split('T')[0])
   const [logs, setLogs] = useState([])
   const [logsLoading, setLogsLoading] = useState(false)
 
-  // Delete confirmation modal
-  const [confirmDeleteSub, setConfirmDeleteSub] = useState(null) // { id, name, monthLabel }
-
-  // Submissions tab — expanded months
-  const [expandedMonths, setExpandedMonths] = useState(new Set())
-
-  // Verify tab — manual
+  // Verify tab
   const [allWorkers, setAllWorkers] = useState([])
-  const [workerSearch, setWorkerSearch] = useState('')
-  const [showWorkerList, setShowWorkerList] = useState(false)
-  const [selectedWorker, setSelectedWorker] = useState(null)
-  const [verifyMonth, setVerifyMonth] = useState(new Date().getMonth() + 1)
-  const [verifyYear, setVerifyYear] = useState(new Date().getFullYear())
-  const [verifyResult, setVerifyResult] = useState(null)
-  const [verifying, setVerifying] = useState(false)
-  const searchRef = useRef(null)
-
-  // Verify tab — monthly board
-  const [boardMonth, setBoardMonth] = useState(new Date().getMonth() + 1)
-  const [boardYear, setBoardYear] = useState(new Date().getFullYear())
-  const [boardData, setBoardData] = useState([])
-  const [boardLoading, setBoardLoading] = useState(false)
-  const [boardExpandedId, setBoardExpandedId] = useState(null)
-  const [boardDetail, setBoardDetail] = useState({})
-  const [boardDetailLoading, setBoardDetailLoading] = useState(null)
+  const [verifyMonth, setVerifyMonth] = useState(now.getMonth() + 1)
+  const [verifyYear, setVerifyYear] = useState(now.getFullYear())
+  const [verifyResults, setVerifyResults] = useState({}) // `${workerId}-${month}-${year}` → result
+  const [verifying, setVerifying] = useState(null) // workerId being verified
 
   useEffect(() => {
     api.get('/api/auth/me').then(res => {
@@ -380,20 +367,15 @@ export default function PayrollPage() {
     try {
       const res = await api.get('/api/payroll/submissions')
       setSubmissions(res.data.submissions)
-    } catch (err) {
-      console.error('Failed to load submissions')
-    } finally {
-      setSubsLoading(false)
-    }
+    } catch (err) { console.error('Failed to load submissions') }
+    finally { setSubsLoading(false) }
   }
 
   async function loadAllWorkers() {
     try {
       const res = await api.get('/api/payroll/workers')
       setAllWorkers(res.data.workers)
-    } catch (err) {
-      console.error('Failed to load workers')
-    }
+    } catch (err) { console.error('Failed to load workers') }
   }
 
   async function loadLogs() {
@@ -401,11 +383,8 @@ export default function PayrollPage() {
     try {
       const res = await api.get('/api/payroll/worklogs/' + logsDate)
       setLogs(res.data.logs)
-    } catch (err) {
-      console.error('Failed to load logs')
-    } finally {
-      setLogsLoading(false)
-    }
+    } catch (err) { console.error('Failed to load logs') }
+    finally { setLogsLoading(false) }
   }
 
   async function doDeleteSub() {
@@ -415,38 +394,7 @@ export default function PayrollPage() {
       await api.delete('/api/payroll/submissions/' + id)
       setSubmissions(prev => prev.filter(s => s.id !== id))
       if (expandedSub === id) setExpandedSub(null)
-    } catch (err) {
-      alert(err.response?.data?.error || 'Failed to delete submission')
-    }
-  }
-
-  async function loadMonthBoard() {
-    setBoardLoading(true)
-    setBoardData([])
-    setBoardExpandedId(null)
-    setBoardDetail({})
-    try {
-      const res = await api.get(`/api/payroll/month-summary/${boardMonth}/${boardYear}`)
-      setBoardData(res.data.summaries)
-    } catch (err) {
-      alert(err.response?.data?.error || 'Failed to load monthly summary')
-    } finally {
-      setBoardLoading(false)
-    }
-  }
-
-  async function loadBoardDetail(workerId) {
-    if (boardExpandedId === workerId) { setBoardExpandedId(null); return }
-    setBoardDetailLoading(workerId)
-    try {
-      const res = await api.get(`/api/payroll/verify/${workerId}/${boardMonth}/${boardYear}`)
-      setBoardDetail(prev => ({ ...prev, [workerId]: res.data }))
-      setBoardExpandedId(workerId)
-    } catch (err) {
-      alert(err.response?.data?.error || 'Verification failed')
-    } finally {
-      setBoardDetailLoading(null)
-    }
+    } catch (err) { alert(err.response?.data?.error || 'Failed to delete') }
   }
 
   async function updateStatus(id, status) {
@@ -454,51 +402,33 @@ export default function PayrollPage() {
     try {
       await api.post('/api/payroll/submissions/' + id + '/status', { status })
       setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status } : s))
-    } catch (err) {
-      alert(err.response?.data?.error || 'Failed to update status')
-    } finally {
-      setStatusUpdating(null)
-    }
+    } catch (err) { alert(err.response?.data?.error || 'Failed to update status') }
+    finally { setStatusUpdating(null) }
   }
 
-  async function runVerify() {
-    if (!selectedWorker) { alert('Please select a worker'); return }
-    setVerifying(true)
-    setVerifyResult(null)
+  async function runVerify(worker) {
+    const cacheKey = `${worker.id}-${verifyMonth}-${verifyYear}`
+    setVerifying(worker.id)
     try {
-      const res = await api.get(`/api/payroll/verify/${selectedWorker.id}/${verifyMonth}/${verifyYear}`)
-      setVerifyResult(res.data)
-    } catch (err) {
-      alert(err.response?.data?.error || 'Verification failed')
-    } finally {
-      setVerifying(false)
-    }
+      const res = await api.get(`/api/payroll/verify/${worker.id}/${verifyMonth}/${verifyYear}`)
+      setVerifyResults(prev => ({ ...prev, [cacheKey]: res.data }))
+    } catch (err) { alert(err.response?.data?.error || 'Verification failed') }
+    finally { setVerifying(null) }
   }
 
-  function exportVerifyPDF() {
-    if (!verifyResult) return
-    const { worker, matches, summary } = verifyResult
-    const monthLabel = MONTHS[verifyMonth - 1] + ' ' + verifyYear
+  function exportVerifyPDF(result, month, year) {
+    const { worker, matches, summary } = result
+    const monthLabel = MONTHS[month - 1] + ' ' + year
     const doc = new jsPDF({ orientation: 'landscape' })
     doc.setFontSize(16); doc.setFont('helvetica','bold'); doc.setTextColor(45,106,45)
     doc.text('Payroll Verification Report', 14, 16)
     doc.setTextColor(0); doc.setFontSize(10); doc.setFont('helvetica','normal')
     doc.text(`Worker: ${worker.full_name}  |  #${worker.work_number}  |  ${worker.house_group||'—'}  |  ${monthLabel}`, 14, 24)
-    doc.text(`Status: ${summary.verification_status.replace(/_/g,' ').toUpperCase()}  |  Days: ${summary.total_days_worked}  |  Match: ${summary.days_match}  |  Mismatch: ${summary.days_mismatch}  |  Missing: ${summary.days_missing}`, 14, 30)
-    doc.text(`Regular: ${summary.total_white_hours}  |  Extra: ${summary.total_orange_hours}  |  Total: ${summary.total_hours}`, 14, 36)
+    doc.text(`Status: ${summary.verification_status.replace(/_/g,' ').toUpperCase()}  |  Match: ${summary.days_match}  |  Mismatch: ${summary.days_mismatch}  |  Missing: ${summary.days_missing}`, 14, 30)
     autoTable(doc, {
-      startY: 42,
-      head: [['Date','Sup Start','Sup Finish','Sup Break','Sup Total','Worker Start','Worker Finish','Worker Break','Worker Total','Status']],
-      body: matches.map(m => [
-        m.date,
-        m.supervisor_recorded?.start||'—', m.supervisor_recorded?.finish||'—',
-        m.supervisor_recorded ? m.supervisor_recorded.break+' min' : '—',
-        m.supervisor_recorded?.total||'—',
-        m.worker_submitted?.start||'—', m.worker_submitted?.finish||'—',
-        m.worker_submitted ? m.worker_submitted.break+' min' : '—',
-        m.worker_submitted?.total||'—',
-        VERIFY_STYLE[m.status]?.label||m.status,
-      ]),
+      startY: 36,
+      head: [['Date','Sup Start','Sup Finish','Sup Total','Worker Start','Worker Finish','Worker Total','Status']],
+      body: matches.map(m => [m.date, m.supervisor_recorded?.start||'—', m.supervisor_recorded?.finish||'—', m.supervisor_recorded?.total||'—', m.worker_submitted?.start||'—', m.worker_submitted?.finish||'—', m.worker_submitted?.total||'—', VERIFY_STYLE[m.status]?.label||m.status]),
       styles:{ fontSize:8, lineWidth:0.2 },
       headStyles:{ fillColor:[45,106,45], textColor:255, fontStyle:'bold' },
       didParseCell: (data) => {
@@ -507,49 +437,34 @@ export default function PayrollPage() {
           if (s==='match') data.cell.styles.fillColor=[232,245,233]
           else if (s==='mismatch') data.cell.styles.fillColor=[253,236,234]
           else if (s==='missing_supervisor') data.cell.styles.fillColor=[255,243,224]
-          else if (s==='missing_worker') data.cell.styles.fillColor=[245,245,245]
         }
       }
     })
     doc.save(`verification-${worker.work_number}-${monthLabel}.pdf`)
   }
 
-  // Group submissions by month/year (newest first), then by house group (sorted), then by work number
-  const byMonthMap = {}
-  submissions.forEach(sub => {
-    const key = `${sub.year}-${String(sub.month).padStart(2,'0')}`
-    if (!byMonthMap[key]) byMonthMap[key] = { month: sub.month, year: sub.year, byGroup: {} }
-    const g = sub.house_group || 'Unknown'
-    if (!byMonthMap[key].byGroup[g]) byMonthMap[key].byGroup[g] = []
-    byMonthMap[key].byGroup[g].push(sub)
-  })
-  // Sort each house group by work number
-  Object.values(byMonthMap).forEach(mv => {
-    Object.values(mv.byGroup).forEach(arr => {
-      arr.sort((a, b) => (parseInt(a.work_number)||9999) - (parseInt(b.work_number)||9999))
+  // Submissions for the selected sub month, grouped by house group sorted
+  const subMonthSubs = submissions
+    .filter(s => s.month === subMonth && s.year === subYear)
+    .sort((a, b) => {
+      const ai = HOUSE_GROUP_ORDER.indexOf(a.house_group||''), bi = HOUSE_GROUP_ORDER.indexOf(b.house_group||'')
+      const gd = (ai===-1?99:ai)-(bi===-1?99:bi)
+      return gd !== 0 ? gd : (parseInt(a.work_number)||9999)-(parseInt(b.work_number)||9999)
     })
+  const subMonthGrouped = {}
+  subMonthSubs.forEach(s => {
+    const g = s.house_group || 'Unknown'
+    if (!subMonthGrouped[g]) subMonthGrouped[g] = []
+    subMonthGrouped[g].push(s)
   })
-  const monthKeys = Object.keys(byMonthMap).sort().reverse()
-  function toggleMonth(key) {
-    setExpandedMonths(prev => {
-      const n = new Set(prev)
-      n.has(key) ? n.delete(key) : n.add(key)
-      return n
-    })
-  }
-
-  const filteredWorkers = allWorkers.filter(w =>
-    !workerSearch ||
-    w.full_name.toLowerCase().includes(workerSearch.toLowerCase()) ||
-    w.work_number.includes(workerSearch)
-  ).slice(0, 20)
-
-  function selectWorker(w) {
-    setSelectedWorker(w)
-    setWorkerSearch(w.full_name + ' #' + w.work_number)
-    setShowWorkerList(false)
-    setVerifyResult(null)
-  }
+  // Count submissions per month for the calendar grid badges
+  const subCountByMonth = {}
+  submissions.forEach(s => {
+    if (s.year === subYear) subCountByMonth[s.month] = (subCountByMonth[s.month]||0) + 1
+  })
+  // Submission lookup for verify tab: worker_id+month+year → submission
+  const subLookup = {}
+  submissions.forEach(s => { subLookup[`${s.worker_id}-${s.month}-${s.year}`] = s })
 
   function toggleSub(id, papers) {
     if (expandedSub === id) { setExpandedSub(null); return }
@@ -569,6 +484,38 @@ export default function PayrollPage() {
 
   const thTd = (extra) => ({ padding:'8px 10px', textAlign:'left', background:'#2d6a2d', color:'#fff', fontSize:'12px', fontWeight:'700', whiteSpace:'nowrap', ...extra })
   const bodyTd = (extra) => ({ padding:'7px 10px', fontSize:'12px', borderBottom:'1px solid #f0f0f0', ...extra })
+
+  // Shared month-grid component
+  function MonthGrid({ selectedMonth, selectedYear, onMonthClick, onYearChange, badgeCounts }) {
+    return (
+      <div style={{ marginBottom:'20px' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'12px' }}>
+          <button onClick={() => onYearChange(selectedYear - 1)} style={{ padding:'4px 10px', border:'1px solid #ccc', borderRadius:'6px', background:'#fff', cursor:'pointer', fontSize:'13px' }}>‹</button>
+          <span style={{ fontWeight:'800', fontSize:'16px', minWidth:'48px', textAlign:'center' }}>{selectedYear}</span>
+          <button onClick={() => onYearChange(selectedYear + 1)} style={{ padding:'4px 10px', border:'1px solid #ccc', borderRadius:'6px', background:'#fff', cursor:'pointer', fontSize:'13px' }}>›</button>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'6px' }}>
+          {SHORT_MONTHS.map((m, i) => {
+            const mn = i + 1
+            const isSelected = mn === selectedMonth
+            const count = badgeCounts?.[mn] || 0
+            return (
+              <button key={mn} onClick={() => onMonthClick(mn)}
+                style={{ padding:'10px 6px', borderRadius:'8px', fontSize:'13px', fontWeight:'700', cursor:'pointer', position:'relative',
+                  border: isSelected ? 'none' : '1px solid #dde8dd',
+                  background: isSelected ? '#2d6a2d' : count > 0 ? '#f0f7f0' : '#fff',
+                  color: isSelected ? '#fff' : '#2d6a2d' }}>
+                {m}
+                {count > 0 && (
+                  <span style={{ position:'absolute', top:'4px', right:'4px', background: isSelected ? 'rgba(255,255,255,0.4)' : '#2d6a2d', color:'#fff', fontSize:'9px', fontWeight:'800', borderRadius:'8px', padding:'1px 5px', lineHeight:'14px' }}>{count}</span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -605,131 +552,107 @@ export default function PayrollPage() {
             <div>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
                 <h2 style={{ fontSize:'18px', fontWeight:'800', margin:0 }}>Worker Submissions</h2>
-                <button onClick={loadSubmissions} style={{ padding:'6px 14px', background:'#fff', border:'1px solid #ccc', borderRadius:'6px', fontSize:'12px', cursor:'pointer' }}>Refresh</button>
+                <button onClick={loadSubmissions} disabled={subsLoading} style={{ padding:'6px 14px', background:'#fff', border:'1px solid #ccc', borderRadius:'6px', fontSize:'12px', cursor:'pointer' }}>{subsLoading ? 'Loading…' : 'Refresh'}</button>
               </div>
 
-              {subsLoading && <p style={{ color:'#888', fontSize:'14px' }}>Loading submissions…</p>}
+              {/* Month calendar grid */}
+              <div style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', padding:'16px', marginBottom:'20px' }}>
+                <MonthGrid
+                  selectedMonth={subMonth}
+                  selectedYear={subYear}
+                  onMonthClick={m => { setSubMonth(m); setExpandedSub(null) }}
+                  onYearChange={y => { setSubYear(y); setExpandedSub(null) }}
+                  badgeCounts={subCountByMonth}
+                />
+                <p style={{ fontSize:'12px', color:'#888', margin:0 }}>
+                  {subMonthSubs.length > 0
+                    ? <><b style={{ color:'#2d6a2d' }}>{subMonthSubs.length} submission{subMonthSubs.length!==1?'s':''}</b> for {MONTHS[subMonth-1]} {subYear} — {Object.keys(subMonthGrouped).length} house group{Object.keys(subMonthGrouped).length!==1?'s':''}</>
+                    : `No submissions for ${MONTHS[subMonth-1]} ${subYear}`
+                  }
+                </p>
+              </div>
 
-              {!subsLoading && submissions.length === 0 && (
+              {/* Submissions for selected month, by house group */}
+              {Object.keys(subMonthGrouped).length === 0 && !subsLoading && (
                 <div style={{ background:'#fff', borderRadius:'10px', padding:'40px', textAlign:'center', border:'1px solid #e8e8e3' }}>
-                  <p style={{ color:'#888', fontSize:'14px' }}>No submissions yet</p>
+                  <p style={{ color:'#aaa', fontSize:'14px' }}>No submissions for {MONTHS[subMonth-1]} {subYear}</p>
                 </div>
               )}
 
-              {/* Grouped by month, then by house group */}
-              {monthKeys.map(mKey => {
-                const mv = byMonthMap[mKey]
-                const mLabel = MONTHS[mv.month - 1] + ' ' + mv.year
-                const totalSubs = Object.values(mv.byGroup).reduce((s,a)=>s+a.length,0)
-                const isMonthOpen = expandedMonths.has(mKey)
-                const sortedGroups = Object.keys(mv.byGroup).sort((a,b) => {
-                  const ai = HOUSE_GROUP_ORDER.indexOf(a), bi = HOUSE_GROUP_ORDER.indexOf(b)
-                  return (ai===-1?99:ai) - (bi===-1?99:bi)
-                })
-                return (
-                  <div key={mKey} style={{ marginBottom:'16px', border:'1px solid #dde8dd', borderRadius:'12px', overflow:'hidden' }}>
-                    {/* Month header — click to expand/collapse */}
-                    <div onClick={() => toggleMonth(mKey)}
-                      style={{ padding:'14px 20px', background: isMonthOpen ? '#2d6a2d' : '#f0f7f0', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', userSelect:'none' }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
-                        <span style={{ fontSize:'17px', fontWeight:'800', color: isMonthOpen ? '#fff' : '#2d6a2d' }}>{mLabel}</span>
-                        <span style={{ fontSize:'12px', fontWeight:'700', background: isMonthOpen ? 'rgba(255,255,255,0.25)' : '#d4edda', color: isMonthOpen ? '#fff' : '#2d6a2d', padding:'2px 10px', borderRadius:'10px' }}>
-                          {totalSubs} submission{totalSubs!==1?'s':''}
-                        </span>
-                        <span style={{ fontSize:'11px', color: isMonthOpen ? '#cfffcf' : '#888' }}>{sortedGroups.length} house group{sortedGroups.length!==1?'s':''}</span>
-                      </div>
-                      <span style={{ color: isMonthOpen ? '#fff' : '#2d6a2d', fontSize:'18px', fontWeight:'700' }}>{isMonthOpen ? '▲' : '▼'}</span>
-                    </div>
+              {Object.entries(subMonthGrouped).map(([group, subs]) => (
+                <div key={group} style={{ marginBottom:'24px' }}>
+                  {/* House group divider */}
+                  <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'8px' }}>
+                    <div style={{ height:'2px', flex:1, background:'#2d6a2d', opacity:0.18 }} />
+                    <span style={{ fontSize:'11px', fontWeight:'800', color:'#2d6a2d', textTransform:'uppercase', letterSpacing:'1px', whiteSpace:'nowrap' }}>{group}</span>
+                    <span style={{ fontSize:'11px', color:'#aaa', background:'#f0f7f0', padding:'2px 8px', borderRadius:'8px' }}>{subs.length}</span>
+                    <div style={{ height:'2px', flex:1, background:'#2d6a2d', opacity:0.18 }} />
+                  </div>
 
-                    {isMonthOpen && (
-                      <div style={{ padding:'16px', background:'#fafefe' }}>
-                        {sortedGroups.map(group => {
-                          const subs = mv.byGroup[group]
+                  {/* Table-style submission rows */}
+                  <div style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', overflow:'hidden' }}>
+                    <table style={{ borderCollapse:'collapse', width:'100%', fontSize:'13px' }}>
+                      <thead>
+                        <tr>
+                          <th style={thTd()}>Work#</th>
+                          <th style={thTd()}>Name</th>
+                          <th style={thTd()}>Papers</th>
+                          <th style={thTd()}>Submitted</th>
+                          <th style={thTd()}>Status</th>
+                          <th style={thTd()}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {subs.map((sub, i) => {
+                          const paperLabels = { white:'White', orange:'Orange', weekly:'Weekly', green:'Green' }
+                          const isExpanded = expandedSub === sub.id
+                          const activeSubTab = expandedSubTabs[sub.id] || (sub.papers_included||['white'])[0]
+                          const mLabel = MONTHS[sub.month - 1] + ' ' + sub.year
                           return (
-                            <div key={group} style={{ marginBottom:'20px' }}>
-                              <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'8px' }}>
-                                <div style={{ height:'2px', flex:1, background:'#2d6a2d', opacity:0.15 }} />
-                                <span style={{ fontSize:'11px', fontWeight:'800', color:'#2d6a2d', textTransform:'uppercase', letterSpacing:'1px', whiteSpace:'nowrap' }}>{group}</span>
-                                <span style={{ fontSize:'11px', color:'#888', background:'#f0f7f0', padding:'2px 8px', borderRadius:'10px' }}>{subs.length}</span>
-                                <div style={{ height:'2px', flex:1, background:'#2d6a2d', opacity:0.15 }} />
-                              </div>
-
-                              <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
-                                {subs.map(sub => {
-                                  const isExpanded = expandedSub === sub.id
-                                  const activeSubTab = expandedSubTabs[sub.id] || (sub.papers_included||['white'])[0]
-                                  const paperLabels = { white:'White', orange:'Orange', weekly:'Weekly', green:'Green' }
-                                  return (
-                                    <div key={sub.id} style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', overflow:'hidden', boxShadow: isExpanded ? '0 2px 12px rgba(45,106,45,0.10)' : 'none' }}>
-                                      {/* Card header */}
-                                      <div style={{ padding:'12px 16px', display:'flex', flexWrap:'wrap', gap:'8px', alignItems:'center', justifyContent:'space-between' }}>
-                                        <div onClick={() => toggleSub(sub.id, sub.papers_included)}
-                                          style={{ display:'flex', flexWrap:'wrap', gap:'8px', alignItems:'center', cursor:'pointer', flex:1, userSelect:'none' }}>
-                                          <span style={{ fontWeight:'800', fontSize:'14px' }}>{sub.full_name}</span>
-                                          <span style={{ fontSize:'12px', background:'#f0f7f0', border:'1px solid #c8e6c9', padding:'2px 8px', borderRadius:'6px', fontWeight:'700', color:'#2d6a2d' }}>#{sub.work_number}</span>
-                                          <span style={{ fontSize:'11px', color:'#888' }}>{(sub.papers_included||[]).map(p=>paperLabels[p]||p).join(', ')}</span>
-                                        </div>
-                                        <div style={{ display:'flex', gap:'8px', alignItems:'center', flexShrink:0 }}>
-                                          <span style={{ fontSize:'11px', color:'#999' }}>{new Date(sub.submitted_at).toLocaleDateString('en-GB')}</span>
-                                          <StatusBadge status={sub.status} />
-                                          <button
-                                            onClick={e => { e.stopPropagation(); setConfirmDeleteSub({ id: sub.id, name: sub.full_name, monthLabel: mLabel }) }}
-                                            style={{ padding:'4px 10px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #f5c6c6', borderRadius:'6px', background:'#fff5f5', color:'#c0392b', whiteSpace:'nowrap' }}>
-                                            Delete
+                            <React.Fragment key={sub.id}>
+                              <tr style={{ background: i%2===0?'#fff':'#fafafa', cursor:'pointer' }}
+                                onClick={() => toggleSub(sub.id, sub.papers_included)}>
+                                <td style={bodyTd({fontWeight:'800', color:'#2d6a2d'})}>{sub.work_number}</td>
+                                <td style={bodyTd({fontWeight:'700'})}>{sub.full_name}</td>
+                                <td style={bodyTd({fontSize:'11px', color:'#666'})}>{(sub.papers_included||[]).map(p=>paperLabels[p]||p).join(', ')}</td>
+                                <td style={bodyTd({fontSize:'11px', color:'#555', whiteSpace:'nowrap'})}>
+                                  {new Date(sub.submitted_at).toLocaleDateString('en-GB')}
+                                  <span style={{ marginLeft:'6px', color:'#aaa' }}>{new Date(sub.submitted_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span>
+                                </td>
+                                <td style={bodyTd()}><StatusBadge status={sub.status} /></td>
+                                <td style={bodyTd({textAlign:'right'})} onClick={e => e.stopPropagation()}>
+                                  <button onClick={() => setConfirmDeleteSub({ id:sub.id, name:sub.full_name, monthLabel:mLabel })}
+                                    style={{ padding:'3px 10px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #f5c6c6', borderRadius:'6px', background:'#fff5f5', color:'#c0392b' }}>Delete</button>
+                                </td>
+                              </tr>
+                              {isExpanded && (
+                                <tr>
+                                  <td colSpan={6} style={{ padding:'16px', background:'#f8fbf8', borderBottom:'2px solid #e8e8e3' }}>
+                                    {sub.notes && <p style={{ fontSize:'13px', color:'#555', margin:'0 0 12px', fontStyle:'italic', padding:'8px 12px', background:'#fff', borderRadius:'6px', border:'1px solid #eee' }}>Notes: {sub.notes}</p>}
+                                    <SubmissionPaperView sub={sub} activeTab={activeSubTab} onTabChange={t => setExpandedSubTabs(prev => ({ ...prev, [sub.id]: t }))} />
+                                    <div style={{ display:'flex', gap:'8px', marginTop:'14px', flexWrap:'wrap' }}>
+                                      {['approved','rejected','needs_review'].map(s => {
+                                        const st = STATUS_STYLE[s]
+                                        const busy = statusUpdating === sub.id + s
+                                        return (
+                                          <button key={s} disabled={!!statusUpdating||sub.status===s} onClick={() => updateStatus(sub.id, s)}
+                                            style={{ padding:'7px 18px', fontSize:'12px', fontWeight:'700', cursor:sub.status===s?'default':'pointer', border:`1px solid ${st.border}`, borderRadius:'6px', background:sub.status===s?st.bg:'#fff', color:sub.status===s?st.text:'#555', opacity:!!statusUpdating&&!busy?0.5:1 }}>
+                                            {busy?'…':st.label}
                                           </button>
-                                          <span onClick={() => toggleSub(sub.id, sub.papers_included)}
-                                            style={{ color:'#aaa', fontSize:'14px', fontWeight:'700', cursor:'pointer' }}>{isExpanded ? '▲' : '▼'}</span>
-                                        </div>
-                                      </div>
-
-                                      {isExpanded && (
-                                        <div style={{ padding:'0 16px 16px', borderTop:'1px solid #f0f0f0', background:'#fafafa' }}>
-                                          {sub.notes && (
-                                            <p style={{ fontSize:'13px', color:'#555', margin:'12px 0', fontStyle:'italic', padding:'8px 12px', background:'#fff', borderRadius:'6px', border:'1px solid #eee' }}>
-                                              Notes: {sub.notes}
-                                            </p>
-                                          )}
-                                          <div style={{ marginTop:'12px' }}>
-                                            <SubmissionPaperView
-                                              sub={sub}
-                                              activeTab={activeSubTab}
-                                              onTabChange={t => setExpandedSubTabs(prev => ({ ...prev, [sub.id]: t }))}
-                                            />
-                                          </div>
-                                          {/* Status buttons */}
-                                          <div style={{ display:'flex', gap:'8px', marginTop:'16px', flexWrap:'wrap' }}>
-                                            {['approved','rejected','needs_review'].map(s => {
-                                              const st = STATUS_STYLE[s]
-                                              const busy = statusUpdating === sub.id + s
-                                              return (
-                                                <button key={s} disabled={!!statusUpdating || sub.status===s} onClick={() => updateStatus(sub.id, s)}
-                                                  style={{
-                                                    padding:'7px 18px', fontSize:'12px', fontWeight:'700',
-                                                    cursor: sub.status===s ? 'default' : 'pointer',
-                                                    border:`1px solid ${st.border}`, borderRadius:'6px',
-                                                    background: sub.status===s ? st.bg : '#fff',
-                                                    color: sub.status===s ? st.text : '#555',
-                                                    opacity: !!statusUpdating && !busy ? 0.5 : 1
-                                                  }}>
-                                                  {busy ? '…' : st.label}
-                                                </button>
-                                              )
-                                            })}
-                                          </div>
-                                        </div>
-                                      )}
+                                        )
+                                      })}
                                     </div>
-                                  )
-                                })}
-                              </div>
-                            </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
                           )
                         })}
-                      </div>
-                    )}
+                      </tbody>
+                    </table>
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
           )}
 
@@ -792,265 +715,138 @@ export default function PayrollPage() {
           {/* ── VERIFY TAB ── */}
           {tab === 'verify' && (
             <div>
-              <h2 style={{ fontSize:'18px', fontWeight:'800', marginBottom:'16px' }}>Smart Verification</h2>
-              <p style={{ fontSize:'13px', color:'#666', marginBottom:'20px' }}>Compare a worker's submitted paper entries against the supervisor's recorded daily worklogs.</p>
-
-              <div style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', padding:'20px', marginBottom:'20px' }}>
-                <div style={{ display:'flex', gap:'12px', flexWrap:'wrap', alignItems:'flex-end' }}>
-                  <div style={{ flex:2, minWidth:'220px', position:'relative' }} ref={searchRef}>
-                    <label style={{ display:'block', fontSize:'12px', fontWeight:'600', marginBottom:'6px', color:'#555' }}>Worker (name or work number)</label>
-                    <input type="text" placeholder="Search by name or work number…" value={workerSearch}
-                      onChange={e => { setWorkerSearch(e.target.value); setShowWorkerList(true); setSelectedWorker(null); setVerifyResult(null) }}
-                      onFocus={() => setShowWorkerList(true)}
-                      style={{ width:'100%', padding:'9px 12px', border:'1px solid #ccc', borderRadius:'8px', fontSize:'13px', fontFamily:'inherit', boxSizing:'border-box' }} />
-                    {showWorkerList && filteredWorkers.length > 0 && (
-                      <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'#fff', border:'1px solid #ccc', borderRadius:'8px', boxShadow:'0 4px 16px rgba(0,0,0,0.12)', zIndex:200, maxHeight:'240px', overflowY:'auto', marginTop:'2px' }}>
-                        {filteredWorkers.map(w => (
-                          <div key={w.id} onClick={() => selectWorker(w)}
-                            style={{ padding:'9px 14px', cursor:'pointer', fontSize:'13px', borderBottom:'1px solid #f0f0f0', display:'flex', gap:'8px', alignItems:'center' }}
-                            onMouseEnter={e => e.currentTarget.style.background='#f5f5f5'}
-                            onMouseLeave={e => e.currentTarget.style.background='#fff'}>
-                            <span style={{ fontWeight:'700', color:'#2d6a2d', minWidth:'40px' }}>#{w.work_number}</span>
-                            <span>{w.full_name}</span>
-                            {w.house_group && <span style={{ fontSize:'11px', color:'#888' }}>{w.house_group}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ minWidth:'130px' }}>
-                    <label style={{ display:'block', fontSize:'12px', fontWeight:'600', marginBottom:'6px', color:'#555' }}>Month</label>
-                    <select value={verifyMonth} onChange={e => { setVerifyMonth(parseInt(e.target.value)); setVerifyResult(null) }}
-                      style={{ width:'100%', padding:'9px 12px', border:'1px solid #ccc', borderRadius:'8px', fontSize:'13px', fontFamily:'inherit' }}>
-                      {MONTHS.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
-                    </select>
-                  </div>
-                  <div style={{ minWidth:'90px' }}>
-                    <label style={{ display:'block', fontSize:'12px', fontWeight:'600', marginBottom:'6px', color:'#555' }}>Year</label>
-                    <input type="number" value={verifyYear} onChange={e => { setVerifyYear(parseInt(e.target.value)); setVerifyResult(null) }}
-                      style={{ width:'100%', padding:'9px 12px', border:'1px solid #ccc', borderRadius:'8px', fontSize:'13px', fontFamily:'inherit' }} />
-                  </div>
-                  <button onClick={runVerify} disabled={verifying || !selectedWorker}
-                    style={{ padding:'10px 24px', background: verifying||!selectedWorker ? '#aaa' : '#2d6a2d', color:'#fff', border:'none', borderRadius:'8px', fontSize:'14px', fontWeight:'700', cursor: verifying||!selectedWorker ? 'not-allowed' : 'pointer', whiteSpace:'nowrap' }}>
-                    {verifying ? 'Verifying…' : 'Verify'}
-                  </button>
-                </div>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
+                <h2 style={{ fontSize:'18px', fontWeight:'800', margin:0 }}>Smart Verification</h2>
               </div>
 
-              {verifyResult && (
-                <div>
-                  <div style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', padding:'16px 20px', marginBottom:'16px' }}>
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:'20px', alignItems:'center', justifyContent:'space-between' }}>
-                      <div>
-                        <p style={{ fontSize:'16px', fontWeight:'800', margin:'0 0 4px' }}>{verifyResult.worker.full_name} <span style={{ color:'#888', fontSize:'13px', fontWeight:'400' }}>#{verifyResult.worker.work_number}</span></p>
-                        <p style={{ fontSize:'12px', color:'#666', margin:0 }}>{verifyResult.worker.house_group} — {MONTHS[verifyMonth-1]} {verifyYear}</p>
-                      </div>
-                      <div style={{ display:'flex', gap:'12px', flexWrap:'wrap' }}>
-                        {[['total_days_worked','Days worked',''],['days_match','Match','#2d6a2d'],['days_mismatch','Mismatch','#c0392b'],['days_missing','Missing','#e65100'],['total_hours','Total hrs','#1565c0']].map(([k,l,c])=>(
-                          <div key={k} style={{ textAlign:'center' }}>
-                            <div style={{ fontSize:'22px', fontWeight:'800', color:c||undefined }}>{verifyResult.summary[k]}</div>
-                            <div style={{ fontSize:'11px', color:'#888' }}>{l}</div>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ display:'flex', gap:'10px', alignItems:'center' }}>
-                        <span style={{
-                          padding:'6px 16px', borderRadius:'20px', fontWeight:'800', fontSize:'13px',
-                          background: verifyResult.summary.verification_status==='verified'?'#e8f5e9':verifyResult.summary.verification_status==='discrepancies_found'?'#fdecea':'#fff3e0',
-                          color: verifyResult.summary.verification_status==='verified'?'#2d6a2d':verifyResult.summary.verification_status==='discrepancies_found'?'#c0392b':'#e65100',
-                        }}>
-                          {verifyResult.summary.verification_status==='verified'?'✓ Verified':verifyResult.summary.verification_status==='discrepancies_found'?'✗ Discrepancies Found':'⚠ Incomplete'}
-                        </span>
-                        <button onClick={exportVerifyPDF} style={{ padding:'7px 14px', background:'#fff', border:'1px solid #ccc', borderRadius:'6px', fontSize:'12px', fontWeight:'600', cursor:'pointer', display:'flex', alignItems:'center', gap:'4px' }}>
-                          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect width="14" height="14" rx="2" fill="#E53935"/><text x="7" y="10" textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="Arial,sans-serif" fill="white">PDF</text></svg>
-                          Export PDF
-                        </button>
-                      </div>
-                    </div>
-                    <div style={{ display:'flex', gap:'16px', marginTop:'12px', paddingTop:'12px', borderTop:'1px solid #f0f0f0', flexWrap:'wrap' }}>
-                      <span style={{ fontSize:'12px', color:'#555' }}>Regular: <b style={{ color:'#2d6a2d' }}>{verifyResult.summary.total_white_hours}</b></span>
-                      <span style={{ fontSize:'12px', color:'#555' }}>Extra: <b style={{ color:'#b45309' }}>{verifyResult.summary.total_orange_hours}</b></span>
-                      <span style={{ fontSize:'12px', color:'#555' }}>Total: <b>{verifyResult.summary.total_hours}</b></span>
-                    </div>
-                  </div>
+              {/* Month calendar grid */}
+              <div style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', padding:'16px', marginBottom:'20px' }}>
+                <MonthGrid
+                  selectedMonth={verifyMonth}
+                  selectedYear={verifyYear}
+                  onMonthClick={m => setVerifyMonth(m)}
+                  onYearChange={y => setVerifyYear(y)}
+                  badgeCounts={(() => {
+                    const counts = {}
+                    submissions.forEach(s => { if (s.year === verifyYear) counts[s.month] = (counts[s.month]||0) + 1 })
+                    return counts
+                  })()}
+                />
+                <p style={{ fontSize:'12px', color:'#888', margin:0 }}>
+                  Showing all workers for <b style={{ color:'#2d6a2d' }}>{MONTHS[verifyMonth-1]} {verifyYear}</b>
+                  {' — '}click <b>Verify</b> on any worker who has submitted to compare against supervisor logs.
+                </p>
+              </div>
 
-                  <div style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', overflow:'hidden' }}>
-                    <div style={{ overflowX:'auto' }}>
-                      <table style={{ borderCollapse:'collapse', width:'100%', fontSize:'12px' }}>
-                        <thead>
-                          <tr>
-                            <th style={thTd({rowSpan:2})}>Date</th>
-                            <th style={thTd({background:'#1b5e20',textAlign:'center'})} colSpan={4}>Supervisor Recorded</th>
-                            <th style={thTd({background:'#4a148c',textAlign:'center'})} colSpan={4}>Worker Submitted</th>
-                            <th style={thTd()}>Status</th>
-                          </tr>
-                          <tr>
-                            {['Start','Finish','Break','Total'].map(l=><th key={l} style={thTd({background:'#2e7d32'})}>{l}</th>)}
-                            {['Start','Finish','Break','Total'].map(l=><th key={l} style={thTd({background:'#6a1b9a'})}>{l}</th>)}
-                            <th style={thTd()}>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {verifyResult.matches.map((m,i) => {
-                            const vs = VERIFY_STYLE[m.status]
-                            return (
-                              <tr key={i} style={{ background:vs?.bg||'#fff', borderBottom:'1px solid #f0f0f0' }}>
-                                <td style={{ padding:'7px 10px', fontWeight:'700', fontSize:'12px' }}>{m.date}</td>
-                                <td style={{ padding:'7px 10px', fontSize:'12px' }}>{m.supervisor_recorded?.start||'—'}</td>
-                                <td style={{ padding:'7px 10px', fontSize:'12px' }}>{m.supervisor_recorded?.finish||'—'}</td>
-                                <td style={{ padding:'7px 10px', fontSize:'12px' }}>{m.supervisor_recorded ? m.supervisor_recorded.break+' min' : '—'}</td>
-                                <td style={{ padding:'7px 10px', fontSize:'12px', fontWeight:'700' }}>{m.supervisor_recorded?.total||'—'}</td>
-                                <td style={{ padding:'7px 10px', fontSize:'12px' }}>{m.worker_submitted?.start||'—'}</td>
-                                <td style={{ padding:'7px 10px', fontSize:'12px' }}>{m.worker_submitted?.finish||'—'}</td>
-                                <td style={{ padding:'7px 10px', fontSize:'12px' }}>{m.worker_submitted ? m.worker_submitted.break+' min' : '—'}</td>
-                                <td style={{ padding:'7px 10px', fontSize:'12px', fontWeight:'700' }}>{m.worker_submitted?.total||'—'}</td>
-                                <td style={{ padding:'7px 10px' }}><VerifyBadge status={m.status} /></td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ── MONTHLY VERIFICATION BOARD ── */}
-              <div style={{ marginTop:'36px' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'16px' }}>
-                  <div style={{ height:'2px', flex:1, background:'#2d6a2d', opacity:0.2 }} />
-                  <span style={{ fontSize:'13px', fontWeight:'800', color:'#2d6a2d', textTransform:'uppercase', letterSpacing:'1px', whiteSpace:'nowrap' }}>Monthly Verification Board</span>
-                  <div style={{ height:'2px', flex:1, background:'#2d6a2d', opacity:0.2 }} />
-                </div>
-                <p style={{ fontSize:'13px', color:'#666', marginBottom:'16px' }}>Auto-verify all workers who submitted papers for a given month.</p>
-
-                <div style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', padding:'16px 20px', marginBottom:'16px', display:'flex', gap:'12px', flexWrap:'wrap', alignItems:'flex-end' }}>
-                  <div style={{ minWidth:'130px' }}>
-                    <label style={{ display:'block', fontSize:'12px', fontWeight:'600', marginBottom:'6px', color:'#555' }}>Month</label>
-                    <select value={boardMonth} onChange={e => setBoardMonth(parseInt(e.target.value))}
-                      style={{ width:'100%', padding:'9px 12px', border:'1px solid #ccc', borderRadius:'8px', fontSize:'13px', fontFamily:'inherit' }}>
-                      {MONTHS.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
-                    </select>
-                  </div>
-                  <div style={{ minWidth:'90px' }}>
-                    <label style={{ display:'block', fontSize:'12px', fontWeight:'600', marginBottom:'6px', color:'#555' }}>Year</label>
-                    <input type="number" value={boardYear} onChange={e => setBoardYear(parseInt(e.target.value))}
-                      style={{ width:'100%', padding:'9px 12px', border:'1px solid #ccc', borderRadius:'8px', fontSize:'13px', fontFamily:'inherit' }} />
-                  </div>
-                  <button onClick={loadMonthBoard} disabled={boardLoading}
-                    style={{ padding:'10px 24px', background: boardLoading ? '#aaa' : '#2d6a2d', color:'#fff', border:'none', borderRadius:'8px', fontSize:'14px', fontWeight:'700', cursor: boardLoading ? 'not-allowed' : 'pointer' }}>
-                    {boardLoading ? 'Loading…' : 'Load'}
-                  </button>
-                </div>
-
-                {boardData.length > 0 && (
-                  <div style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', overflow:'hidden' }}>
-                    <div style={{ overflowX:'auto' }}>
-                      <table style={{ borderCollapse:'collapse', width:'100%', fontSize:'12px' }}>
-                        <thead>
-                          <tr>
-                            <th style={thTd()}>Work#</th>
-                            <th style={thTd()}>Name</th>
-                            <th style={thTd()}>Group</th>
-                            <th style={thTd()}>Sub Status</th>
-                            <th style={thTd({textAlign:'center'})}>Days</th>
-                            <th style={thTd({textAlign:'center',background:'#2e7d32'})}>Match</th>
-                            <th style={thTd({textAlign:'center',background:'#b71c1c'})}>Mismatch</th>
-                            <th style={thTd({textAlign:'center',background:'#e65100'})}>Missing</th>
-                            <th style={thTd()}>Total hrs</th>
-                            <th style={thTd()}>Verify Status</th>
-                            <th style={thTd()}></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {boardData.map((row,i) => {
-                            const vs = row.verification_status
-                            const isRowExpanded = boardExpandedId === row.worker_id
-                            const detail = boardDetail[row.worker_id]
-                            return (
-                              <React.Fragment key={row.id}>
-                                <tr style={{ background: i%2===0 ? '#fff' : '#fafafa', borderBottom: isRowExpanded ? 'none' : '1px solid #f0f0f0' }}>
-                                  <td style={bodyTd({fontWeight:'700'})}>{row.work_number}</td>
-                                  <td style={bodyTd()}>{row.full_name}</td>
-                                  <td style={bodyTd({fontSize:'11px',color:'#666'})}>{row.house_group||'—'}</td>
-                                  <td style={bodyTd()}><StatusBadge status={row.status} /></td>
-                                  <td style={bodyTd({textAlign:'center',fontWeight:'700'})}>{row.total_days_worked}</td>
-                                  <td style={bodyTd({textAlign:'center',color:'#2d6a2d',fontWeight:'700'})}>{row.days_match}</td>
-                                  <td style={bodyTd({textAlign:'center',color:'#c0392b',fontWeight:'700'})}>{row.days_mismatch}</td>
-                                  <td style={bodyTd({textAlign:'center',color:'#e65100',fontWeight:'700'})}>{row.days_missing}</td>
-                                  <td style={bodyTd({fontWeight:'700'})}>{row.total_hours}</td>
-                                  <td style={bodyTd()}>
-                                    <span style={{
-                                      padding:'2px 8px', borderRadius:'8px', fontSize:'11px', fontWeight:'700',
-                                      background: vs==='verified'?'#e8f5e9':vs==='discrepancies_found'?'#fdecea':'#fff3e0',
-                                      color: vs==='verified'?'#2d6a2d':vs==='discrepancies_found'?'#c0392b':'#e65100'
-                                    }}>
-                                      {vs==='verified'?'✓ Verified':vs==='discrepancies_found'?'✗ Issues':'⚠ Incomplete'}
-                                    </span>
-                                  </td>
-                                  <td style={bodyTd()}>
-                                    <button onClick={() => loadBoardDetail(row.worker_id)} disabled={boardDetailLoading === row.worker_id}
-                                      style={{ padding:'4px 10px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #ccc', borderRadius:'6px', background:'#fff', color:'#333', whiteSpace:'nowrap' }}>
-                                      {boardDetailLoading === row.worker_id ? '…' : isRowExpanded ? 'Close' : 'Details'}
-                                    </button>
-                                  </td>
-                                </tr>
-                                {isRowExpanded && detail && (
-                                  <tr>
-                                    <td colSpan={11} style={{ padding:'0', background:'#f5faf5', borderBottom:'1px solid #f0f0f0' }}>
-                                      <div style={{ padding:'12px 16px', overflowX:'auto' }}>
-                                        <table style={{ borderCollapse:'collapse', width:'100%', fontSize:'11px' }}>
-                                          <thead>
-                                            <tr>
-                                              <th style={thTd({fontSize:'11px'})}>Date</th>
-                                              <th style={thTd({fontSize:'11px',background:'#2e7d32'})}>Sup Start</th>
-                                              <th style={thTd({fontSize:'11px',background:'#2e7d32'})}>Sup Finish</th>
-                                              <th style={thTd({fontSize:'11px',background:'#2e7d32'})}>Sup Total</th>
-                                              <th style={thTd({fontSize:'11px',background:'#6a1b9a'})}>Worker Start</th>
-                                              <th style={thTd({fontSize:'11px',background:'#6a1b9a'})}>Worker Finish</th>
-                                              <th style={thTd({fontSize:'11px',background:'#6a1b9a'})}>Worker Total</th>
-                                              <th style={thTd({fontSize:'11px'})}>Status</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {detail.matches.map((m,mi) => {
-                                              const vs2 = VERIFY_STYLE[m.status]
-                                              return (
-                                                <tr key={mi} style={{ background: vs2?.bg||'#fff' }}>
-                                                  <td style={{ padding:'5px 8px', fontWeight:'700', fontSize:'11px' }}>{m.date}</td>
-                                                  <td style={{ padding:'5px 8px', fontSize:'11px' }}>{m.supervisor_recorded?.start||'—'}</td>
-                                                  <td style={{ padding:'5px 8px', fontSize:'11px' }}>{m.supervisor_recorded?.finish||'—'}</td>
-                                                  <td style={{ padding:'5px 8px', fontWeight:'700', fontSize:'11px' }}>{m.supervisor_recorded?.total||'—'}</td>
-                                                  <td style={{ padding:'5px 8px', fontSize:'11px' }}>{m.worker_submitted?.start||'—'}</td>
-                                                  <td style={{ padding:'5px 8px', fontSize:'11px' }}>{m.worker_submitted?.finish||'—'}</td>
-                                                  <td style={{ padding:'5px 8px', fontWeight:'700', fontSize:'11px' }}>{m.worker_submitted?.total||'—'}</td>
-                                                  <td style={{ padding:'5px 8px' }}><VerifyBadge status={m.status} /></td>
-                                                </tr>
-                                              )
-                                            })}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                )}
-                              </React.Fragment>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                    <div style={{ padding:'8px 16px', background:'#f9f9f9', borderTop:'1px solid #f0f0f0', fontSize:'12px', color:'#666' }}>
-                      {boardData.length} workers submitted for {MONTHS[boardMonth-1]} {boardYear}
-                    </div>
-                  </div>
-                )}
-
-                {!boardLoading && boardData.length === 0 && boardMonth && (
+              {/* All workers list */}
+              <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+                {allWorkers.length === 0 && (
                   <div style={{ background:'#fff', borderRadius:'10px', padding:'32px', textAlign:'center', border:'1px solid #e8e8e3' }}>
-                    <p style={{ color:'#aaa', fontSize:'13px' }}>No submissions found — click Load to check a month</p>
+                    <p style={{ color:'#aaa', fontSize:'13px' }}>Loading workers…</p>
                   </div>
                 )}
+                {allWorkers.map(worker => {
+                  const cacheKey = `${worker.id}-${verifyMonth}-${verifyYear}`
+                  const sub = subLookup[cacheKey]
+                  const result = verifyResults[cacheKey]
+                  const isVerifying = verifying === worker.id
+                  return (
+                    <div key={worker.id} style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', overflow:'hidden' }}>
+                      {/* Worker row */}
+                      <div style={{ padding:'10px 16px', display:'flex', flexWrap:'wrap', gap:'8px', alignItems:'center', justifyContent:'space-between' }}>
+                        <div style={{ display:'flex', gap:'10px', alignItems:'center', flex:1, minWidth:0 }}>
+                          <span style={{ fontWeight:'800', fontSize:'13px', color:'#2d6a2d', whiteSpace:'nowrap' }}>#{worker.work_number}</span>
+                          <span style={{ fontWeight:'700', fontSize:'13px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{worker.full_name}</span>
+                          {worker.house_group && <span style={{ fontSize:'11px', color:'#aaa', whiteSpace:'nowrap' }}>{worker.house_group}</span>}
+                        </div>
+                        <div style={{ display:'flex', gap:'8px', alignItems:'center', flexShrink:0 }}>
+                          {sub ? (
+                            <>
+                              <span style={{ fontSize:'11px', fontWeight:'700', padding:'2px 8px', borderRadius:'8px', background:'#e8f5e9', color:'#2d6a2d' }}>Submitted</span>
+                              <span style={{ fontSize:'11px', color:'#aaa' }}>{new Date(sub.submitted_at).toLocaleDateString('en-GB')}</span>
+                              <button onClick={() => runVerify(worker)} disabled={isVerifying}
+                                style={{ padding:'4px 12px', fontSize:'12px', fontWeight:'700', cursor:isVerifying?'not-allowed':'pointer', border:'1px solid #2d6a2d', borderRadius:'6px', background: result ? '#2d6a2d' : '#fff', color: result ? '#fff' : '#2d6a2d', whiteSpace:'nowrap' }}>
+                                {isVerifying ? 'Verifying…' : result ? 'Re-verify' : 'Verify'}
+                              </button>
+                              {result && (
+                                <span style={{
+                                  padding:'2px 8px', borderRadius:'8px', fontSize:'11px', fontWeight:'700',
+                                  background: result.summary.verification_status==='verified'?'#e8f5e9':result.summary.verification_status==='discrepancies_found'?'#fdecea':'#fff3e0',
+                                  color: result.summary.verification_status==='verified'?'#2d6a2d':result.summary.verification_status==='discrepancies_found'?'#c0392b':'#e65100'
+                                }}>
+                                  {result.summary.verification_status==='verified'?'✓ Verified':result.summary.verification_status==='discrepancies_found'?'✗ Issues':'⚠ Incomplete'}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span style={{ fontSize:'11px', color:'#bbb', fontStyle:'italic' }}>Not submitted</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Expanded verify result */}
+                      {result && (
+                        <div style={{ borderTop:'1px solid #f0f0f0', background:'#fafffe' }}>
+                          {/* Summary bar */}
+                          <div style={{ padding:'10px 16px', display:'flex', flexWrap:'wrap', gap:'16px', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid #f0f0f0' }}>
+                            <div style={{ display:'flex', gap:'16px', flexWrap:'wrap' }}>
+                              {[['total_days_worked','Days',''],['days_match','Match','#2d6a2d'],['days_mismatch','Mismatch','#c0392b'],['days_missing','Missing','#e65100'],['total_hours','Total hrs','#1565c0']].map(([k,l,c])=>(
+                                <div key={k} style={{ textAlign:'center' }}>
+                                  <div style={{ fontSize:'18px', fontWeight:'800', color:c||'#333' }}>{result.summary[k]}</div>
+                                  <div style={{ fontSize:'10px', color:'#aaa' }}>{l}</div>
+                                </div>
+                              ))}
+                            </div>
+                            <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
+                              <span style={{ fontSize:'11px', color:'#666' }}>Reg: <b style={{ color:'#2d6a2d' }}>{result.summary.total_white_hours}</b></span>
+                              <span style={{ fontSize:'11px', color:'#666' }}>Extra: <b style={{ color:'#b45309' }}>{result.summary.total_orange_hours}</b></span>
+                              <button onClick={() => exportVerifyPDF(result, verifyMonth, verifyYear)}
+                                style={{ padding:'4px 10px', background:'#fff', border:'1px solid #ccc', borderRadius:'6px', fontSize:'11px', fontWeight:'600', cursor:'pointer' }}>
+                                Export PDF
+                              </button>
+                            </div>
+                          </div>
+                          {/* Day-by-day table */}
+                          <div style={{ overflowX:'auto' }}>
+                            <table style={{ borderCollapse:'collapse', width:'100%', fontSize:'12px' }}>
+                              <thead>
+                                <tr>
+                                  <th style={thTd()}>Date</th>
+                                  <th style={thTd({background:'#1b5e20',textAlign:'center'})} colSpan={3}>Supervisor</th>
+                                  <th style={thTd({background:'#4a148c',textAlign:'center'})} colSpan={3}>Worker</th>
+                                  <th style={thTd()}>Status</th>
+                                </tr>
+                                <tr>
+                                  <th style={thTd()}></th>
+                                  {['Start','Finish','Total'].map(l=><th key={'s'+l} style={thTd({background:'#2e7d32'})}>{l}</th>)}
+                                  {['Start','Finish','Total'].map(l=><th key={'w'+l} style={thTd({background:'#6a1b9a'})}>{l}</th>)}
+                                  <th style={thTd()}></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {result.matches.map((m,i) => {
+                                  const vs = VERIFY_STYLE[m.status]
+                                  return (
+                                    <tr key={i} style={{ background:vs?.bg||'#fff', borderBottom:'1px solid #f0f0f0' }}>
+                                      <td style={{ padding:'6px 10px', fontWeight:'700', fontSize:'12px' }}>{m.date}</td>
+                                      <td style={{ padding:'6px 10px', fontSize:'12px' }}>{m.supervisor_recorded?.start||'—'}</td>
+                                      <td style={{ padding:'6px 10px', fontSize:'12px' }}>{m.supervisor_recorded?.finish||'—'}</td>
+                                      <td style={{ padding:'6px 10px', fontSize:'12px', fontWeight:'700' }}>{m.supervisor_recorded?.total||'—'}</td>
+                                      <td style={{ padding:'6px 10px', fontSize:'12px' }}>{m.worker_submitted?.start||'—'}</td>
+                                      <td style={{ padding:'6px 10px', fontSize:'12px' }}>{m.worker_submitted?.finish||'—'}</td>
+                                      <td style={{ padding:'6px 10px', fontSize:'12px', fontWeight:'700' }}>{m.worker_submitted?.total||'—'}</td>
+                                      <td style={{ padding:'6px 10px' }}><VerifyBadge status={m.status} /></td>
+                                    </tr>
+                                  )
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
