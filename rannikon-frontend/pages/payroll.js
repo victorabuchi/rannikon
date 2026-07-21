@@ -968,10 +968,11 @@ export default function PayrollPage() {
               </div>
 
               {/* Submitted workers list */}
-              <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
                 {subMonthSubs.length === 0 && (
-                  <div style={{ background:'#fff', borderRadius:'10px', padding:'40px', textAlign:'center', border:'1px solid #e8e8e3' }}>
-                    <p style={{ color:'#aaa', fontSize:'14px' }}>No submissions for {MONTHS[verifyMonth-1]} {verifyYear}</p>
+                  <div style={{ background:'#fff', borderRadius:'12px', padding:'48px', textAlign:'center', border:'1px solid #e8e8e3' }}>
+                    <div style={{ fontSize:'32px', marginBottom:'10px' }}>📋</div>
+                    <p style={{ color:'#aaa', fontSize:'14px', margin:0 }}>No submissions for {MONTHS[verifyMonth-1]} {verifyYear}</p>
                   </div>
                 )}
                 {allWorkers.filter(w => subLookup[`${w.id}-${verifyMonth}-${verifyYear}`]).map(worker => {
@@ -979,98 +980,117 @@ export default function PayrollPage() {
                   const sub = subLookup[cacheKey]
                   const result = verifyResults[cacheKey]
                   const isVerifying = verifying === worker.id
+                  const vs = result?.summary?.verification_status
+                  const vsColor  = vs==='verified' ? '#2d6a2d'  : vs==='discrepancies_found' ? '#c0392b'  : '#b45309'
+                  const vsBg     = vs==='verified' ? '#f0faf0'  : vs==='discrepancies_found' ? '#fff0f0'  : '#fff8ee'
+                  const vsBorder = vs==='verified' ? '#a5d6a7'  : vs==='discrepancies_found' ? '#f5c6c6'  : '#ffcc80'
+                  const vsLabel  = vs==='verified' ? '✓  Verified' : vs==='discrepancies_found' ? '✗  Discrepancies Found' : '⚠  Incomplete'
+                  const initials = worker.full_name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()
                   return (
-                    <div key={worker.id} style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', overflow:'hidden' }}>
-                      {/* Worker row */}
-                      <div style={{ padding:'10px 16px', display:'flex', flexWrap:'wrap', gap:'8px', alignItems:'center', justifyContent:'space-between' }}>
-                        <div style={{ display:'flex', gap:'10px', alignItems:'center', flex:1, minWidth:0 }}>
-                          <span style={{ fontWeight:'800', fontSize:'13px', color:'#2d6a2d', whiteSpace:'nowrap' }}>#{worker.work_number}</span>
-                          <span style={{ fontWeight:'700', fontSize:'13px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{worker.full_name}</span>
-                          {worker.house_group && <span style={{ fontSize:'11px', color:'#aaa', whiteSpace:'nowrap' }}>{worker.house_group}</span>}
-                        </div>
-                        <div style={{ display:'flex', gap:'8px', alignItems:'center', flexShrink:0 }}>
-                          {sub ? (
-                            <>
-                              <span style={{ fontSize:'11px', fontWeight:'700', padding:'2px 8px', borderRadius:'8px', background:'#e8f5e9', color:'#2d6a2d' }}>Submitted</span>
-                              <span style={{ fontSize:'11px', color:'#aaa' }}>{new Date(sub.submitted_at).toLocaleDateString('en-GB')}</span>
-                              <button onClick={() => runVerify(worker)} disabled={isVerifying}
-                                style={{ padding:'4px 12px', fontSize:'12px', fontWeight:'700', cursor:isVerifying?'not-allowed':'pointer', border:'1px solid #2d6a2d', borderRadius:'6px', background: result ? '#2d6a2d' : '#fff', color: result ? '#fff' : '#2d6a2d', whiteSpace:'nowrap' }}>
-                                {isVerifying ? 'Verifying…' : result ? 'Re-verify' : 'Verify'}
-                              </button>
-                              {result && (
-                                <span style={{
-                                  padding:'2px 8px', borderRadius:'8px', fontSize:'11px', fontWeight:'700',
-                                  background: result.summary.verification_status==='verified'?'#e8f5e9':result.summary.verification_status==='discrepancies_found'?'#fdecea':'#fff3e0',
-                                  color: result.summary.verification_status==='verified'?'#2d6a2d':result.summary.verification_status==='discrepancies_found'?'#c0392b':'#e65100'
-                                }}>
-                                  {result.summary.verification_status==='verified'?'✓ Verified':result.summary.verification_status==='discrepancies_found'?'✗ Issues':'⚠ Incomplete'}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <span style={{ fontSize:'11px', color:'#bbb', fontStyle:'italic' }}>Not submitted</span>
-                          )}
-                        </div>
-                      </div>
+                    <div key={worker.id} style={{ background:'#fff', borderRadius:'12px', border:'1px solid #dde8dd', overflow:'hidden', boxShadow:'0 1px 6px rgba(45,106,45,0.07)' }}>
 
-                      {/* Expanded verify result */}
-                      {result && (
-                        <div style={{ borderTop:'1px solid #f0f0f0', background:'#fafffe' }}>
-                          {/* Summary bar */}
-                          <div style={{ padding:'10px 16px', display:'flex', flexWrap:'wrap', gap:'16px', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid #f0f0f0' }}>
-                            <div style={{ display:'flex', gap:'16px', flexWrap:'wrap' }}>
-                              {[['total_days_worked','Days',''],['days_match','Match','#2d6a2d'],['days_mismatch','Mismatch','#c0392b'],['days_missing','Missing','#e65100'],['total_hours','Total hrs','#1565c0']].map(([k,l,c])=>(
-                                <div key={k} style={{ textAlign:'center' }}>
-                                  <div style={{ fontSize:'18px', fontWeight:'800', color:c||'#333' }}>{result.summary[k]}</div>
-                                  <div style={{ fontSize:'10px', color:'#aaa' }}>{l}</div>
-                                </div>
-                              ))}
+                      {/* ── Worker header ── */}
+                      <div style={{ padding:'16px 20px', display:'flex', flexWrap:'wrap', gap:'12px', alignItems:'center', justifyContent:'space-between' }}>
+                        <div style={{ display:'flex', gap:'14px', alignItems:'center', minWidth:0 }}>
+                          <div style={{ width:'44px', height:'44px', borderRadius:'50%', background:'linear-gradient(135deg,#2d6a2d,#4caf50)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'900', fontSize:'15px', flexShrink:0, letterSpacing:'0.5px' }}>
+                            {initials}
+                          </div>
+                          <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
+                              <span style={{ fontWeight:'800', fontSize:'15px', color:'#1a1a18' }}>{worker.full_name}</span>
+                              <span style={{ fontSize:'12px', fontWeight:'700', color:'#2d6a2d', background:'#f0f7f0', border:'1px solid #c8e6c9', padding:'2px 9px', borderRadius:'20px' }}>#{worker.work_number}</span>
+                              {result && (
+                                <span style={{ fontSize:'11px', fontWeight:'700', color:vsColor, background:vsBg, border:`1px solid ${vsBorder}`, padding:'2px 9px', borderRadius:'20px' }}>{vsLabel}</span>
+                              )}
                             </div>
-                            <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
-                              <span style={{ fontSize:'11px', color:'#666' }}>Reg: <b style={{ color:'#2d6a2d' }}>{result.summary.total_white_hours}</b></span>
-                              <span style={{ fontSize:'11px', color:'#666' }}>Extra: <b style={{ color:'#b45309' }}>{result.summary.total_orange_hours}</b></span>
-                              <span style={{ fontSize:'11px', color:'#888' }}>Download:</span>
-                              <button onClick={() => exportVerifyPDF(result, verifyMonth, verifyYear)} style={dlBtn('#1565c0')}>PDF</button>
-                              <button onClick={() => exportVerifyExcel(result, verifyMonth, verifyYear)} style={dlBtn('#2e7d32')}>Excel</button>
-                              <button onClick={() => exportVerifyPDF(result, verifyMonth, verifyYear, true)} style={dlBtn('#555')}>Print</button>
+                            <div style={{ display:'flex', gap:'6px', alignItems:'center', marginTop:'4px', flexWrap:'wrap' }}>
+                              {worker.house_group && <span style={{ fontSize:'11px', color:'#888' }}>{worker.house_group}</span>}
+                              <span style={{ fontSize:'11px', color:'#ddd' }}>|</span>
+                              <span style={{ fontSize:'11px', color:'#999' }}>Submitted {new Date(sub.submitted_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>
+                              <span style={{ fontSize:'11px', color:'#ddd' }}>|</span>
+                              <span style={{ fontSize:'11px', color:'#bbb' }}>{new Date(sub.submitted_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span>
                             </div>
                           </div>
+                        </div>
+                        <button onClick={() => runVerify(worker)} disabled={isVerifying}
+                          style={{ padding:'9px 24px', fontSize:'13px', fontWeight:'700', cursor:isVerifying?'not-allowed':'pointer', border:'none', borderRadius:'8px', background:isVerifying?'#aaa':'#2d6a2d', color:'#fff', whiteSpace:'nowrap', boxShadow:isVerifying?'none':'0 2px 6px rgba(45,106,45,0.25)', letterSpacing:'0.2px' }}>
+                          {isVerifying ? 'Verifying…' : result ? 'Re-verify' : 'Verify'}
+                        </button>
+                      </div>
+
+                      {/* ── Verification result ── */}
+                      {result && (
+                        <div style={{ borderTop:`2px solid ${vsBorder}` }}>
+
+                          {/* Status banner */}
+                          <div style={{ padding:'11px 20px', background:vsBg, display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'8px' }}>
+                            <span style={{ fontWeight:'800', fontSize:'13px', color:vsColor, letterSpacing:'0.2px' }}>{vsLabel}</span>
+                            <span style={{ fontSize:'12px', color:'#888' }}>{MONTHS[verifyMonth-1]} {verifyYear} &nbsp;·&nbsp; {result.summary.total_days_worked} day{result.summary.total_days_worked!==1?'s':''} with activity</span>
+                          </div>
+
+                          {/* Stat tiles */}
+                          <div style={{ padding:'16px 20px', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(110px,1fr))', gap:'10px', borderBottom:'1px solid #f0f0f0' }}>
+                            {[
+                              { label:'Days Worked',   value:result.summary.total_days_worked,  color:'#333',    bg:'#f7f7f7', border:'#e0e0e0' },
+                              { label:'Match',         value:result.summary.days_match,          color:'#2d6a2d', bg:'#e8f5e9', border:'#a5d6a7' },
+                              { label:'Mismatch',      value:result.summary.days_mismatch,       color:'#c0392b', bg:'#fdecea', border:'#f5c6c6' },
+                              { label:'Missing',       value:result.summary.days_missing,        color:'#b45309', bg:'#fff8ee', border:'#ffcc80' },
+                              { label:'Regular Hours', value:result.summary.total_white_hours,   color:'#1565c0', bg:'#e8f0fd', border:'#90caf9' },
+                              { label:'Extra Hours',   value:result.summary.total_orange_hours,  color:'#b45309', bg:'#fff3e0', border:'#ffcc80' },
+                            ].map(({ label, value, color, bg, border }) => (
+                              <div key={label} style={{ background:bg, border:`1px solid ${border}`, borderRadius:'10px', padding:'12px 10px', textAlign:'center' }}>
+                                <div style={{ fontSize:'24px', fontWeight:'900', color, lineHeight:1.1 }}>{value}</div>
+                                <div style={{ fontSize:'10px', color:'#888', marginTop:'5px', fontWeight:'600', textTransform:'uppercase', letterSpacing:'0.6px' }}>{label}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Download bar */}
+                          <div style={{ padding:'10px 20px', display:'flex', gap:'8px', alignItems:'center', background:'#fafcfa', borderBottom:'1px solid #f0f0f0', flexWrap:'wrap' }}>
+                            <span style={{ fontSize:'12px', color:'#888', fontWeight:'600' }}>Download:</span>
+                            <button onClick={() => exportVerifyPDF(result, verifyMonth, verifyYear)} style={{ padding:'6px 18px', fontSize:'12px', fontWeight:'700', cursor:'pointer', border:'1px solid #1565c0', borderRadius:'6px', background:'#fff', color:'#1565c0' }}>PDF</button>
+                            <button onClick={() => exportVerifyExcel(result, verifyMonth, verifyYear)} style={{ padding:'6px 18px', fontSize:'12px', fontWeight:'700', cursor:'pointer', border:'1px solid #2d6a2d', borderRadius:'6px', background:'#fff', color:'#2d6a2d' }}>Excel</button>
+                            <button onClick={() => exportVerifyPDF(result, verifyMonth, verifyYear, true)} style={{ padding:'6px 18px', fontSize:'12px', fontWeight:'700', cursor:'pointer', border:'1px solid #555', borderRadius:'6px', background:'#fff', color:'#555' }}>Print</button>
+                          </div>
+
                           {/* Day-by-day table */}
                           <div style={{ overflowX:'auto' }}>
                             <table style={{ borderCollapse:'collapse', width:'100%', fontSize:'12px' }}>
                               <thead>
                                 <tr>
-                                  <th style={thTd()}>Date</th>
-                                  <th style={thTd({background:'#1b5e20',textAlign:'center'})} colSpan={3}>Supervisor</th>
-                                  <th style={thTd({background:'#4a148c',textAlign:'center'})} colSpan={3}>Worker</th>
-                                  <th style={thTd()}>Status</th>
+                                  <th style={{ padding:'11px 16px', textAlign:'left', background:'#1a2e1a', color:'#fff', fontSize:'12px', fontWeight:'700', whiteSpace:'nowrap' }}>Date</th>
+                                  <th style={{ padding:'11px 16px', textAlign:'center', background:'#1b5e20', color:'#fff', fontSize:'12px', fontWeight:'700' }} colSpan={3}>Supervisor Recorded</th>
+                                  <th style={{ padding:'11px 16px', textAlign:'center', background:'#1a237e', color:'#fff', fontSize:'12px', fontWeight:'700' }} colSpan={3}>Worker Submitted</th>
+                                  <th style={{ padding:'11px 16px', textAlign:'center', background:'#1a2e1a', color:'#fff', fontSize:'12px', fontWeight:'700' }}>Status</th>
                                 </tr>
                                 <tr>
-                                  <th style={thTd()}></th>
-                                  {['Start','Finish','Total'].map(l=><th key={'s'+l} style={thTd({background:'#2e7d32'})}>{l}</th>)}
-                                  {['Start','Finish','Total'].map(l=><th key={'w'+l} style={thTd({background:'#6a1b9a'})}>{l}</th>)}
-                                  <th style={thTd()}></th>
+                                  <th style={{ padding:'7px 16px', background:'#243824', color:'#aaa', fontSize:'11px' }}></th>
+                                  {['Start','Finish','Total'].map(l=><th key={'s'+l} style={{ padding:'7px 16px', background:'#2e7d32', color:'#c8e6c9', fontSize:'11px', fontWeight:'600', textAlign:'center' }}>{l}</th>)}
+                                  {['Start','Finish','Total'].map(l=><th key={'w'+l} style={{ padding:'7px 16px', background:'#283593', color:'#c5cae9', fontSize:'11px', fontWeight:'600', textAlign:'center' }}>{l}</th>)}
+                                  <th style={{ padding:'7px 16px', background:'#243824', color:'#aaa', fontSize:'11px' }}></th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {result.matches.map((m,i) => {
-                                  const vs = VERIFY_STYLE[m.status]
+                                {result.matches.map((m, i) => {
+                                  const rowBg    = m.status==='match' ? '#f4fbf4' : m.status==='mismatch' ? '#fff4f4' : m.status==='missing_supervisor' ? '#fffbf0' : '#fafafa'
+                                  const accentBg = m.status==='match' ? '#4caf50' : m.status==='mismatch' ? '#e53935' : m.status==='missing_supervisor' ? '#fb8c00' : '#9e9e9e'
                                   return (
-                                    <tr key={i} style={{ background:vs?.bg||'#fff', borderBottom:'1px solid #f0f0f0' }}>
-                                      <td style={{ padding:'6px 10px', fontWeight:'700', fontSize:'12px' }}>{m.date}</td>
-                                      <td style={{ padding:'6px 10px', fontSize:'12px' }}>{m.supervisor_recorded?.start||'—'}</td>
-                                      <td style={{ padding:'6px 10px', fontSize:'12px' }}>{m.supervisor_recorded?.finish||'—'}</td>
-                                      <td style={{ padding:'6px 10px', fontSize:'12px', fontWeight:'700' }}>{m.supervisor_recorded?.total||'—'}</td>
-                                      <td style={{ padding:'6px 10px', fontSize:'12px' }}>{m.worker_submitted?.start||'—'}</td>
-                                      <td style={{ padding:'6px 10px', fontSize:'12px' }}>{m.worker_submitted?.finish||'—'}</td>
-                                      <td style={{ padding:'6px 10px', fontSize:'12px', fontWeight:'700' }}>{m.worker_submitted?.total||'—'}</td>
-                                      <td style={{ padding:'6px 10px' }}><VerifyBadge status={m.status} /></td>
+                                    <tr key={i} style={{ background:rowBg, borderBottom:'1px solid #f0f0f0' }}>
+                                      <td style={{ padding:'10px 16px', fontWeight:'700', fontSize:'12px', color:'#222', borderLeft:`4px solid ${accentBg}`, whiteSpace:'nowrap' }}>{m.date}</td>
+                                      <td style={{ padding:'10px 16px', fontSize:'12px', textAlign:'center', color:'#2d4a2d' }}>{m.supervisor_recorded?.start||'—'}</td>
+                                      <td style={{ padding:'10px 16px', fontSize:'12px', textAlign:'center', color:'#2d4a2d' }}>{m.supervisor_recorded?.finish||'—'}</td>
+                                      <td style={{ padding:'10px 16px', fontSize:'12px', textAlign:'center', fontWeight:'700', color:'#1b5e20' }}>{m.supervisor_recorded?.total||'—'}</td>
+                                      <td style={{ padding:'10px 16px', fontSize:'12px', textAlign:'center', color:'#283593' }}>{m.worker_submitted?.start||'—'}</td>
+                                      <td style={{ padding:'10px 16px', fontSize:'12px', textAlign:'center', color:'#283593' }}>{m.worker_submitted?.finish||'—'}</td>
+                                      <td style={{ padding:'10px 16px', fontSize:'12px', textAlign:'center', fontWeight:'700', color:'#1a237e' }}>{m.worker_submitted?.total||'—'}</td>
+                                      <td style={{ padding:'10px 16px', textAlign:'center' }}><VerifyBadge status={m.status} /></td>
                                     </tr>
                                   )
                                 })}
                               </tbody>
                             </table>
                           </div>
+
                         </div>
                       )}
                     </div>
