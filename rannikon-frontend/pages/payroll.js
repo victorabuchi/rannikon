@@ -5,6 +5,7 @@ import api from '../lib/api'
 import { clearAuth } from '../lib/auth'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import * as XLSX from 'xlsx'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
@@ -318,6 +319,197 @@ function SubmissionPaperView({ sub, activeTab, onTabChange }) {
   )
 }
 
+// ── Submission export helpers ──────────────────────────────────────────────
+function buildSubPDF(sub) {
+  const monthLabel = MONTHS[sub.month - 1] + ' ' + sub.year
+  const days = getDaysInMonth(sub.month, sub.year)
+  const included = sub.papers_included || []
+  const doc = new jsPDF({ orientation: 'landscape' })
+
+  const rawEntries = parseJSON(sub.white_paper_data || sub.weekly_data)
+  const entries = {}
+  rawEntries.forEach(e => {
+    const day = parseInt(String(e.entry_date).split('T')[0].split('-')[2])
+    entries[day] = e
+  })
+  const rawGreen = parseJSON(sub.green_paper_data)
+  const greenEntries = {}
+  rawGreen.forEach(e => {
+    const day = parseInt(String(e.entry_date).split('T')[0].split('-')[2])
+    greenEntries[day] = e
+  })
+  const allDays = Array.from({ length: days }, (_, i) => i + 1)
+
+  let y = 14
+  doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.setTextColor(45, 106, 45)
+  doc.text('Worker Timesheet', 14, y); y += 8
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(0)
+  doc.text(`Worker: ${sub.full_name}   |   #${sub.work_number}   |   ${sub.house_group || '—'}   |   ${monthLabel}`, 14, y); y += 5
+  doc.text(`Submitted: ${new Date(sub.submitted_at).toLocaleDateString('en-GB')}   |   Status: ${STATUS_STYLE[sub.status]?.label || sub.status}`, 14, y); y += 7
+
+  if (included.includes('white')) {
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(60, 60, 60)
+    doc.text('White Paper — Regular Hours', 14, y); y += 4
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(0)
+    autoTable(doc, {
+      startY: y,
+      head: [['Date', 'Start', 'Finish', 'Break', 'Hours', 'What Work']],
+      body: allDays.filter(d => entries[d]).map(d => {
+        const e = entries[d]
+        return [d, String(e.white_start || '').slice(0, 5), String(e.white_finish || '').slice(0, 5), '30 min', e.white_hours || '', e.what_work || '']
+      }),
+      styles: { fontSize: 8, lineWidth: 0.2 },
+      headStyles: { fillColor: [80, 80, 80], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+    })
+    y = doc.lastAutoTable.finalY + 8
+  }
+
+  if (included.includes('orange')) {
+    const orangeDays = allDays.filter(d => hasOrangeWork(entries[d]))
+    if (orangeDays.length > 0) {
+      if (y > 170) { doc.addPage(); y = 14 }
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(180, 83, 9)
+      doc.text('Orange Paper — Extra Hours', 14, y); y += 4
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(0)
+      autoTable(doc, {
+        startY: y,
+        head: [['Date', 'Start', 'Finish', 'Break', 'Extra Hours', 'What Work']],
+        body: orangeDays.map(d => {
+          const e = entries[d]
+          return [d, String(e.orange_start || '').slice(0, 5), String(e.orange_finish || '').slice(0, 5), e.orange_break || '0:00', e.orange_hours || '', e.what_work || '']
+        }),
+        styles: { fontSize: 8, lineWidth: 0.2 },
+        headStyles: { fillColor: [255, 160, 0], textColor: 0, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [255, 251, 230] },
+      })
+      y = doc.lastAutoTable.finalY + 8
+    }
+  }
+
+  if (included.includes('green') && Object.keys(greenEntries).length > 0) {
+    if (y > 170) { doc.addPage(); y = 14 }
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(45, 106, 45)
+    doc.text('Green Paper — Berry Picking', 14, y); y += 4
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(0)
+    autoTable(doc, {
+      startY: y,
+      head: [['Date', 'Start', 'Finish', 'What Picked', 'KG Picked']],
+      body: allDays.filter(d => greenEntries[d]).map(d => {
+        const ge = greenEntries[d]
+        return [d, String(ge.start_time || '').slice(0, 5), String(ge.finish_time || '').slice(0, 5), ge.what_picked || '', ge.kg_picked != null ? ge.kg_picked : '']
+      }),
+      styles: { fontSize: 8, lineWidth: 0.2 },
+      headStyles: { fillColor: [45, 106, 45], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [232, 245, 233] },
+    })
+  }
+  return doc
+}
+
+function exportSubPDF(sub) {
+  const monthLabel = MONTHS[sub.month - 1] + ' ' + sub.year
+  buildSubPDF(sub).save(`timesheet-${sub.work_number}-${monthLabel}.pdf`)
+}
+
+function printSubPDF(sub) {
+  const doc = buildSubPDF(sub)
+  doc.autoPrint()
+  window.open(doc.output('bloburl'), '_blank')
+}
+
+function exportSubExcel(sub) {
+  const monthLabel = MONTHS[sub.month - 1] + ' ' + sub.year
+  const days = getDaysInMonth(sub.month, sub.year)
+  const included = sub.papers_included || []
+  const wb = XLSX.utils.book_new()
+
+  const rawEntries = parseJSON(sub.white_paper_data || sub.weekly_data)
+  const entries = {}
+  rawEntries.forEach(e => {
+    const day = parseInt(String(e.entry_date).split('T')[0].split('-')[2])
+    entries[day] = e
+  })
+  const rawGreen = parseJSON(sub.green_paper_data)
+  const greenEntries = {}
+  rawGreen.forEach(e => {
+    const day = parseInt(String(e.entry_date).split('T')[0].split('-')[2])
+    greenEntries[day] = e
+  })
+  const allDays = Array.from({ length: days }, (_, i) => i + 1)
+
+  if (included.includes('white') || included.includes('orange')) {
+    const rows = [
+      [`Worker Timesheet — ${monthLabel}`],
+      [`Worker: ${sub.full_name}`, `Work#: ${sub.work_number}`, `Group: ${sub.house_group || '—'}`],
+      [`Submitted: ${new Date(sub.submitted_at).toLocaleDateString('en-GB')}`, `Status: ${STATUS_STYLE[sub.status]?.label || sub.status}`],
+      [],
+      ['Date', 'Reg Start', 'Reg Finish', 'Reg Hours', 'Extra Start', 'Extra Finish', 'Extra Hours', 'What Work'],
+    ]
+    allDays.forEach(d => {
+      const e = entries[d]
+      if (!e) return
+      rows.push([
+        d,
+        String(e.white_start || '').slice(0, 5),
+        String(e.white_finish || '').slice(0, 5),
+        e.white_hours || '',
+        hasOrangeWork(e) ? String(e.orange_start || '').slice(0, 5) : '',
+        hasOrangeWork(e) ? String(e.orange_finish || '').slice(0, 5) : '',
+        hasOrangeWork(e) ? (e.orange_hours || '') : '',
+        e.what_work || '',
+      ])
+    })
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Timesheet')
+  }
+
+  if (included.includes('green') && Object.keys(greenEntries).length > 0) {
+    const rows = [
+      [`Green Paper — Berry Picking — ${monthLabel}`],
+      [`Worker: ${sub.full_name}`, `Work#: ${sub.work_number}`],
+      [],
+      ['Date', 'Start', 'Finish', 'What Picked', 'KG Picked'],
+    ]
+    allDays.forEach(d => {
+      const ge = greenEntries[d]
+      if (!ge) return
+      rows.push([d, String(ge.start_time || '').slice(0, 5), String(ge.finish_time || '').slice(0, 5), ge.what_picked || '', ge.kg_picked != null ? ge.kg_picked : ''])
+    })
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Berry Picking')
+  }
+
+  XLSX.writeFile(wb, `timesheet-${sub.work_number}-${monthLabel}.xlsx`)
+}
+
+// ── Verify export helpers ──────────────────────────────────────────────────
+function exportVerifyExcel(result, month, year) {
+  const { worker, matches, summary } = result
+  const monthLabel = MONTHS[month - 1] + ' ' + year
+  const wb = XLSX.utils.book_new()
+  const rows = [
+    [`Payroll Verification Report — ${monthLabel}`],
+    [`Worker: ${worker.full_name}`, `Work#: ${worker.work_number}`, `Group: ${worker.house_group || '—'}`],
+    [`Status: ${summary.verification_status.replace(/_/g, ' ').toUpperCase()}`, `Match: ${summary.days_match}`, `Mismatch: ${summary.days_mismatch}`, `Missing: ${summary.days_missing}`, `Total hrs: ${summary.total_hours}`],
+    [`Regular hrs: ${summary.total_white_hours}`, `Extra hrs: ${summary.total_orange_hours}`],
+    [],
+    ['Date', 'Sup Start', 'Sup Finish', 'Sup Total', 'Worker Start', 'Worker Finish', 'Worker Total', 'Status'],
+  ]
+  matches.forEach(m => {
+    rows.push([
+      m.date,
+      m.supervisor_recorded?.start || '—',
+      m.supervisor_recorded?.finish || '—',
+      m.supervisor_recorded?.total || '—',
+      m.worker_submitted?.start || '—',
+      m.worker_submitted?.finish || '—',
+      m.worker_submitted?.total || '—',
+      VERIFY_STYLE[m.status]?.label || m.status,
+    ])
+  })
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Verification')
+  XLSX.writeFile(wb, `verification-${worker.work_number}-${monthLabel}.xlsx`)
+}
+
 const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 export default function PayrollPage() {
@@ -416,7 +608,7 @@ export default function PayrollPage() {
     finally { setVerifying(null) }
   }
 
-  function exportVerifyPDF(result, month, year) {
+  function exportVerifyPDF(result, month, year, doPrint = false) {
     const { worker, matches, summary } = result
     const monthLabel = MONTHS[month - 1] + ' ' + year
     const doc = new jsPDF({ orientation: 'landscape' })
@@ -424,9 +616,11 @@ export default function PayrollPage() {
     doc.text('Payroll Verification Report', 14, 16)
     doc.setTextColor(0); doc.setFontSize(10); doc.setFont('helvetica','normal')
     doc.text(`Worker: ${worker.full_name}  |  #${worker.work_number}  |  ${worker.house_group||'—'}  |  ${monthLabel}`, 14, 24)
-    doc.text(`Status: ${summary.verification_status.replace(/_/g,' ').toUpperCase()}  |  Match: ${summary.days_match}  |  Mismatch: ${summary.days_mismatch}  |  Missing: ${summary.days_missing}`, 14, 30)
+    doc.text(`Status: ${summary.verification_status.replace(/_/g,' ').toUpperCase()}  |  Match: ${summary.days_match}  |  Mismatch: ${summary.days_mismatch}  |  Missing: ${summary.days_missing}  |  Total: ${summary.total_hours}`, 14, 30)
+    doc.setFontSize(9)
+    doc.text(`Regular hrs: ${summary.total_white_hours}   Extra hrs: ${summary.total_orange_hours}`, 14, 35)
     autoTable(doc, {
-      startY: 36,
+      startY: 40,
       head: [['Date','Sup Start','Sup Finish','Sup Total','Worker Start','Worker Finish','Worker Total','Status']],
       body: matches.map(m => [m.date, m.supervisor_recorded?.start||'—', m.supervisor_recorded?.finish||'—', m.supervisor_recorded?.total||'—', m.worker_submitted?.start||'—', m.worker_submitted?.finish||'—', m.worker_submitted?.total||'—', VERIFY_STYLE[m.status]?.label||m.status]),
       styles:{ fontSize:8, lineWidth:0.2 },
@@ -440,7 +634,8 @@ export default function PayrollPage() {
         }
       }
     })
-    doc.save(`verification-${worker.work_number}-${monthLabel}.pdf`)
+    if (doPrint) { doc.autoPrint(); window.open(doc.output('bloburl'), '_blank') }
+    else doc.save(`verification-${worker.work_number}-${monthLabel}.pdf`)
   }
 
   // Submissions for the selected sub month, grouped by house group sorted
@@ -484,6 +679,7 @@ export default function PayrollPage() {
 
   const thTd = (extra) => ({ padding:'8px 10px', textAlign:'left', background:'#2d6a2d', color:'#fff', fontSize:'12px', fontWeight:'700', whiteSpace:'nowrap', ...extra })
   const bodyTd = (extra) => ({ padding:'7px 10px', fontSize:'12px', borderBottom:'1px solid #f0f0f0', ...extra })
+  const dlBtn = (color) => ({ padding:'4px 12px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:`1px solid ${color}`, borderRadius:'6px', background:'#fff', color, whiteSpace:'nowrap' })
 
   // Shared month-grid component
   function MonthGrid({ selectedMonth, selectedYear, onMonthClick, onYearChange, badgeCounts }) {
@@ -630,7 +826,14 @@ export default function PayrollPage() {
                                   <td colSpan={6} style={{ padding:'16px', background:'#f8fbf8', borderBottom:'2px solid #e8e8e3' }}>
                                     {sub.notes && <p style={{ fontSize:'13px', color:'#555', margin:'0 0 12px', fontStyle:'italic', padding:'8px 12px', background:'#fff', borderRadius:'6px', border:'1px solid #eee' }}>Notes: {sub.notes}</p>}
                                     <SubmissionPaperView sub={sub} activeTab={activeSubTab} onTabChange={t => setExpandedSubTabs(prev => ({ ...prev, [sub.id]: t }))} />
-                                    <div style={{ display:'flex', gap:'8px', marginTop:'14px', flexWrap:'wrap' }}>
+                                    {/* Download / print row */}
+                                    <div style={{ display:'flex', gap:'6px', marginTop:'12px', flexWrap:'wrap', paddingBottom:'2px', borderBottom:'1px solid #eee' }}>
+                                      <span style={{ fontSize:'11px', color:'#888', alignSelf:'center', marginRight:'4px' }}>Download:</span>
+                                      <button onClick={() => exportSubPDF(sub)} style={dlBtn('#1565c0')}>PDF</button>
+                                      <button onClick={() => exportSubExcel(sub)} style={dlBtn('#2e7d32')}>Excel</button>
+                                      <button onClick={() => printSubPDF(sub)} style={dlBtn('#555')}>Print</button>
+                                    </div>
+                                    <div style={{ display:'flex', gap:'8px', marginTop:'10px', flexWrap:'wrap' }}>
                                       {['approved','rejected','needs_review'].map(s => {
                                         const st = STATUS_STYLE[s]
                                         const busy = statusUpdating === sub.id + s
@@ -733,19 +936,19 @@ export default function PayrollPage() {
                   })()}
                 />
                 <p style={{ fontSize:'12px', color:'#888', margin:0 }}>
-                  Showing all workers for <b style={{ color:'#2d6a2d' }}>{MONTHS[verifyMonth-1]} {verifyYear}</b>
-                  {' — '}click <b>Verify</b> on any worker who has submitted to compare against supervisor logs.
+                  Workers who submitted for <b style={{ color:'#2d6a2d' }}>{MONTHS[verifyMonth-1]} {verifyYear}</b>
+                  {' — '}click <b>Verify</b> to compare their timesheet against supervisor logs.
                 </p>
               </div>
 
-              {/* All workers list */}
+              {/* Submitted workers list */}
               <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
-                {allWorkers.length === 0 && (
-                  <div style={{ background:'#fff', borderRadius:'10px', padding:'32px', textAlign:'center', border:'1px solid #e8e8e3' }}>
-                    <p style={{ color:'#aaa', fontSize:'13px' }}>Loading workers…</p>
+                {subMonthSubs.length === 0 && (
+                  <div style={{ background:'#fff', borderRadius:'10px', padding:'40px', textAlign:'center', border:'1px solid #e8e8e3' }}>
+                    <p style={{ color:'#aaa', fontSize:'14px' }}>No submissions for {MONTHS[verifyMonth-1]} {verifyYear}</p>
                   </div>
                 )}
-                {allWorkers.map(worker => {
+                {allWorkers.filter(w => subLookup[`${w.id}-${verifyMonth}-${verifyYear}`]).map(worker => {
                   const cacheKey = `${worker.id}-${verifyMonth}-${verifyYear}`
                   const sub = subLookup[cacheKey]
                   const result = verifyResults[cacheKey]
@@ -800,10 +1003,10 @@ export default function PayrollPage() {
                             <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
                               <span style={{ fontSize:'11px', color:'#666' }}>Reg: <b style={{ color:'#2d6a2d' }}>{result.summary.total_white_hours}</b></span>
                               <span style={{ fontSize:'11px', color:'#666' }}>Extra: <b style={{ color:'#b45309' }}>{result.summary.total_orange_hours}</b></span>
-                              <button onClick={() => exportVerifyPDF(result, verifyMonth, verifyYear)}
-                                style={{ padding:'4px 10px', background:'#fff', border:'1px solid #ccc', borderRadius:'6px', fontSize:'11px', fontWeight:'600', cursor:'pointer' }}>
-                                Export PDF
-                              </button>
+                              <span style={{ fontSize:'11px', color:'#888' }}>Download:</span>
+                              <button onClick={() => exportVerifyPDF(result, verifyMonth, verifyYear)} style={dlBtn('#1565c0')}>PDF</button>
+                              <button onClick={() => exportVerifyExcel(result, verifyMonth, verifyYear)} style={dlBtn('#2e7d32')}>Excel</button>
+                              <button onClick={() => exportVerifyPDF(result, verifyMonth, verifyYear, true)} style={dlBtn('#555')}>Print</button>
                             </div>
                           </div>
                           {/* Day-by-day table */}
