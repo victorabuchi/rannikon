@@ -825,8 +825,7 @@ export default function PayrollPage() {
                           const mLabel = MONTHS[sub.month - 1] + ' ' + sub.year
                           return (
                             <React.Fragment key={sub.id}>
-                              <tr style={{ background: i%2===0?'#fff':'#fafafa', cursor:'pointer' }}
-                                onClick={() => toggleSub(sub.id, sub.papers_included)}>
+                              <tr style={{ background: i%2===0?'#fff':'#fafafa' }}>
                                 <td style={bodyTd({fontWeight:'800', color:'#2d6a2d'})}>{sub.work_number}</td>
                                 <td style={bodyTd({fontWeight:'700'})}>{sub.full_name}</td>
                                 <td style={bodyTd({fontSize:'11px', color:'#666'})}>{(sub.papers_included||[]).map(p=>paperLabels[p]||p).join(', ')}</td>
@@ -835,9 +834,17 @@ export default function PayrollPage() {
                                   <span style={{ marginLeft:'6px', color:'#aaa' }}>{new Date(sub.submitted_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span>
                                 </td>
                                 <td style={bodyTd()}><StatusBadge status={sub.status} /></td>
-                                <td style={bodyTd({textAlign:'right'})} onClick={e => e.stopPropagation()}>
-                                  <button onClick={() => setConfirmDeleteSub({ id:sub.id, name:sub.full_name, monthLabel:mLabel })}
-                                    style={{ padding:'3px 10px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #f5c6c6', borderRadius:'6px', background:'#fff5f5', color:'#c0392b' }}>Delete</button>
+                                <td style={bodyTd({textAlign:'right', whiteSpace:'nowrap'})}>
+                                  <div style={{ display:'inline-flex', gap:'5px', alignItems:'center' }}>
+                                    {isExpanded
+                                      ? <button onClick={() => toggleSub(sub.id, sub.papers_included)}
+                                          style={{ padding:'3px 10px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #b0b0b0', borderRadius:'6px', background:'#f5f5f5', color:'#333' }}>Close</button>
+                                      : <button onClick={() => toggleSub(sub.id, sub.papers_included)}
+                                          style={{ padding:'3px 10px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #2d6a2d', borderRadius:'6px', background:'#f0f7f0', color:'#2d6a2d' }}>Open</button>
+                                    }
+                                    <button onClick={() => setConfirmDeleteSub({ id:sub.id, name:sub.full_name, monthLabel:mLabel })}
+                                      style={{ padding:'3px 10px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #f5c6c6', borderRadius:'6px', background:'#fff5f5', color:'#c0392b' }}>Delete</button>
+                                  </div>
                                 </td>
                               </tr>
                               {isExpanded && (
