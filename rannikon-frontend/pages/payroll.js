@@ -133,6 +133,15 @@ function SubmissionPaperView({ sub, activeTab, onTabChange }) {
                     )
                   })}
                 </tbody>
+                <tfoot>
+                  <tr style={{ background:'#d8ead8' }}>
+                    <td style={tdW({fontWeight:'800', fontSize:'13px'})} colSpan={4}>TOTAL REGULAR HOURS</td>
+                    <td style={tdW({fontWeight:'800', fontSize:'14px', color:'#2d6a2d'})}>
+                      {minsToHHMM(Object.values(entries).reduce((s, e) => s + toMins(e.white_hours || '8:00'), 0))}
+                    </td>
+                    <td style={tdW()}></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
@@ -173,6 +182,16 @@ function SubmissionPaperView({ sub, activeTab, onTabChange }) {
                     )
                   })}
                 </tbody>
+                <tfoot>
+                  <tr style={{ background:'#ffe8b0' }}>
+                    <td style={tdO({fontWeight:'800', fontSize:'13px', border:'1px solid #c97d00'})} colSpan={4}>TOTAL EXTRA HOURS</td>
+                    <td style={tdO({fontWeight:'800', fontSize:'14px', color:'#b45309', border:'1px solid #c97d00'})}>
+                      {minsToHHMM(Object.values(entries).filter(e => hasOrangeWork(e)).reduce((s, e) => s + toMins(e.orange_hours), 0))}
+                    </td>
+                    <td style={tdO({border:'1px solid #c97d00'})}></td>
+                    <td style={tdO({border:'1px solid #c97d00'})}></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
