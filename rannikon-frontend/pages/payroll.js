@@ -530,7 +530,7 @@ function exportVerifyExcel(result, month, year) {
   XLSX.writeFile(wb, `verification-${worker.work_number}-${monthLabel}.xlsx`)
 }
 
-// Every worker's White/Orange paper hours for a month, joined into one sheet —
+// Every worker's White/Orange/Green paper hours for a month, joined into one sheet —
 // so payroll can download everybody's totals at once instead of paper by paper, worker by worker.
 function exportAllHoursExcel(summary, month, year) {
   const monthLabel = MONTHS[month - 1] + ' ' + year
@@ -538,15 +538,16 @@ function exportAllHoursExcel(summary, month, year) {
 
   const totalWhite = summary.reduce((s, r) => s + toMins(r.white_hours), 0)
   const totalOrange = summary.reduce((s, r) => s + toMins(r.orange_hours), 0)
+  const totalGreen = summary.reduce((s, r) => s + toMins(r.green_hours), 0)
 
   const rows = [
     [`Monthly Hours — ${monthLabel}`],
     [`${summary.length} worker${summary.length !== 1 ? 's' : ''}`],
     [],
-    ['Work #', 'Name', 'House Group', 'White Paper Hours', 'Orange Paper Hours', 'Total Hours'],
-    ...summary.map(r => [r.work_number, r.full_name, r.house_group || '—', r.white_hours, r.orange_hours, r.total_hours]),
+    ['Work #', 'Name', 'White Paper Hours', 'Orange Paper Hours', 'Green Paper Hours', 'Total Hours'],
+    ...summary.map(r => [r.work_number, r.full_name, r.white_hours, r.orange_hours, r.green_hours, r.total_hours]),
     [],
-    ['', '', 'TOTAL', minsToHHMM(totalWhite), minsToHHMM(totalOrange), minsToHHMM(totalWhite + totalOrange)],
+    ['', 'TOTAL', minsToHHMM(totalWhite), minsToHHMM(totalOrange), minsToHHMM(totalGreen), minsToHHMM(totalWhite + totalOrange + totalGreen)],
   ]
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Monthly Hours')
   XLSX.writeFile(wb, `monthly-hours-all-workers-${monthLabel}.xlsx`)
@@ -1195,9 +1196,9 @@ export default function PayrollPage() {
                       <tr>
                         <th style={thTd({ borderRadius:'0' })}>Work #</th>
                         <th style={thTd()}>Name</th>
-                        <th style={thTd()}>House Group</th>
                         <th style={thTd({ textAlign:'right' })}>White Paper Hrs</th>
                         <th style={thTd({ textAlign:'right' })}>Orange Paper Hrs</th>
+                        <th style={thTd({ textAlign:'right' })}>Green Paper Hrs</th>
                         <th style={thTd({ textAlign:'right' })}>Total Hrs</th>
                       </tr>
                     </thead>
@@ -1206,21 +1207,24 @@ export default function PayrollPage() {
                         <tr key={r.worker_id}>
                           <td style={bodyTd({ fontWeight:'700' })}>#{r.work_number}</td>
                           <td style={bodyTd()}>{r.full_name}</td>
-                          <td style={bodyTd({ color:'#888' })}>{r.house_group || '—'}</td>
-                          <td style={bodyTd({ textAlign:'right', fontWeight:'700', color:'#2d6a2d' })}>{r.white_hours}</td>
+                          <td style={bodyTd({ textAlign:'right', fontWeight:'700', color:'#333' })}>{r.white_hours}</td>
                           <td style={bodyTd({ textAlign:'right', fontWeight:'700', color:'#b45309' })}>{r.orange_hours}</td>
+                          <td style={bodyTd({ textAlign:'right', fontWeight:'700', color:'#2d6a2d' })}>{r.green_hours}</td>
                           <td style={bodyTd({ textAlign:'right', fontWeight:'800', color:'#1565c0' })}>{r.total_hours}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr>
-                        <td colSpan={3} style={bodyTd({ fontWeight:'800', borderBottom:'none' })}>TOTAL</td>
-                        <td style={bodyTd({ textAlign:'right', fontWeight:'800', color:'#2d6a2d', borderBottom:'none' })}>
+                        <td colSpan={2} style={bodyTd({ fontWeight:'800', borderBottom:'none' })}>TOTAL</td>
+                        <td style={bodyTd({ textAlign:'right', fontWeight:'800', color:'#333', borderBottom:'none' })}>
                           {minsToHHMM(hoursSummary.reduce((s, r) => s + toMins(r.white_hours), 0))}
                         </td>
                         <td style={bodyTd({ textAlign:'right', fontWeight:'800', color:'#b45309', borderBottom:'none' })}>
                           {minsToHHMM(hoursSummary.reduce((s, r) => s + toMins(r.orange_hours), 0))}
+                        </td>
+                        <td style={bodyTd({ textAlign:'right', fontWeight:'800', color:'#2d6a2d', borderBottom:'none' })}>
+                          {minsToHHMM(hoursSummary.reduce((s, r) => s + toMins(r.green_hours), 0))}
                         </td>
                         <td style={bodyTd({ textAlign:'right', fontWeight:'800', color:'#1565c0', borderBottom:'none' })}>
                           {minsToHHMM(hoursSummary.reduce((s, r) => s + toMins(r.total_hours), 0))}

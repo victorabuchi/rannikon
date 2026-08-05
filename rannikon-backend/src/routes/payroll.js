@@ -311,43 +311,58 @@ module.exports = async function payrollRoutes(fastify) {
     return reply.send({ summaries })
   })
 
-  // Every active worker's White/Orange paper hour totals for a month — for the
+  // Every active worker's White/Orange/Green paper hour totals for a month — for the
   // "download everyone's hours in one file" payroll export
   fastify.get('/api/payroll/hours-summary/:month/:year', { onRequest: [isPayroll] }, async (request, reply) => {
     const { month, year } = request.params
 
     const workersResult = await db.query(
-      `SELECT id, work_number, full_name, house_group FROM workers
+      `SELECT id, work_number, full_name FROM workers
        WHERE is_active = true AND work_number IS NOT NULL AND work_number != ''
        ORDER BY CASE WHEN work_number ~ '^[0-9]+$' THEN work_number::int ELSE 9999 END ASC`
     )
     const workers = workersResult.rows
     if (!workers.length) return reply.send({ summary: [] })
 
-    const tsResult = await db.query(
-      `SELECT worker_id, white_hours, orange_hours
-       FROM timesheet_entries
-       WHERE worker_id = ANY($1) AND EXTRACT(MONTH FROM entry_date) = $2 AND EXTRACT(YEAR FROM entry_date) = $3`,
-      [workers.map(w => w.id), month, year]
-    )
+    const workerIds = workers.map(w => w.id)
+
+    const [tsResult, greenResult] = await Promise.all([
+      db.query(
+        `SELECT worker_id, white_hours, orange_hours
+         FROM timesheet_entries
+         WHERE worker_id = ANY($1) AND EXTRACT(MONTH FROM entry_date) = $2 AND EXTRACT(YEAR FROM entry_date) = $3`,
+        [workerIds, month, year]
+      ),
+      db.query(
+        `SELECT worker_id, start_time, finish_time
+         FROM green_paper_entries
+         WHERE worker_id = ANY($1) AND EXTRACT(MONTH FROM entry_date) = $2 AND EXTRACT(YEAR FROM entry_date) = $3`,
+        [workerIds, month, year]
+      )
+    ])
 
     const totalsByWorker = {}
     tsResult.rows.forEach(e => {
-      if (!totalsByWorker[e.worker_id]) totalsByWorker[e.worker_id] = { white: 0, orange: 0 }
+      if (!totalsByWorker[e.worker_id]) totalsByWorker[e.worker_id] = { white: 0, orange: 0, green: 0 }
       totalsByWorker[e.worker_id].white += parseHHMM(e.white_hours)
       totalsByWorker[e.worker_id].orange += parseHHMM(e.orange_hours)
     })
+    greenResult.rows.forEach(e => {
+      if (!totalsByWorker[e.worker_id]) totalsByWorker[e.worker_id] = { white: 0, orange: 0, green: 0 }
+      const dur = toMins(e.finish_time) - toMins(e.start_time)
+      if (e.start_time && e.finish_time && dur > 0) totalsByWorker[e.worker_id].green += dur
+    })
 
     const summary = workers.map(w => {
-      const t = totalsByWorker[w.id] || { white: 0, orange: 0 }
+      const t = totalsByWorker[w.id] || { white: 0, orange: 0, green: 0 }
       return {
         worker_id: w.id,
         work_number: w.work_number,
         full_name: w.full_name,
-        house_group: w.house_group,
         white_hours: minsToHHMM(t.white),
         orange_hours: minsToHHMM(t.orange),
-        total_hours: minsToHHMM(t.white + t.orange)
+        green_hours: minsToHHMM(t.green),
+        total_hours: minsToHHMM(t.white + t.orange + t.green)
       }
     })
 
