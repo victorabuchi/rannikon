@@ -29,7 +29,13 @@
       "Bash(rm -rf .next)",
       "Bash(echo \"EXIT:$?\")",
       "Bash(timeout 15 bash -c 'until grep -q \"Compiled in\" /tmp/claude-1000/-home-victor-Projects-rannikon/b5270464-dc0c-429a-9458-bdab04d84d95/scratchpad/nextdev2.log 2>/dev/null; do sleep 0.5; done')",
-      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:4007 >/dev/null; do sleep 1; done')"
+      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:4007 >/dev/null; do sleep 1; done')",
+      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:4008 >/dev/null; do sleep 1; done')",
+      "Bash(lsof -ti:4009 -sTCP:LISTEN)",
+      "Bash(xargs -r kill -9)",
+      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:4009 >/dev/null; do sleep 1; done')",
+      "Bash(sed -i 's|http://localhost:4008|http://localhost:4009|' /tmp/claude-1000/-home-victor-Projects-rannikon/b5270464-dc0c-429a-9458-bdab04d84d95/scratchpad/pw/break_check.js)",
+      "Bash(SP_PATH=/tmp/claude-1000/-home-victor-Projects-rannikon/b5270464-dc0c-429a-9458-bdab04d84d95/scratchpad node /tmp/claude-1000/-home-victor-Projects-rannikon/b5270464-dc0c-429a-9458-bdab04d84d95/scratchpad/pw/break_check.js)"
     ]
   }
 }
