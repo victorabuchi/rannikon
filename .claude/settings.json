@@ -11,7 +11,24 @@
       "Bash(node -e ' *)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:4004/supervisor)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:4003/api/health)",
-      "Read(//home/victor/.claude/projects/-home-victor-berrystime/**)"
+      "Read(//home/victor/.claude/projects/-home-victor-berrystime/**)",
+      "Bash(xargs -I{} echo {})",
+      "Bash(command -v chromium-cli)",
+      "Bash(find / -maxdepth 6 -iname \"*chromium-cli*\")",
+      "Bash(find / -maxdepth 8 -iname \"chromium-cli*\")",
+      "Bash(lsof -ti:4004 -sTCP:LISTEN)",
+      "Bash(disown)",
+      "Bash(timeout 40 bash -c 'until curl -sf http://localhost:4004 >/dev/null; do sleep 1; done')",
+      "Bash(lsof -ti:4005 -sTCP:LISTEN)",
+      "Bash(xargs -r kill)",
+      "Bash(git -C /home/victor/Projects/rannikon diff -- .claude/settings.json)",
+      "Bash(git -C /home/victor/Projects/rannikon stash show -p stash@{0} -- .claude/settings.json)",
+      "Bash(git -C /home/victor/Projects/rannikon stash show --name-only stash@{0})",
+      "Bash(git reset *)",
+      "Bash(kill 52881)",
+      "Bash(rm -rf .next)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(timeout 15 bash -c 'until grep -q \"Compiled in\" /tmp/claude-1000/-home-victor-Projects-rannikon/b5270464-dc0c-429a-9458-bdab04d84d95/scratchpad/nextdev2.log 2>/dev/null; do sleep 0.5; done')"
     ]
   }
 }
