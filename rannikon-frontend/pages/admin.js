@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import api from '../lib/api'
-import { clearAuth } from '../lib/auth'
+import { clearAuth, getWorker } from '../lib/auth'
 import { useLanguage } from '@/lib/i18n'
 import LanguageSelector from '@/components/LanguageSelector'
 import PagesMenu from '@/components/PagesMenu'
@@ -97,7 +97,14 @@ export default function AdminPage() {
       setMe(w)
       loadStats()
       loadWorkers()
-    }).catch(() => router.push('/login'))
+    }).catch(() => {
+      const w = getWorker()
+      if (!w) { router.push('/login'); return }
+      if (w.role !== 'admin') { router.push('/dashboard'); return }
+      setMe(w)
+      loadStats()
+      loadWorkers()
+    })
   }, [])
 
   async function loadStats() {

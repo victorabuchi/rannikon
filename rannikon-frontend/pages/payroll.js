@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import api from '../lib/api'
-import { clearAuth } from '../lib/auth'
+import { clearAuth, getWorker } from '../lib/auth'
 import PagesMenu from '@/components/PagesMenu'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -568,7 +568,14 @@ export default function PayrollPage() {
       setMe(w)
       loadSubmissions()
       loadAllWorkers()
-    }).catch(() => router.push('/login'))
+    }).catch(() => {
+      const w = getWorker()
+      if (!w) { router.push('/login'); return }
+      if (!['payroll', 'admin'].includes(w.role)) { router.push('/dashboard'); return }
+      setMe(w)
+      loadSubmissions()
+      loadAllWorkers()
+    })
   }, [])
 
   useEffect(() => {

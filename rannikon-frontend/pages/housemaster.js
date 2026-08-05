@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import api from '../lib/api'
-import { clearAuth } from '../lib/auth'
+import { clearAuth, getWorker } from '../lib/auth'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
@@ -171,7 +171,13 @@ export default function HousemasterPage() {
       if (!['housemaster', 'admin'].includes(w?.role)) { router.push('/dashboard'); return }
       setMe(w)
       loadWorklogs()
-    }).catch(() => router.push('/login'))
+    }).catch(() => {
+      const w = getWorker()
+      if (!w) { router.push('/login'); return }
+      if (!['housemaster', 'admin'].includes(w.role)) { router.push('/dashboard'); return }
+      setMe(w)
+      loadWorklogs()
+    })
   }, [])
 
   async function loadWorklogs() {
