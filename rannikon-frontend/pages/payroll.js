@@ -530,6 +530,28 @@ function exportVerifyExcel(result, month, year) {
   XLSX.writeFile(wb, `verification-${worker.work_number}-${monthLabel}.xlsx`)
 }
 
+// Every worker's White/Orange paper hours for a month, joined into one sheet —
+// so payroll can download everybody's totals at once instead of paper by paper, worker by worker.
+function exportAllHoursExcel(summary, month, year) {
+  const monthLabel = MONTHS[month - 1] + ' ' + year
+  const wb = XLSX.utils.book_new()
+
+  const totalWhite = summary.reduce((s, r) => s + toMins(r.white_hours), 0)
+  const totalOrange = summary.reduce((s, r) => s + toMins(r.orange_hours), 0)
+
+  const rows = [
+    [`Monthly Hours — ${monthLabel}`],
+    [`${summary.length} worker${summary.length !== 1 ? 's' : ''}`],
+    [],
+    ['Work #', 'Name', 'House Group', 'White Paper Hours', 'Orange Paper Hours', 'Total Hours'],
+    ...summary.map(r => [r.work_number, r.full_name, r.house_group || '—', r.white_hours, r.orange_hours, r.total_hours]),
+    [],
+    ['', '', 'TOTAL', minsToHHMM(totalWhite), minsToHHMM(totalOrange), minsToHHMM(totalWhite + totalOrange)],
+  ]
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Monthly Hours')
+  XLSX.writeFile(wb, `monthly-hours-all-workers-${monthLabel}.xlsx`)
+}
+
 const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 export default function PayrollPage() {
@@ -561,6 +583,12 @@ export default function PayrollPage() {
   const [verifying, setVerifying] = useState(null) // workerId being verified
   const [collapsedVerify, setCollapsedVerify] = useState(new Set())
 
+  // Monthly Hours tab
+  const [hoursMonth, setHoursMonth] = useState(now.getMonth() + 1)
+  const [hoursYear, setHoursYear] = useState(now.getFullYear())
+  const [hoursSummary, setHoursSummary] = useState([])
+  const [hoursLoading, setHoursLoading] = useState(false)
+
   useEffect(() => {
     api.get('/api/auth/me').then(res => {
       const w = res.data.worker
@@ -581,6 +609,19 @@ export default function PayrollPage() {
   useEffect(() => {
     if (tab === 'logs') loadLogs()
   }, [tab, logsDate])
+
+  useEffect(() => {
+    if (tab === 'hours') loadHoursSummary()
+  }, [tab, hoursMonth, hoursYear])
+
+  async function loadHoursSummary() {
+    setHoursLoading(true)
+    try {
+      const res = await api.get(`/api/payroll/hours-summary/${hoursMonth}/${hoursYear}`)
+      setHoursSummary(res.data.summary || [])
+    } catch (err) { console.error('Failed to load hours summary') }
+    finally { setHoursLoading(false) }
+  }
 
   async function loadSubmissions() {
     setSubsLoading(true)
@@ -768,6 +809,7 @@ export default function PayrollPage() {
             {navBtn('submissions', 'Submissions')}
             {navBtn('logs', 'Daily Logs')}
             {navBtn('verify', 'Verify')}
+            {navBtn('hours', 'Monthly Hours')}
           </div>
 
           {/* ── SUBMISSIONS TAB ── */}
@@ -1110,6 +1152,83 @@ export default function PayrollPage() {
                     </div>
                   )
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* ── MONTHLY HOURS TAB ── */}
+          {tab === 'hours' && (
+            <div>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px', flexWrap:'wrap', gap:'10px' }}>
+                <h2 style={{ fontSize:'18px', fontWeight:'800', margin:0 }}>Monthly Hours</h2>
+                <button onClick={() => exportAllHoursExcel(hoursSummary, hoursMonth, hoursYear)} disabled={!hoursSummary.length}
+                  style={{ padding:'8px 18px', fontSize:'12px', fontWeight:'700', cursor: hoursSummary.length ? 'pointer' : 'not-allowed', border:'1px solid #2d6a2d', borderRadius:'6px', background: hoursSummary.length ? '#2d6a2d' : '#f5f5f5', color: hoursSummary.length ? '#fff' : '#aaa' }}>
+                  ⬇ Download all workers (Excel)
+                </button>
+              </div>
+
+              {/* Month calendar grid */}
+              <div style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', padding:'16px', marginBottom:'20px' }}>
+                <MonthGrid
+                  selectedMonth={hoursMonth}
+                  selectedYear={hoursYear}
+                  onMonthClick={m => setHoursMonth(m)}
+                  onYearChange={y => setHoursYear(y)}
+                />
+                <p style={{ fontSize:'12px', color:'#888', margin:0 }}>
+                  Every active worker's White Paper and Orange Paper hour totals for <b style={{ color:'#2d6a2d' }}>{MONTHS[hoursMonth-1]} {hoursYear}</b>.
+                </p>
+              </div>
+
+              {/* All-workers hours table */}
+              <div style={{ background:'#fff', borderRadius:'10px', border:'1px solid #e8e8e3', overflow:'auto' }}>
+                {hoursLoading ? (
+                  <p style={{ textAlign:'center', color:'#aaa', padding:'48px', fontSize:'14px', margin:0 }}>Loading…</p>
+                ) : hoursSummary.length === 0 ? (
+                  <div style={{ padding:'48px', textAlign:'center' }}>
+                    <div style={{ fontSize:'32px', marginBottom:'10px' }}>👥</div>
+                    <p style={{ color:'#aaa', fontSize:'14px', margin:0 }}>No active workers found</p>
+                  </div>
+                ) : (
+                  <table style={{ width:'100%', borderCollapse:'collapse', minWidth:'640px' }}>
+                    <thead>
+                      <tr>
+                        <th style={thTd({ borderRadius:'0' })}>Work #</th>
+                        <th style={thTd()}>Name</th>
+                        <th style={thTd()}>House Group</th>
+                        <th style={thTd({ textAlign:'right' })}>White Paper Hrs</th>
+                        <th style={thTd({ textAlign:'right' })}>Orange Paper Hrs</th>
+                        <th style={thTd({ textAlign:'right' })}>Total Hrs</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hoursSummary.map(r => (
+                        <tr key={r.worker_id}>
+                          <td style={bodyTd({ fontWeight:'700' })}>#{r.work_number}</td>
+                          <td style={bodyTd()}>{r.full_name}</td>
+                          <td style={bodyTd({ color:'#888' })}>{r.house_group || '—'}</td>
+                          <td style={bodyTd({ textAlign:'right', fontWeight:'700', color:'#2d6a2d' })}>{r.white_hours}</td>
+                          <td style={bodyTd({ textAlign:'right', fontWeight:'700', color:'#b45309' })}>{r.orange_hours}</td>
+                          <td style={bodyTd({ textAlign:'right', fontWeight:'800', color:'#1565c0' })}>{r.total_hours}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td colSpan={3} style={bodyTd({ fontWeight:'800', borderBottom:'none' })}>TOTAL</td>
+                        <td style={bodyTd({ textAlign:'right', fontWeight:'800', color:'#2d6a2d', borderBottom:'none' })}>
+                          {minsToHHMM(hoursSummary.reduce((s, r) => s + toMins(r.white_hours), 0))}
+                        </td>
+                        <td style={bodyTd({ textAlign:'right', fontWeight:'800', color:'#b45309', borderBottom:'none' })}>
+                          {minsToHHMM(hoursSummary.reduce((s, r) => s + toMins(r.orange_hours), 0))}
+                        </td>
+                        <td style={bodyTd({ textAlign:'right', fontWeight:'800', color:'#1565c0', borderBottom:'none' })}>
+                          {minsToHHMM(hoursSummary.reduce((s, r) => s + toMins(r.total_hours), 0))}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                )}
               </div>
             </div>
           )}
