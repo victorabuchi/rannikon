@@ -163,6 +163,11 @@ export default {
     group: 'ក្រុម',
     whiteHrs: 'ម៉ោងក្រដាសស',
     orangeHrs: 'ម៉ោងក្រដាសទឹកក្រូច',
+    today: 'ថ្ងៃនេះ',
+    pickDate: 'ជ្រើសរើសកាលបរិច្ឆេទ',
+    notToday: 'មិនមែនថ្ងៃនេះ',
+    noActiveSessionForDate: 'មិនទាន់មានវគ្គសម្រាប់ថ្ងៃនេះទេ',
+    startSessionForDate: 'ចាប់ផ្តើមវគ្គសម្រាប់ថ្ងៃនេះ',
   },
   register: {
     createYourAccount: 'បង្កើតគណនីរបស់អ្នក',

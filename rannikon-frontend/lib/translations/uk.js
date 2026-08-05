@@ -163,6 +163,11 @@ export default {
     group: 'Група',
     whiteHrs: 'Білі год.',
     orangeHrs: 'Оранж. год.',
+    today: 'Сьогодні',
+    pickDate: 'Обрати дату',
+    notToday: 'Не сьогодні',
+    noActiveSessionForDate: 'Ще немає сесії на цей день',
+    startSessionForDate: 'Почати сесію на цей день',
   },
   register: {
     createYourAccount: 'Створіть свій акаунт',

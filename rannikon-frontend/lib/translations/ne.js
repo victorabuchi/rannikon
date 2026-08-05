@@ -163,6 +163,11 @@ export default {
     group: 'समूह',
     whiteHrs: 'सेतो घण्टा',
     orangeHrs: 'सुन्तला घण्टा',
+    today: 'आज',
+    pickDate: 'मिति छान्नुहोस्',
+    notToday: 'आज होइन',
+    noActiveSessionForDate: 'यस दिनको लागि अझै सत्र छैन',
+    startSessionForDate: 'यस दिनको लागि सत्र सुरु गर्नुहोस्',
   },
   register: {
     createYourAccount: 'आफ्नो खाता बनाउनुस्',

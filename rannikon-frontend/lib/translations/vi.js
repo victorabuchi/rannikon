@@ -163,6 +163,11 @@ export default {
     group: 'Nhóm',
     whiteHrs: 'Giờ trắng',
     orangeHrs: 'Giờ cam',
+    today: 'Hôm nay',
+    pickDate: 'Chọn ngày',
+    notToday: 'Không phải hôm nay',
+    noActiveSessionForDate: 'Chưa có phiên cho ngày này',
+    startSessionForDate: 'Bắt đầu phiên cho ngày này',
   },
   register: {
     createYourAccount: 'Tạo tài khoản của bạn',

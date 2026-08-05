@@ -163,6 +163,11 @@ export default {
     group: 'Group',
     whiteHrs: 'White hrs',
     orangeHrs: 'Orange hrs',
+    today: 'Today',
+    pickDate: 'Pick date',
+    notToday: 'Not today',
+    noActiveSessionForDate: 'No session for this day yet',
+    startSessionForDate: 'Start session for this day',
   },
   register: {
     createYourAccount: 'Create your account',

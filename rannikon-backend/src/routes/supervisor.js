@@ -63,19 +63,30 @@ module.exports = async function supervisorRoutes(fastify) {
     }
   }
 
-  // Get or create today's session
+  // Get or create a session for a given date (defaults to today)
   fastify.post('/api/supervisor/session', {
     onRequest: [requireSupervisor]
   }, async (request, reply) => {
-    const existing = await db.query(
-      "SELECT id, total_break_mins, status FROM supervisor_sessions WHERE supervisor_id = $1 AND session_date = CURRENT_DATE AND status = 'open'",
-      [request.user.id]
-    )
+    const sessionDate = request.body?.session_date
+    const existing = sessionDate
+      ? await db.query(
+          "SELECT id, total_break_mins, status FROM supervisor_sessions WHERE supervisor_id = $1 AND session_date = $2 AND status = 'open'",
+          [request.user.id, sessionDate]
+        )
+      : await db.query(
+          "SELECT id, total_break_mins, status FROM supervisor_sessions WHERE supervisor_id = $1 AND session_date = CURRENT_DATE AND status = 'open'",
+          [request.user.id]
+        )
     if (existing.rows[0]) return reply.send({ session: existing.rows[0] })
-    const result = await db.query(
-      'INSERT INTO supervisor_sessions (supervisor_id) VALUES ($1) RETURNING *',
-      [request.user.id]
-    )
+    const result = sessionDate
+      ? await db.query(
+          'INSERT INTO supervisor_sessions (supervisor_id, session_date) VALUES ($1, $2) RETURNING *',
+          [request.user.id, sessionDate]
+        )
+      : await db.query(
+          'INSERT INTO supervisor_sessions (supervisor_id) VALUES ($1) RETURNING *',
+          [request.user.id]
+        )
     return reply.send({ session: result.rows[0] })
   })
 
@@ -91,6 +102,22 @@ module.exports = async function supervisorRoutes(fastify) {
        WHERE s.supervisor_id = $1 AND s.session_date = CURRENT_DATE
        ORDER BY s.created_at DESC LIMIT 1`,
       [request.user.id]
+    )
+    return reply.send({ session: result.rows[0] || null })
+  })
+
+  // Get the session for a specific date (read-only)
+  fastify.get('/api/supervisor/session/date/:date', {
+    onRequest: [requireSupervisor]
+  }, async (request, reply) => {
+    const result = await db.query(
+      `SELECT s.*, w.full_name as supervisor_name,
+        (SELECT COUNT(*) FROM supervisor_logs WHERE session_id = s.id) as worker_count
+       FROM supervisor_sessions s
+       JOIN workers w ON w.id = s.supervisor_id
+       WHERE s.supervisor_id = $1 AND s.session_date = $2
+       ORDER BY s.created_at DESC LIMIT 1`,
+      [request.user.id, request.params.date]
     )
     return reply.send({ session: result.rows[0] || null })
   })
