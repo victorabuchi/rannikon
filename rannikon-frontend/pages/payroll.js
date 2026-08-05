@@ -558,6 +558,7 @@ export default function PayrollPage() {
   const [verifyYear, setVerifyYear] = useState(now.getFullYear())
   const [verifyResults, setVerifyResults] = useState({}) // `${workerId}-${month}-${year}` → result
   const [verifying, setVerifying] = useState(null) // workerId being verified
+  const [collapsedVerify, setCollapsedVerify] = useState(new Set())
 
   useEffect(() => {
     api.get('/api/auth/me').then(res => {
@@ -619,6 +620,7 @@ export default function PayrollPage() {
 
   async function runVerify(worker) {
     const cacheKey = `${worker.id}-${verifyMonth}-${verifyYear}`
+    setCollapsedVerify(prev => { const s = new Set(prev); s.delete(cacheKey); return s })
     setVerifying(worker.id)
     try {
       const res = await api.get(`/api/payroll/verify/${worker.id}/${verifyMonth}/${verifyYear}`)
@@ -980,6 +982,7 @@ export default function PayrollPage() {
                   const sub = subLookup[cacheKey]
                   const result = verifyResults[cacheKey]
                   const isVerifying = verifying === worker.id
+                  const isCollapsed = collapsedVerify.has(cacheKey)
                   const vs = result?.summary?.verification_status
                   const vsColor  = vs==='verified' ? '#2d6a2d'  : vs==='discrepancies_found' ? '#c0392b'  : '#b45309'
                   const vsBg     = vs==='verified' ? '#f0faf0'  : vs==='discrepancies_found' ? '#fff0f0'  : '#fff8ee'
@@ -1019,7 +1022,7 @@ export default function PayrollPage() {
                       </div>
 
                       {/* ── Verification result ── */}
-                      {result && (
+                      {result && !isCollapsed && (
                         <div style={{ borderTop:`2px solid ${vsBorder}` }}>
 
                           {/* Status banner */}
@@ -1051,6 +1054,11 @@ export default function PayrollPage() {
                             <button onClick={() => exportVerifyPDF(result, verifyMonth, verifyYear)} style={{ padding:'6px 18px', fontSize:'12px', fontWeight:'700', cursor:'pointer', border:'1px solid #1565c0', borderRadius:'6px', background:'#fff', color:'#1565c0' }}>PDF</button>
                             <button onClick={() => exportVerifyExcel(result, verifyMonth, verifyYear)} style={{ padding:'6px 18px', fontSize:'12px', fontWeight:'700', cursor:'pointer', border:'1px solid #2d6a2d', borderRadius:'6px', background:'#fff', color:'#2d6a2d' }}>Excel</button>
                             <button onClick={() => exportVerifyPDF(result, verifyMonth, verifyYear, true)} style={{ padding:'6px 18px', fontSize:'12px', fontWeight:'700', cursor:'pointer', border:'1px solid #555', borderRadius:'6px', background:'#fff', color:'#555' }}>Print</button>
+                            <div style={{ flex:1 }} />
+                            <button onClick={() => setCollapsedVerify(prev => new Set([...prev, cacheKey]))}
+                              style={{ padding:'6px 18px', fontSize:'12px', fontWeight:'700', cursor:'pointer', border:'1px solid #e0e0e0', borderRadius:'6px', background:'#f5f5f5', color:'#666' }}>
+                              Close
+                            </button>
                           </div>
 
                           {/* Day-by-day table */}
