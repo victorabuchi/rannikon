@@ -35,7 +35,11 @@
       "Bash(xargs -r kill -9)",
       "Bash(timeout 30 bash -c 'until curl -sf http://localhost:4009 >/dev/null; do sleep 1; done')",
       "Bash(sed -i 's|http://localhost:4008|http://localhost:4009|' /tmp/claude-1000/-home-victor-Projects-rannikon/b5270464-dc0c-429a-9458-bdab04d84d95/scratchpad/pw/break_check.js)",
-      "Bash(SP_PATH=/tmp/claude-1000/-home-victor-Projects-rannikon/b5270464-dc0c-429a-9458-bdab04d84d95/scratchpad node /tmp/claude-1000/-home-victor-Projects-rannikon/b5270464-dc0c-429a-9458-bdab04d84d95/scratchpad/pw/break_check.js)"
+      "Bash(SP_PATH=/tmp/claude-1000/-home-victor-Projects-rannikon/b5270464-dc0c-429a-9458-bdab04d84d95/scratchpad node /tmp/claude-1000/-home-victor-Projects-rannikon/b5270464-dc0c-429a-9458-bdab04d84d95/scratchpad/pw/break_check.js)",
+      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:4010 >/dev/null; do sleep 1; done')",
+      "Bash(nohup npm run dev -- -p 4010)",
+      "Bash(sudo sysctl -w fs.inotify.max_user_instances=1024)",
+      "Bash(sudo sysctl -w fs.inotify.max_user_watches=524288)"
     ]
   }
 }
