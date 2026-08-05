@@ -1,0 +1,112 @@
+import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/router'
+import { useLanguage } from '@/lib/i18n'
+
+export default function PagesMenu({ role }) {
+  const router = useRouter()
+  const { t } = useLanguage()
+  const [open, setOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState(null)
+  const rootRef = useRef(null)
+  const btnRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onDocClick(e) {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false)
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  if (role !== 'admin') return null
+
+  const MENU_WIDTH = 200
+  const MARGIN = 8
+
+  function toggleOpen() {
+    setOpen(o => {
+      const next = !o
+      if (next && btnRef.current) {
+        const r = btnRef.current.getBoundingClientRect()
+        const idealLeft = r.right - MENU_WIDTH
+        const maxLeft = window.innerWidth - MENU_WIDTH - MARGIN
+        const left = Math.min(Math.max(idealLeft, MARGIN), Math.max(maxLeft, MARGIN))
+        setMenuPos({ top: r.bottom + 6, left })
+      }
+      return next
+    })
+  }
+
+  const items = [
+    { path: '/dashboard', label: t('nav.myTimesheet') },
+    { path: '/supervisor', label: t('nav.supervisor') },
+    { path: '/housemaster', label: t('nav.housemaster') },
+    { path: '/payroll', label: t('nav.payroll') },
+    { path: '/admin', label: t('housemaster.adminBtn') },
+  ]
+
+  return (
+    <div ref={rootRef} style={{ position: 'relative' }}>
+      <button
+        ref={btnRef}
+        onClick={toggleOpen}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={t('nav.pages')}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
+          background: open ? '#f0f7f0' : '#fff', border: '1px solid #2d6a2d', borderRadius: '6px',
+          fontSize: '13px', cursor: 'pointer', color: '#2d6a2d', fontWeight: '600'
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
+          <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />
+        </svg>
+        <span className="pages-menu-label">{t('nav.pages')}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && menuPos && (
+        <div role="menu" style={{
+          position: 'fixed', top: menuPos.top, left: menuPos.left, background: '#fff',
+          border: '1px solid #ddd', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+          width: `${MENU_WIDTH}px`, maxWidth: `calc(100vw - ${MARGIN * 2}px)`, overflow: 'hidden', zIndex: 200
+        }}>
+          {items.map(item => {
+            const active = router.pathname === item.path
+            return (
+              <button
+                key={item.path}
+                role="menuitem"
+                disabled={active}
+                onClick={() => { setOpen(false); router.push(item.path) }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+                  textAlign: 'left', padding: '12px 14px', fontSize: '13px',
+                  fontWeight: active ? '700' : '500', background: active ? '#f0f7f0' : '#fff',
+                  color: active ? '#2d6a2d' : '#333', border: 'none', borderBottom: '1px solid #f2f2f2',
+                  cursor: active ? 'default' : 'pointer'
+                }}
+              >
+                {item.label}
+                {active && <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#2d6a2d', flexShrink: 0 }} />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}

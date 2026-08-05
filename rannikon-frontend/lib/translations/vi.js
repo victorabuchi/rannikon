@@ -5,6 +5,10 @@ export default {
   nav: {
     signOut: 'Đăng xuất',
     myTimesheet: 'Bảng giờ của tôi',
+    pages: 'Tất cả trang',
+    supervisor: 'Giám sát',
+    housemaster: 'Quản lý nhà ở',
+    payroll: 'Bảng lương',
   },
   auth: {
     login: 'Đăng nhập',

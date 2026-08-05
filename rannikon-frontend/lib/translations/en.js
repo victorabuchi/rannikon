@@ -5,6 +5,10 @@ export default {
   nav: {
     signOut: 'Sign out',
     myTimesheet: 'My timesheet',
+    pages: 'All pages',
+    supervisor: 'Supervisor',
+    housemaster: 'Housemaster',
+    payroll: 'Payroll',
   },
   auth: {
     login: 'Sign in',

@@ -52,4 +52,7 @@ a {
   .lang-compact {
     display: inline-block;
   }
+  .pages-menu-label {
+    display: none;
+  }
 }

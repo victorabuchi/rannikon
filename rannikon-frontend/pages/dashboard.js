@@ -8,6 +8,7 @@ import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
 import { useLanguage } from '@/lib/i18n'
 import LanguageSelector from '@/components/LanguageSelector'
+import PagesMenu from '@/components/PagesMenu'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const VALID = ['09:00','09:15','09:30','09:45']
@@ -1028,9 +1029,7 @@ export default function Dashboard() {
                 </svg>
               </button>
             )}
-            {worker?.role === 'admin' && (
-              <button onClick={() => router.push('/admin')} style={{ padding: '6px 14px', background: '#fff', border: '1px solid #2d6a2d', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', color: '#2d6a2d', fontWeight: '600' }}>{t('housemaster.adminBtn')}</button>
-            )}
+            <PagesMenu role={worker?.role} />
             <button onClick={logout} style={{ padding: '6px 14px', background: '#2d6a2d', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', color: '#fff', fontWeight: '600' }}>{t('nav.signOut')}</button>
             <LanguageSelector className="lang-full" />
             <LanguageSelector compact className="lang-compact" />

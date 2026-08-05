@@ -5,6 +5,10 @@ export default {
   nav: {
     signOut: 'Вийти',
     myTimesheet: 'Мій табель',
+    pages: 'Усі сторінки',
+    supervisor: 'Супервайзер',
+    housemaster: 'Комендант',
+    payroll: 'Розрахунок зарплати',
   },
   auth: {
     login: 'Увійти',

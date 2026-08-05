@@ -5,6 +5,10 @@ export default {
   nav: {
     signOut: 'ចេញ',
     myTimesheet: 'តារាងម៉ោងរបស់ខ្ញុំ',
+    pages: 'គ្រប់ទំព័រ',
+    supervisor: 'អ្នកត្រួតពិនិត្យ',
+    housemaster: 'អ្នកគ្រប់គ្រងផ្ទះ',
+    payroll: 'បើកប្រាក់ខែ',
   },
   auth: {
     login: 'ចូល',

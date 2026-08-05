@@ -5,6 +5,10 @@ export default {
   nav: {
     signOut: 'साइन आउट',
     myTimesheet: 'मेरो टाइमसिट',
+    pages: 'सबै पृष्ठहरू',
+    supervisor: 'सुपरभाइजर',
+    housemaster: 'हाउसमास्टर',
+    payroll: 'पेरोल',
   },
   auth: {
     login: 'साइन इन',
