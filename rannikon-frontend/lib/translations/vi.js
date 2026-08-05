@@ -168,6 +168,7 @@ export default {
     notToday: 'Không phải hôm nay',
     noActiveSessionForDate: 'Chưa có phiên cho ngày này',
     startSessionForDate: 'Bắt đầu phiên cho ngày này',
+    breakLabel: 'Nghỉ giải lao',
   },
   register: {
     createYourAccount: 'Tạo tài khoản của bạn',

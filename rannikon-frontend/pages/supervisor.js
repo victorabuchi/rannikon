@@ -72,8 +72,8 @@ export default function SupervisorPage() {
   const [batchSaving, setBatchSaving] = useState(false)
   const [batchError, setBatchError] = useState('')
 
-  // Break modal
-  const [showBreakModal, setShowBreakModal] = useState(false)
+  // Break modal — scoped to a single batch, since break time differs per batch
+  const [breakBatchId, setBreakBatchId] = useState(null)
   const [breakMins, setBreakMins] = useState('')
   const [breakSaving, setBreakSaving] = useState(false)
 
@@ -174,12 +174,12 @@ export default function SupervisorPage() {
   }
 
   async function addBreak() {
-    if (!breakMins || parseInt(breakMins) <= 0) return
+    if (!breakMins || parseInt(breakMins) <= 0 || !breakBatchId) return
     setBreakSaving(true)
     try {
-      const res = await api.post('/api/supervisor/break', { session_id: session.id, break_mins: parseInt(breakMins) })
-      setSession(s => ({ ...s, total_break_mins: res.data.total_break_mins }))
-      setShowBreakModal(false)
+      await api.post('/api/supervisor/break', { batch_id: breakBatchId, break_mins: parseInt(breakMins) })
+      await loadBatches(session.id)
+      setBreakBatchId(null)
       setBreakMins('')
     } finally {
       setBreakSaving(false)
@@ -224,7 +224,7 @@ export default function SupervisorPage() {
     doc.setFontSize(14); doc.setFont('helvetica', 'bold')
     doc.text(t('housemaster.workLog'), 14, 16)
     doc.setFontSize(10); doc.setFont('helvetica', 'normal')
-    doc.text(`${t('sup.supervisorLabel')}: ${worker?.full_name || ''}   ${t('papers.date')}: ${dateLabel}   ${t('sup.totalBreak')}: ${session?.total_break_mins || 0} min`, 14, 23)
+    doc.text(`${t('sup.supervisorLabel')}: ${worker?.full_name || ''}   ${t('papers.date')}: ${dateLabel}   ${t('sup.totalBreak')}: ${totalBreakMins} min`, 14, 23)
     const rows = logs.map(r => [r.worker_number, r.worker_name || '', r.house_group, r.start_time?.slice(0,5) || '', r.finish_time?.slice(0,5) || '', (r.total_break_mins || 0) + ' min', r.white_hours || '', r.orange_hours || '', r.total_hours || '', r.what_work || ''])
     autoTable(doc, {
       startY: 28,
@@ -246,7 +246,7 @@ export default function SupervisorPage() {
     const dateLabel = new Date().toLocaleDateString(LOCALE_MAP[lang] || 'en-GB')
     const data = [
       [t('housemaster.workLog')],
-      [`${t('sup.supervisorLabel')}: ${worker?.full_name || ''}   ${t('papers.date')}: ${dateLabel}   ${t('housemaster.breakShort')}: ${session?.total_break_mins || 0} min`],
+      [`${t('sup.supervisorLabel')}: ${worker?.full_name || ''}   ${t('papers.date')}: ${dateLabel}   ${t('housemaster.breakShort')}: ${totalBreakMins} min`],
       [],
       [t('housemaster.workNumberShort'), t('housemaster.name'), t('sup.group'), t('papers.start'), t('papers.finish'), t('housemaster.breakShort'), t('sup.whiteHrs'), t('sup.orangeHrs'), t('housemaster.totalHrs'), t('housemaster.workDone')],
       ...logs.map(r => [r.worker_number, r.worker_name || '', r.house_group, r.start_time?.slice(0,5) || '', r.finish_time?.slice(0,5) || '', (r.total_break_mins || 0) + ' min', r.white_hours || '', r.orange_hours || '', r.total_hours || '', r.what_work || ''])
@@ -257,6 +257,8 @@ export default function SupervisorPage() {
   }
 
   const inp = (extra = {}) => ({ width: '100%', padding: '10px 12px', fontSize: '15px', border: '1px solid #ccc', borderRadius: '8px', boxSizing: 'border-box', fontFamily: 'inherit', ...extra })
+
+  const totalBreakMins = batches.reduce((sum, b) => sum + (b.total_break_mins || 0), 0)
 
   const todayStr = new Date().toISOString().slice(0, 10)
   const isToday = selectedDate === todayStr
@@ -385,7 +387,7 @@ export default function SupervisorPage() {
                 </div>
                 <div>
                   <div style={{ fontSize: '10px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('sup.totalBreak')}</div>
-                  <div style={{ fontSize: '22px', fontWeight: '800', color: '#b45309' }}>{session.total_break_mins || 0} min</div>
+                  <div style={{ fontSize: '22px', fontWeight: '800', color: '#b45309' }}>{totalBreakMins} min</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '10px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('sup.batches')}</div>
@@ -398,10 +400,6 @@ export default function SupervisorPage() {
                 )}
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button className="btn btn-outline" onClick={() => setShowBreakModal(true)} style={{ background: '#fffbeb', borderColor: '#f59e0b !important', color: '#b45309' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  {t('sup.addBreak')}
-                </button>
                 <button className="btn btn-green" onClick={() => setShowBatchModal(true)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   {t('sup.addWorkers')}
@@ -441,6 +439,11 @@ export default function SupervisorPage() {
                             ) : (
                               <span style={{ fontSize: '11px', background: '#fff3e0', color: '#b45309', padding: '2px 8px', borderRadius: '6px', fontWeight: '700' }}>{t('sup.noFinishYet')}</span>
                             )}
+                            {b.total_break_mins > 0 && (
+                              <span style={{ fontSize: '11px', background: '#fffbeb', color: '#b45309', padding: '2px 8px', borderRadius: '6px', fontWeight: '700', border: '1px solid #fde68a' }}>
+                                {t('sup.breakLabel')}: {b.total_break_mins} min
+                              </span>
+                            )}
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
                             {b.worker_numbers?.map(wn => {
@@ -454,16 +457,22 @@ export default function SupervisorPage() {
                             })}
                           </div>
                         </div>
-                        {!hasFinish && (
-                          <button className="btn btn-green" onClick={() => { setFinishBatchId(b.id); setFinishTime('') }} style={{ fontSize: '12px', padding: '7px 14px' }}>
-                            {t('sup.setFinish')}
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <button className="btn btn-outline" onClick={() => { setBreakBatchId(b.id); setBreakMins('') }} style={{ fontSize: '12px', padding: '7px 14px', background: '#fffbeb', borderColor: '#f59e0b', color: '#b45309' }}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: '-2px' }}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            {t('sup.addBreak')}
                           </button>
-                        )}
-                        {hasFinish && (
-                          <button className="btn btn-outline" onClick={() => { setFinishBatchId(b.id); setFinishTime(b.finish_time?.slice(0,5) || '') }} style={{ fontSize: '12px', padding: '7px 14px' }}>
-                            {t('sup.editFinish')}
-                          </button>
-                        )}
+                          {!hasFinish && (
+                            <button className="btn btn-green" onClick={() => { setFinishBatchId(b.id); setFinishTime('') }} style={{ fontSize: '12px', padding: '7px 14px' }}>
+                              {t('sup.setFinish')}
+                            </button>
+                          )}
+                          {hasFinish && (
+                            <button className="btn btn-outline" onClick={() => { setFinishBatchId(b.id); setFinishTime(b.finish_time?.slice(0,5) || '') }} style={{ fontSize: '12px', padding: '7px 14px' }}>
+                              {t('sup.editFinish')}
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <div style={{ fontSize: '12px', color: '#888' }}>{b.worker_numbers?.length} {b.worker_numbers?.length !== 1 ? t('housemaster.workers') : t('housemaster.worker')}</div>
                     </div>
@@ -595,12 +604,12 @@ export default function SupervisorPage() {
         </div>
       )}
 
-      {/* BREAK MODAL */}
-      {showBreakModal && (
-        <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget) setShowBreakModal(false) }}>
+      {/* BREAK MODAL — scoped to one batch, since break time differs per batch */}
+      {breakBatchId && (
+        <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget) setBreakBatchId(null) }}>
           <div className="modal" style={{ maxWidth: '340px' }}>
             <h3 style={{ fontSize: '17px', fontWeight: '800', marginBottom: '6px' }}>{t('sup.recordBreak')}</h3>
-            <p style={{ fontSize: '13px', color: '#666', marginBottom: '18px' }}>{t('sup.currentTotal')}: <b>{session.total_break_mins || 0} min</b></p>
+            <p style={{ fontSize: '13px', color: '#666', marginBottom: '18px' }}>{t('sup.currentTotal')}: <b>{batches.find(b => b.id === breakBatchId)?.total_break_mins || 0} min</b></p>
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>{t('sup.breakDuration')}</label>
               <input type="number" min="1" max="120" style={inp({ fontSize: '20px', fontWeight: '700', textAlign: 'center' })} placeholder={t('sup.breakPlaceholder')} value={breakMins} onChange={e => setBreakMins(e.target.value)} />
@@ -611,7 +620,7 @@ export default function SupervisorPage() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn btn-outline" onClick={() => setShowBreakModal(false)} style={{ flex: 1 }}>{t('sup.cancel')}</button>
+              <button className="btn btn-outline" onClick={() => setBreakBatchId(null)} style={{ flex: 1 }}>{t('sup.cancel')}</button>
               <button className="btn btn-green" onClick={addBreak} disabled={breakSaving || !breakMins} style={{ flex: 2 }}>
                 {breakSaving ? t('sup.saving') : `${t('sup.addBreakPrefix')} ${breakMins || '—'} ${t('sup.minBreakSuffix')}`}
               </button>

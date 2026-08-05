@@ -168,6 +168,7 @@ export default {
     notToday: 'Not today',
     noActiveSessionForDate: 'No session for this day yet',
     startSessionForDate: 'Start session for this day',
+    breakLabel: 'Break',
   },
   register: {
     createYourAccount: 'Create your account',

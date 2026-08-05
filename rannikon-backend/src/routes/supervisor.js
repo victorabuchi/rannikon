@@ -148,17 +148,17 @@ module.exports = async function supervisorRoutes(fastify) {
     return reply.send({ batch: batch.rows[0] })
   })
 
-  // Record a break (adds to session total)
+  // Record a break for a specific batch (adds to that batch's total — break time differs per batch)
   fastify.post('/api/supervisor/break', {
     onRequest: [requireSupervisor]
   }, async (request, reply) => {
-    const { session_id, break_mins } = request.body
-    if (!session_id || !break_mins) return reply.status(400).send({ error: 'session_id and break_mins required' })
-    await db.query(
-      'UPDATE supervisor_sessions SET total_break_mins = total_break_mins + $1 WHERE id = $2',
-      [parseInt(break_mins), session_id]
+    const { batch_id, break_mins } = request.body
+    if (!batch_id || !break_mins) return reply.status(400).send({ error: 'batch_id and break_mins required' })
+    const result = await db.query(
+      'UPDATE supervisor_batches SET total_break_mins = total_break_mins + $1 WHERE id = $2 RETURNING total_break_mins',
+      [parseInt(break_mins), batch_id]
     )
-    const result = await db.query('SELECT total_break_mins FROM supervisor_sessions WHERE id = $1', [session_id])
+    if (!result.rows[0]) return reply.status(404).send({ error: 'Batch not found' })
     return reply.send({ total_break_mins: result.rows[0].total_break_mins })
   })
 
@@ -176,8 +176,7 @@ module.exports = async function supervisorRoutes(fastify) {
 
     await db.query('UPDATE supervisor_batches SET finish_time = $1 WHERE id = $2', [finish_time, batch_id])
 
-    const sessionRes = await db.query('SELECT total_break_mins FROM supervisor_sessions WHERE id = $1', [batch.session_id])
-    const breakMins = sessionRes.rows[0]?.total_break_mins || 30
+    const breakMins = batch.total_break_mins || 30
 
     const sessionDate = await db.query('SELECT session_date FROM supervisor_sessions WHERE id = $1', [batch.session_id])
     const dateStr = sessionDate.rows[0]?.session_date?.toISOString?.()?.split('T')[0] || new Date().toISOString().split('T')[0]

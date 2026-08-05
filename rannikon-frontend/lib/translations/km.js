@@ -168,6 +168,7 @@ export default {
     notToday: 'មិនមែនថ្ងៃនេះ',
     noActiveSessionForDate: 'មិនទាន់មានវគ្គសម្រាប់ថ្ងៃនេះទេ',
     startSessionForDate: 'ចាប់ផ្តើមវគ្គសម្រាប់ថ្ងៃនេះ',
+    breakLabel: 'សម្រាក',
   },
   register: {
     createYourAccount: 'បង្កើតគណនីរបស់អ្នក',

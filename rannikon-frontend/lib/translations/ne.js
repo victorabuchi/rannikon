@@ -168,6 +168,7 @@ export default {
     notToday: 'आज होइन',
     noActiveSessionForDate: 'यस दिनको लागि अझै सत्र छैन',
     startSessionForDate: 'यस दिनको लागि सत्र सुरु गर्नुहोस्',
+    breakLabel: 'विश्राम',
   },
   register: {
     createYourAccount: 'आफ्नो खाता बनाउनुस्',

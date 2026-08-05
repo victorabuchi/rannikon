@@ -168,6 +168,7 @@ export default {
     notToday: 'Не сьогодні',
     noActiveSessionForDate: 'Ще немає сесії на цей день',
     startSessionForDate: 'Почати сесію на цей день',
+    breakLabel: 'Перерва',
   },
   register: {
     createYourAccount: 'Створіть свій акаунт',

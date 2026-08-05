@@ -28,6 +28,9 @@ ALTER TABLE workers ADD COLUMN IF NOT EXISTS house_group TEXT;
 -- Payroll copy flag on housemaster worklogs
 ALTER TABLE housemaster_worklogs ADD COLUMN IF NOT EXISTS for_payroll BOOLEAN DEFAULT false;
 
+-- Per-batch break minutes — break time differs per batch, not session-wide
+ALTER TABLE supervisor_batches ADD COLUMN IF NOT EXISTS total_break_mins INTEGER DEFAULT 0;
+
 -- Worker monthly paper submissions to payroll
 CREATE TABLE IF NOT EXISTS worker_submissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
