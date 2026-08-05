@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import api from '../lib/api'
 import { clearAuth } from '../lib/auth'
+import PagesMenu from '@/components/PagesMenu'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
@@ -748,9 +749,7 @@ export default function PayrollPage() {
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
             {me && <span style={{ fontSize:'13px', color:'#666' }}>{me.full_name}</span>}
-            {me?.role === 'admin' && (
-              <button onClick={() => router.push('/admin')} style={{ padding:'6px 14px', background:'#fff', border:'1px solid #2d6a2d', borderRadius:'6px', fontSize:'13px', cursor:'pointer', color:'#2d6a2d', fontWeight:'600' }}>Admin</button>
-            )}
+            <PagesMenu role={me?.role} />
             <button onClick={() => { clearAuth(); router.push('/login') }} style={{ padding:'6px 14px', background:'#2d6a2d', border:'none', borderRadius:'6px', fontSize:'13px', cursor:'pointer', color:'#fff', fontWeight:'600' }}>Sign out</button>
           </div>
         </div>

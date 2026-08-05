@@ -8,6 +8,7 @@ import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
 import { useLanguage } from '@/lib/i18n'
 import LanguageSelector from '@/components/LanguageSelector'
+import PagesMenu from '@/components/PagesMenu'
 
 const LOCALE_MAP = { en: 'en-GB', uk: 'uk-UA', km: 'km-KH', vi: 'vi-VN', ne: 'ne-NP' }
 
@@ -235,10 +236,10 @@ export default function HousemasterPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '13px', color: '#444', fontWeight: '500' }}>#{me.work_number} {me.full_name}</span>
-          {me.role === 'admin' && (
-            <button className="btn btn-outline" onClick={() => router.push('/admin')} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('housemaster.adminBtn')}</button>
+          <PagesMenu role={me.role} />
+          {me.role !== 'admin' && (
+            <button className="btn btn-outline" onClick={() => router.push('/dashboard')} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('nav.myTimesheet')}</button>
           )}
-          <button className="btn btn-outline" onClick={() => router.push('/dashboard')} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('nav.myTimesheet')}</button>
           <button className="btn btn-outline" onClick={() => { clearAuth(); router.push('/login') }} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('nav.signOut')}</button>
           <LanguageSelector />
         </div>
