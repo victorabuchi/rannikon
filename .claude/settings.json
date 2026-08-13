@@ -42,7 +42,11 @@
       "Bash(sudo sysctl -w fs.inotify.max_user_watches=524288)",
       "Bash(cd /home/victor/Projects/rannikon/rannikon-frontend *)",
       "Bash(pkill -f \"node -e\")",
-      "Bash(lsof -ti:4003 -sTCP:LISTEN)"
+      "Bash(lsof -ti:4003 -sTCP:LISTEN)",
+      "Bash(git checkout *)",
+      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:4011 >/dev/null; do sleep 1; done')",
+      "Bash(lsof -ti:4011 -sTCP:LISTEN)",
+      "Bash(pkill -f \"next start -p 4011\")"
     ]
   }
 }
