@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import api from '../lib/api'
@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx'
 import { useLanguage } from '@/lib/i18n'
 import LanguageSelector from '@/components/LanguageSelector'
 import PagesMenu from '@/components/PagesMenu'
+import DayGrid from '@/components/DayGrid'
 
 const LOCALE_MAP = { en: 'en-GB', uk: 'uk-UA', km: 'km-KH', vi: 'vi-VN', ne: 'ne-NP' }
 
@@ -62,7 +63,7 @@ export default function SupervisorPage() {
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState('session') // 'session' | 'worklog'
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const dateInputRef = useRef(null)
+  const [showCalendar, setShowCalendar] = useState(false)
 
   // Add batch modal
   const [showBatchModal, setShowBatchModal] = useState(false)
@@ -264,11 +265,6 @@ export default function SupervisorPage() {
   const isToday = selectedDate === todayStr
   const selectedDateLabel = new Date(selectedDate + 'T00:00:00').toLocaleDateString(LOCALE_MAP[lang] || 'en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
 
-  function openDatePicker() {
-    if (dateInputRef.current?.showPicker) dateInputRef.current.showPicker()
-    else dateInputRef.current?.click()
-  }
-
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif' }}>
@@ -338,26 +334,28 @@ export default function SupervisorPage() {
           </div>
           <div style={{ position: 'relative', display: 'flex', gap: '8px', alignItems: 'center' }}>
             {!isToday && (
-              <button className="btn btn-outline" onClick={() => setSelectedDate(todayStr)} style={{ fontSize: '13px', padding: '7px 14px' }}>{t('sup.today')}</button>
+              <button className="btn btn-outline" onClick={() => { setSelectedDate(todayStr); setShowCalendar(false) }} style={{ fontSize: '13px', padding: '7px 14px' }}>{t('sup.today')}</button>
             )}
-            <button className="btn btn-outline" onClick={openDatePicker} style={{ fontSize: '13px', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button className="btn btn-outline" onClick={() => setShowCalendar(o => !o)} style={{ fontSize: '13px', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
               </svg>
               {t('sup.pickDate')}
             </button>
-            <input
-              ref={dateInputRef}
-              type="date"
-              value={selectedDate}
-              max={todayStr}
-              onChange={e => e.target.value && setSelectedDate(e.target.value)}
-              style={{ position: 'absolute', right: 0, top: '100%', opacity: 0, width: '1px', height: '1px', border: 'none' }}
-              tabIndex={-1}
-              aria-hidden="true"
-            />
           </div>
         </div>
+
+        {/* Calendar panel — same visual style as the payroll page's month picker */}
+        {showCalendar && (
+          <div style={{ background: '#fff', borderRadius: '10px', border: '1px solid #e8e8e3', padding: '16px', marginBottom: '20px' }}>
+            <DayGrid
+              selectedDate={selectedDate}
+              onSelect={d => { setSelectedDate(d); setShowCalendar(false) }}
+              maxDate={todayStr}
+              weekdayLabels={t('papers.daysShort')}
+            />
+          </div>
+        )}
 
         {/* No session yet */}
         {!session && (

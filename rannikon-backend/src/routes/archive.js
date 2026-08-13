@@ -11,7 +11,7 @@ module.exports = async function archiveRoutes(fastify) {
     onRequest: [fastify.authenticate]
   }, async (request, reply) => {
     const result = await db.query(
-      'SELECT * FROM housemaster_worklogs ORDER BY sent_at DESC LIMIT 50'
+      'SELECT * FROM housemaster_worklogs ORDER BY sent_at DESC LIMIT 500'
     )
     return reply.send({ worklogs: result.rows })
   })

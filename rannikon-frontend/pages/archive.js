@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx'
 import { useLanguage } from '@/lib/i18n'
 import LanguageSelector from '@/components/LanguageSelector'
 import PagesMenu from '@/components/PagesMenu'
+import MonthGrid from '@/components/MonthGrid'
 
 const LOCALE_MAP = { en: 'en-GB', uk: 'uk-UA', km: 'km-KH', vi: 'vi-VN', ne: 'ne-NP' }
 
@@ -151,6 +152,9 @@ export default function ArchivePage() {
   const [me, setMe] = useState(null)
   const [worklogs, setWorklogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const now = new Date()
+  const [archiveMonth, setArchiveMonth] = useState(now.getMonth() + 1)
+  const [archiveYear, setArchiveYear] = useState(now.getFullYear())
 
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/login'); return }
@@ -179,6 +183,11 @@ export default function ArchivePage() {
       setLoading(false)
     }
   }
+
+  const monthWorklogs = worklogs.filter(wl => {
+    const d = new Date(wl.session_date || wl.sent_at)
+    return d.getMonth() + 1 === archiveMonth && d.getFullYear() === archiveYear
+  })
 
   if (loading || !me) {
     return (
@@ -236,13 +245,31 @@ export default function ArchivePage() {
           <button className="btn btn-outline" onClick={loadWorklogs} style={{ fontSize: '12px' }}>{t('housemaster.refresh')}</button>
         </div>
 
-        {worklogs.length === 0 ? (
+        {/* Month calendar grid — same visual style as the payroll page's month picker */}
+        <div style={{ background: '#fff', borderRadius: '10px', border: '1px solid #e8e8e3', padding: '16px', marginBottom: '20px' }}>
+          <MonthGrid
+            selectedMonth={archiveMonth}
+            selectedYear={archiveYear}
+            onMonthClick={m => setArchiveMonth(m)}
+            onYearChange={y => setArchiveYear(y)}
+            badgeCounts={(() => {
+              const counts = {}
+              worklogs.forEach(wl => {
+                const d = new Date(wl.session_date || wl.sent_at)
+                if (d.getFullYear() === archiveYear) counts[d.getMonth() + 1] = (counts[d.getMonth() + 1] || 0) + 1
+              })
+              return counts
+            })()}
+          />
+        </div>
+
+        {monthWorklogs.length === 0 ? (
           <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '14px', padding: '48px 24px', textAlign: 'center' }}>
             <p style={{ fontSize: '15px', color: '#888', fontWeight: '500' }}>{t('archive.noLogsYet')}</p>
             <p style={{ fontSize: '13px', color: '#bbb', marginTop: '6px' }}>{t('archive.noLogsDesc')}</p>
           </div>
         ) : (
-          worklogs.map(wl => <ArchiveWorklogCard key={wl.id} wl={wl} />)
+          monthWorklogs.map(wl => <ArchiveWorklogCard key={wl.id} wl={wl} />)
         )}
 
       </div>
