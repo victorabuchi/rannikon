@@ -240,6 +240,14 @@ export default {
     excel: 'Excel',
     share: 'Chia sẻ',
   },
+  archive: {
+    badge: 'LƯU TRỮ',
+    navBtn: 'Lưu trữ',
+    title: 'Lưu trữ nhật ký công việc',
+    desc: 'Mọi nhật ký công việc admin đã gửi cho bất kỳ nhà nào — tất cả các nhóm cùng nhau, sắp xếp theo ngày.',
+    noLogsYet: 'Chưa có nhật ký công việc nào',
+    noLogsDesc: 'Khi admin gửi nhật ký công việc cho bất kỳ quản lý nhà ở nào, nó sẽ xuất hiện ở đây cho mọi người xem.',
+  },
   admin: {
     badge: 'QUẢN TRỊ',
     panel: 'Trang quản trị',

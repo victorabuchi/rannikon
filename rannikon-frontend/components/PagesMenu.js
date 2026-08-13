@@ -49,6 +49,7 @@ export default function PagesMenu({ role }) {
     { path: '/dashboard', label: t('nav.myTimesheet') },
     { path: '/supervisor', label: t('nav.supervisor') },
     { path: '/housemaster', label: t('nav.housemaster') },
+    { path: '/archive', label: t('archive.navBtn') },
     { path: '/payroll', label: t('nav.payroll') },
     { path: '/admin', label: t('housemaster.adminBtn') },
   ]

@@ -283,6 +283,7 @@ export default function AdminPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '13px', color: '#444', fontWeight: '500' }}>#{me.work_number} {me.full_name}</span>
           <PagesMenu role={me.role} />
+          <button onClick={() => router.push('/archive')} style={{ fontSize: '12px', padding: '5px 12px', background: '#fff', border: '1px solid #0277bd', borderRadius: '8px', color: '#0277bd', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}>{t('archive.navBtn')}</button>
           <button className="btn btn-outline" onClick={() => { clearAuth(); router.push('/login') }} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('nav.signOut')}</button>
           <LanguageSelector />
         </div>

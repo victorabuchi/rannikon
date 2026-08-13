@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import api from '../lib/api'
-import { clearAuth, getWorker } from '../lib/auth'
+import { clearAuth, getWorker, isLoggedIn } from '../lib/auth'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
@@ -12,19 +12,13 @@ import PagesMenu from '@/components/PagesMenu'
 
 const LOCALE_MAP = { en: 'en-GB', uk: 'uk-UA', km: 'km-KH', vi: 'vi-VN', ne: 'ne-NP' }
 
-function toMins(t) {
-  if (!t) return 0
-  const p = t.slice(0, 5).split(':')
-  return parseInt(p[0]) * 60 + parseInt(p[1])
-}
-
 function formatDate(d, lang) {
   if (!d) return '—'
   const date = new Date(d)
   return date.toLocaleDateString(LOCALE_MAP[lang] || 'en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
-function WorklogCard({ wl, onDelete }) {
+function ArchiveWorklogCard({ wl }) {
   const { t, lang } = useLanguage()
   const logs = Array.isArray(wl.logs) ? wl.logs : (typeof wl.logs === 'string' ? JSON.parse(wl.logs) : [])
   const dateLabel = formatDate(wl.session_date, lang)
@@ -116,13 +110,6 @@ function WorklogCard({ wl, onDelete }) {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             {t('housemaster.share')}
           </button>
-          <button
-            onClick={() => onDelete(wl.id)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', fontSize: '12px', fontWeight: '600', background: '#fff', border: '1px solid #f5c2c2', borderRadius: '7px', cursor: 'pointer', fontFamily: 'inherit', color: '#c0392b' }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c0392b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-            {t('days.delete')}
-          </button>
         </div>
       </div>
 
@@ -158,7 +145,7 @@ function WorklogCard({ wl, onDelete }) {
   )
 }
 
-export default function HousemasterPage() {
+export default function ArchivePage() {
   const router = useRouter()
   const { t } = useLanguage()
   const [me, setMe] = useState(null)
@@ -166,15 +153,13 @@ export default function HousemasterPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!isLoggedIn()) { router.push('/login'); return }
     api.get('/api/auth/me').then(res => {
-      const w = res.data.worker
-      if (!['housemaster', 'admin'].includes(w?.role)) { router.push('/dashboard'); return }
-      setMe(w)
+      setMe(res.data.worker)
       loadWorklogs()
     }).catch(() => {
       const w = getWorker()
       if (!w) { router.push('/login'); return }
-      if (!['housemaster', 'admin'].includes(w.role)) { router.push('/dashboard'); return }
       setMe(w)
       loadWorklogs()
     })
@@ -183,7 +168,7 @@ export default function HousemasterPage() {
   async function loadWorklogs() {
     setLoading(true)
     try {
-      const res = await api.get('/api/admin/housemaster-worklogs')
+      const res = await api.get('/api/archive/worklogs')
       const sorted = (res.data.worklogs || []).sort((a, b) => {
         const da = new Date(a.session_date || a.sent_at)
         const db2 = new Date(b.session_date || b.sent_at)
@@ -192,16 +177,6 @@ export default function HousemasterPage() {
       setWorklogs(sorted)
     } catch {} finally {
       setLoading(false)
-    }
-  }
-
-  async function deleteWorklog(id) {
-    if (!confirm(t('housemaster.deleteConfirm'))) return
-    try {
-      await api.delete(`/api/admin/housemaster-worklogs/${id}`)
-      setWorklogs(prev => prev.filter(wl => wl.id !== id))
-    } catch {
-      alert(t('housemaster.deleteFailed'))
     }
   }
 
@@ -216,7 +191,7 @@ export default function HousemasterPage() {
   return (
     <>
       <Head>
-        <title>{t('housemaster.badge')} | Rannikon</title>
+        <title>{t('archive.badge')} | Rannikon</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
       </Head>
@@ -228,7 +203,7 @@ export default function HousemasterPage() {
         .btn-green:hover { background: #235223; }
         .btn-outline { background: #fff; color: #333; border: 1px solid #ddd !important; }
         .btn-outline:hover { background: #f5f5f0; }
-        @media (max-width: 600px) { .hm-badge { display: none !important; } }
+        @media (max-width: 600px) { .ar-badge { display: none !important; } }
       `}</style>
 
       {/* NAV */}
@@ -238,12 +213,11 @@ export default function HousemasterPage() {
             <img src="/rannikkopuutarhalogo.png" alt="Rannikon" style={{ height: '46px', width: 'auto' }} />
             <span style={{ fontFamily: 'Dancing Script, cursive', fontWeight: '700', fontSize: '22px', color: '#2d6a2d', lineHeight: 1 }}>Rannikon Puutarha</span>
           </div>
-          <span className="hm-badge" style={{ background: '#7b1fa2', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.5px' }}>{t('housemaster.badge')}</span>
+          <span className="ar-badge" style={{ background: '#0277bd', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.5px' }}>{t('archive.badge')}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '13px', color: '#444', fontWeight: '500' }}>#{me.work_number} {me.full_name}</span>
           <PagesMenu role={me.role} />
-          <button onClick={() => router.push('/archive')} style={{ fontSize: '12px', padding: '5px 12px', background: '#fff', border: '1px solid #0277bd', borderRadius: '8px', color: '#0277bd', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}>{t('archive.navBtn')}</button>
           {me.role !== 'admin' && (
             <button className="btn btn-outline" onClick={() => router.push('/dashboard')} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('nav.myTimesheet')}</button>
           )}
@@ -256,19 +230,19 @@ export default function HousemasterPage() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '-0.4px', marginBottom: '2px' }}>{t('housemaster.workLogs')}</h1>
-            <p style={{ fontSize: '13px', color: '#888' }}>{t('housemaster.workLogsSentDesc')}</p>
+            <h1 style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '-0.4px', marginBottom: '2px' }}>{t('archive.title')}</h1>
+            <p style={{ fontSize: '13px', color: '#888' }}>{t('archive.desc')}</p>
           </div>
           <button className="btn btn-outline" onClick={loadWorklogs} style={{ fontSize: '12px' }}>{t('housemaster.refresh')}</button>
         </div>
 
         {worklogs.length === 0 ? (
           <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '14px', padding: '48px 24px', textAlign: 'center' }}>
-            <p style={{ fontSize: '15px', color: '#888', fontWeight: '500' }}>{t('housemaster.noLogsYet')}</p>
-            <p style={{ fontSize: '13px', color: '#bbb', marginTop: '6px' }}>{t('housemaster.noLogsDesc')}</p>
+            <p style={{ fontSize: '15px', color: '#888', fontWeight: '500' }}>{t('archive.noLogsYet')}</p>
+            <p style={{ fontSize: '13px', color: '#bbb', marginTop: '6px' }}>{t('archive.noLogsDesc')}</p>
           </div>
         ) : (
-          worklogs.map(wl => <WorklogCard key={wl.id} wl={wl} onDelete={deleteWorklog} />)
+          worklogs.map(wl => <ArchiveWorklogCard key={wl.id} wl={wl} />)
         )}
 
       </div>

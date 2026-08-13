@@ -799,6 +799,7 @@ export default function PayrollPage() {
           <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
             {me && <span style={{ fontSize:'13px', color:'#666' }}>{me.full_name}</span>}
             <PagesMenu role={me?.role} />
+            <button onClick={() => router.push('/archive')} style={{ padding:'6px 14px', background:'#fff', border:'1px solid #0277bd', borderRadius:'6px', fontSize:'13px', cursor:'pointer', color:'#0277bd', fontWeight:'600' }}>Archive</button>
             <button onClick={() => { clearAuth(); router.push('/login') }} style={{ padding:'6px 14px', background:'#2d6a2d', border:'none', borderRadius:'6px', fontSize:'13px', cursor:'pointer', color:'#fff', fontWeight:'600' }}>Sign out</button>
           </div>
         </div>

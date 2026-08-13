@@ -240,6 +240,14 @@ export default {
     excel: 'Excel',
     share: 'Share',
   },
+  archive: {
+    badge: 'ARCHIVE',
+    navBtn: 'Archive',
+    title: 'Worklog Archive',
+    desc: 'Every work log the admin has sent to any house — all groups together, sorted by date.',
+    noLogsYet: 'No work logs yet',
+    noLogsDesc: 'When the admin sends a work log to any housemaster, it will appear here for everyone to see.',
+  },
   admin: {
     badge: 'ADMIN',
     panel: 'Admin panel',

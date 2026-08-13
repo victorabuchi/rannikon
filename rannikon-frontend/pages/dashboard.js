@@ -1030,6 +1030,7 @@ export default function Dashboard() {
               </button>
             )}
             <PagesMenu role={worker?.role} />
+            <button onClick={() => router.push('/archive')} style={{ padding: '6px 14px', background: '#fff', border: '1px solid #0277bd', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', color: '#0277bd', fontWeight: '600' }}>{t('archive.navBtn')}</button>
             <button onClick={logout} style={{ padding: '6px 14px', background: '#2d6a2d', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', color: '#fff', fontWeight: '600' }}>{t('nav.signOut')}</button>
             <LanguageSelector className="lang-full" />
             <LanguageSelector compact className="lang-compact" />
