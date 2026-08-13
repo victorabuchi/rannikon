@@ -39,7 +39,10 @@
       "Bash(timeout 30 bash -c 'until curl -sf http://localhost:4010 >/dev/null; do sleep 1; done')",
       "Bash(nohup npm run dev -- -p 4010)",
       "Bash(sudo sysctl -w fs.inotify.max_user_instances=1024)",
-      "Bash(sudo sysctl -w fs.inotify.max_user_watches=524288)"
+      "Bash(sudo sysctl -w fs.inotify.max_user_watches=524288)",
+      "Bash(cd /home/victor/Projects/rannikon/rannikon-frontend *)",
+      "Bash(pkill -f \"node -e\")",
+      "Bash(lsof -ti:4003 -sTCP:LISTEN)"
     ]
   }
 }
