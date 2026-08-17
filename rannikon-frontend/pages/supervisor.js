@@ -293,7 +293,7 @@ export default function SupervisorPage() {
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .card { background: #fff; border: 1px solid #e8e8e3; border-radius: 14px; padding: 20px; }
         .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
-        .modal { background: #fff; border-radius: 16px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .modal { background: #fff; border-radius: 16px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
         input:focus, textarea:focus { outline: none; border-color: #2d6a2d !important; box-shadow: 0 0 0 3px rgba(45,106,45,0.1); }
         @media (max-width: 600px) { .sup-badge { display: none !important; } }
       `}</style>

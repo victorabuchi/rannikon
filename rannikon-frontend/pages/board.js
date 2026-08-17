@@ -89,10 +89,10 @@ export default function BoardPage() {
         body { font-family: 'DM Sans', sans-serif; background: #f5f5f0; -webkit-font-smoothing: antialiased; }
       `}</style>
 
-      <div style={{ minHeight: '100vh', background: '#f5f5f0', color: '#1a1a18', padding: '28px 40px' }}>
+      <div style={{ minHeight: '100vh', background: '#f5f5f0', color: '#1a1a18' }}>
 
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+        {/* NAV — same white bar as every other page, so the logo blends the same way */}
+        <div style={{ background: '#fff', borderBottom: '1px solid #ddd', padding: '14px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <img src="/rannikkopuutarhalogo.png" alt="Rannikon" style={{ height: '48px', width: 'auto' }} />
             <div>
@@ -108,6 +108,8 @@ export default function BoardPage() {
             <div style={{ fontSize: '14px', color: '#888', textTransform: 'capitalize' }}>{dateLabel}</div>
           </div>
         </div>
+
+        <div style={{ padding: '28px 40px' }}>
 
         {/* House color legend */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '28px', background: '#fff', border: '1px solid #e8e8e3', borderRadius: '12px', padding: '14px 18px' }}>
@@ -166,6 +168,7 @@ export default function BoardPage() {
           </button>
         </div>
 
+        </div>
       </div>
     </>
   )
