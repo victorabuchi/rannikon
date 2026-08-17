@@ -248,6 +248,16 @@ export default {
     noLogsYet: 'Chưa có nhật ký công việc nào',
     noLogsDesc: 'Khi admin gửi nhật ký công việc cho bất kỳ quản lý nhà ở nào, nó sẽ xuất hiện ở đây cho mọi người xem.',
   },
+  board: {
+    badge: 'BẢNG',
+    navBtn: 'Bảng',
+    desc: 'Các nhóm công việc được giám sát ghi lại theo thời gian thực, tất cả các nhà cùng nhau.',
+    houses: 'Các nhà',
+    noEntries: 'Chưa có nhóm công việc nào được ghi lại',
+    noEntriesDesc: 'Các nhóm công việc sẽ xuất hiện ở đây khi giám sát ghi lại chúng.',
+    inProgress: 'Đang diễn ra',
+    exit: 'Thoát bảng',
+  },
   admin: {
     badge: 'QUẢN TRỊ',
     panel: 'Trang quản trị',

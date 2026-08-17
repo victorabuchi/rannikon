@@ -50,6 +50,7 @@ export default function PagesMenu({ role }) {
     { path: '/supervisor', label: t('nav.supervisor') },
     { path: '/housemaster', label: t('nav.housemaster') },
     { path: '/archive', label: t('archive.navBtn') },
+    { path: '/board', label: t('board.navBtn') },
     { path: '/payroll', label: t('nav.payroll') },
     { path: '/admin', label: t('housemaster.adminBtn') },
   ]

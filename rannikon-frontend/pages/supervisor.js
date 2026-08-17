@@ -311,6 +311,7 @@ export default function SupervisorPage() {
           <span style={{ fontSize: '13px', color: '#444', fontWeight: '500' }}>#{worker?.work_number} {worker?.full_name}</span>
           <PagesMenu role={worker?.role} />
           <button onClick={() => router.push('/archive')} style={{ fontSize: '12px', padding: '5px 12px', background: '#fff', border: '1px solid #0277bd', borderRadius: '8px', color: '#0277bd', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}>{t('archive.navBtn')}</button>
+          <button onClick={() => router.push('/board')} style={{ fontSize: '12px', padding: '5px 12px', background: '#0a0e14', border: '1px solid #0a0e14', borderRadius: '8px', color: '#fff', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}>{t('board.navBtn')}</button>
           {worker?.role !== 'admin' && (
             <button className="btn btn-outline" onClick={() => router.push('/dashboard')} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('nav.myTimesheet')}</button>
           )}

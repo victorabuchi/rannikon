@@ -248,6 +248,16 @@ export default {
     noLogsYet: 'No work logs yet',
     noLogsDesc: 'When the admin sends a work log to any housemaster, it will appear here for everyone to see.',
   },
+  board: {
+    badge: 'BOARD',
+    navBtn: 'Board',
+    desc: 'Live batches recorded by every supervisor, all houses together.',
+    houses: 'Houses',
+    noEntries: 'No batches recorded yet',
+    noEntriesDesc: 'Batches will appear here as supervisors record them.',
+    inProgress: 'In progress',
+    exit: 'Exit board',
+  },
   admin: {
     badge: 'ADMIN',
     panel: 'Admin panel',

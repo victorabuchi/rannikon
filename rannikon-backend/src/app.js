@@ -85,6 +85,7 @@ fastify.register(require('./routes/supervisor'))
 fastify.register(require('./routes/green'))
 fastify.register(require('./routes/payroll'))
 fastify.register(require('./routes/archive'))
+fastify.register(require('./routes/board'))
 
 
 fastify.get('/health', async (request, reply) => {
