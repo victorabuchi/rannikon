@@ -7,18 +7,17 @@ import { useLanguage } from '@/lib/i18n'
 
 const LOCALE_MAP = { en: 'en-GB', uk: 'uk-UA', km: 'km-KH', vi: 'vi-VN', ne: 'ne-NP' }
 
-// Same house ↔ color mapping as the supervisor page, restyled as solid
-// saturated chips so they read clearly on a dark TV-board background.
-const GROUP_COLORS_DARK = {
-  'Kivilinna/Salo':        { bg: '#2e7d32' },
-  'Karton Cambodia':       { bg: '#1565c0' },
-  'Karton International':  { bg: '#e65100' },
-  'Vassila':                { bg: '#ad1457' },
-  'Suppala':                { bg: '#6a1b9a' },
-  'Salo/Turku':             { bg: '#00838f' },
-  'Unknown':                { bg: '#555c66' },
+// Exact same house ↔ color mapping as the supervisor page's batch cards.
+const GROUP_COLORS = {
+  'Kivilinna/Salo':        { bg: '#e8f5e9', text: '#1b5e20', border: '#a5d6a7' },
+  'Karton Cambodia':       { bg: '#e3f2fd', text: '#0d47a1', border: '#90caf9' },
+  'Karton International':  { bg: '#fff3e0', text: '#e65100', border: '#ffcc80' },
+  'Vassila':                { bg: '#fce4ec', text: '#880e4f', border: '#f48fb1' },
+  'Suppala':                { bg: '#f3e5f5', text: '#4a148c', border: '#ce93d8' },
+  'Salo/Turku':             { bg: '#e0f7fa', text: '#006064', border: '#80deea' },
+  'Unknown':                { bg: '#f5f5f5', text: '#555', border: '#ccc' },
 }
-const HOUSE_ORDER = Object.keys(GROUP_COLORS_DARK).filter(h => h !== 'Unknown')
+const HOUSE_ORDER = Object.keys(GROUP_COLORS).filter(h => h !== 'Unknown')
 
 function getHouseGroup(wn) {
   const n = parseInt(wn)
@@ -72,8 +71,8 @@ export default function BoardPage() {
 
   if (!me) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a0e14', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#8892a0' }}>{t('common.loading')}</p>
+      <div style={{ minHeight: '100vh', background: '#f5f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#888' }}>{t('common.loading')}</p>
       </div>
     )
   }
@@ -87,10 +86,10 @@ export default function BoardPage() {
       </Head>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'DM Sans', sans-serif; background: #0a0e14; -webkit-font-smoothing: antialiased; }
+        body { font-family: 'DM Sans', sans-serif; background: #f5f5f0; -webkit-font-smoothing: antialiased; }
       `}</style>
 
-      <div style={{ minHeight: '100vh', background: '#0a0e14', color: '#eef1f5', padding: '28px 40px' }}>
+      <div style={{ minHeight: '100vh', background: '#f5f5f0', color: '#1a1a18', padding: '28px 40px' }}>
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
@@ -98,24 +97,23 @@ export default function BoardPage() {
             <img src="/rannikkopuutarhalogo.png" alt="Rannikon" style={{ height: '48px', width: 'auto' }} />
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '26px', fontWeight: '800', letterSpacing: '-0.5px' }}>Rannikon Puutarha</span>
+                <span style={{ fontSize: '26px', fontWeight: '800', letterSpacing: '-0.5px', color: '#2d6a2d' }}>Rannikon Puutarha</span>
                 <span style={{ background: '#2d6a2d', color: '#fff', fontSize: '11px', fontWeight: '800', padding: '3px 10px', borderRadius: '5px', letterSpacing: '0.5px' }}>{t('board.badge')}</span>
               </div>
-              <p style={{ fontSize: '13px', color: '#8892a0', marginTop: '2px' }}>{t('board.desc')}</p>
+              <p style={{ fontSize: '13px', color: '#888', marginTop: '2px' }}>{t('board.desc')}</p>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '32px', fontWeight: '800', fontVariantNumeric: 'tabular-nums', letterSpacing: '1px' }}>{timeLabel}</div>
-            <div style={{ fontSize: '14px', color: '#8892a0', textTransform: 'capitalize' }}>{dateLabel}</div>
+            <div style={{ fontSize: '32px', fontWeight: '800', fontVariantNumeric: 'tabular-nums', letterSpacing: '1px', color: '#1a1a18' }}>{timeLabel}</div>
+            <div style={{ fontSize: '14px', color: '#888', textTransform: 'capitalize' }}>{dateLabel}</div>
           </div>
         </div>
 
         {/* House color legend */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '28px', background: '#131a24', border: '1px solid #232c3a', borderRadius: '12px', padding: '14px 18px' }}>
-          <span style={{ fontSize: '11px', fontWeight: '800', color: '#8892a0', textTransform: 'uppercase', letterSpacing: '0.8px', marginRight: '4px', alignSelf: 'center' }}>{t('board.houses')}</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '28px', background: '#fff', border: '1px solid #e8e8e3', borderRadius: '12px', padding: '14px 18px' }}>
+          <span style={{ fontSize: '11px', fontWeight: '800', color: '#888', textTransform: 'uppercase', letterSpacing: '0.8px', marginRight: '4px', alignSelf: 'center' }}>{t('board.houses')}</span>
           {HOUSE_ORDER.map(house => (
-            <span key={house} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '13px', fontWeight: '700', color: '#eef1f5' }}>
-              <span style={{ width: '13px', height: '13px', borderRadius: '4px', background: GROUP_COLORS_DARK[house].bg, display: 'inline-block' }} />
+            <span key={house} style={{ background: GROUP_COLORS[house].bg, color: GROUP_COLORS[house].text, border: `1px solid ${GROUP_COLORS[house].border}`, display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '700' }}>
               {house}
             </span>
           ))}
@@ -123,34 +121,34 @@ export default function BoardPage() {
 
         {/* Batches */}
         {batches.length === 0 ? (
-          <div style={{ background: '#131a24', border: '1px solid #232c3a', borderRadius: '14px', padding: '64px 24px', textAlign: 'center' }}>
-            <p style={{ fontSize: '20px', fontWeight: '700', color: '#c4cad4' }}>{t('board.noEntries')}</p>
-            <p style={{ fontSize: '14px', color: '#8892a0', marginTop: '8px' }}>{t('board.noEntriesDesc')}</p>
+          <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '14px', padding: '64px 24px', textAlign: 'center' }}>
+            <p style={{ fontSize: '20px', fontWeight: '700', color: '#555' }}>{t('board.noEntries')}</p>
+            <p style={{ fontSize: '14px', color: '#999', marginTop: '8px' }}>{t('board.noEntriesDesc')}</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {batches.map(b => {
               const hasFinish = !!b.finish_time
               return (
-                <div key={b.id} style={{ background: '#131a24', border: '1px solid #232c3a', borderLeft: `5px solid ${hasFinish ? '#2d6a2d' : '#e6a339'}`, borderRadius: '14px', padding: '18px 22px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '18px' }}>
+                <div key={b.id} style={{ background: '#fff', border: '1px solid #e8e8e3', borderLeft: `5px solid ${hasFinish ? '#2d6a2d' : '#f59e0b'}`, borderRadius: '14px', padding: '18px 22px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '18px' }}>
                   <div style={{ minWidth: '190px' }}>
                     <div style={{ fontSize: '22px', fontWeight: '800', fontVariantNumeric: 'tabular-nums' }}>
                       {b.start_time?.slice(0, 5)}
-                      <span style={{ color: '#5c6572', margin: '0 6px' }}>→</span>
+                      <span style={{ color: '#bbb', margin: '0 6px' }}>→</span>
                       {hasFinish ? b.finish_time?.slice(0, 5) : (
-                        <span style={{ fontSize: '13px', fontWeight: '800', color: '#e6a339', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('board.inProgress')}</span>
+                        <span style={{ fontSize: '13px', fontWeight: '800', color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('board.inProgress')}</span>
                       )}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#8892a0', marginTop: '2px' }}>
+                    <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
                       {b.worker_numbers?.length} {b.worker_numbers?.length !== 1 ? t('housemaster.workers') : t('housemaster.worker')}
                       {b.supervisor_name && <> &nbsp;·&nbsp; {b.supervisor_name}</>}
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', flex: 1 }}>
                     {b.worker_numbers?.map(wn => {
-                      const c = GROUP_COLORS_DARK[getHouseGroup(wn)]
+                      const c = GROUP_COLORS[getHouseGroup(wn)]
                       return (
-                        <span key={wn} style={{ background: c.bg, color: '#fff', padding: '6px 14px', borderRadius: '9px', fontSize: '16px', fontWeight: '800', letterSpacing: '0.3px' }}>
+                        <span key={wn} style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}`, padding: '6px 14px', borderRadius: '9px', fontSize: '16px', fontWeight: '800', letterSpacing: '0.3px' }}>
                           #{wn}
                         </span>
                       )
@@ -163,7 +161,7 @@ export default function BoardPage() {
         )}
 
         <div style={{ marginTop: '32px', textAlign: 'center' }}>
-          <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', color: '#5c6572', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>
             ‹ {t('board.exit')}
           </button>
         </div>
