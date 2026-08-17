@@ -11,11 +11,9 @@ module.exports = async function boardRoutes(fastify) {
     onRequest: [fastify.authenticate]
   }, async (request, reply) => {
     const result = await db.query(
-      `SELECT b.id, b.worker_numbers, b.start_time, b.finish_time, b.total_break_mins,
-              s.session_date, w.full_name as supervisor_name
+      `SELECT b.id, b.worker_numbers, b.start_time, b.finish_time, b.total_break_mins
        FROM supervisor_batches b
        JOIN supervisor_sessions s ON s.id = b.session_id
-       JOIN workers w ON w.id = s.supervisor_id
        WHERE s.session_date = $1
        ORDER BY b.start_time ASC`,
       [request.params.date]

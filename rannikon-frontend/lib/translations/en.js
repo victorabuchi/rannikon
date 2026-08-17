@@ -252,7 +252,6 @@ export default {
     badge: 'BOARD',
     navBtn: 'Board',
     desc: 'Live batches recorded by every supervisor, all houses together.',
-    houses: 'Houses',
     noEntries: 'No batches recorded yet',
     noEntriesDesc: 'Batches will appear here as supervisors record them.',
     inProgress: 'In progress',

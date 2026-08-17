@@ -66,6 +66,24 @@ export default function BoardPage() {
     } catch {}
   }
 
+  // Group every worker across every batch by house, then by start/finish time
+  // within that house — so a worker just scans their own house's section
+  // instead of hunting through mixed batches.
+  const houseGroups = {}
+  batches.forEach(b => {
+    b.worker_numbers?.forEach(wn => {
+      const house = getHouseGroup(wn)
+      if (!houseGroups[house]) houseGroups[house] = {}
+      const key = (b.start_time || '') + '|' + (b.finish_time || '')
+      if (!houseGroups[house][key]) houseGroups[house][key] = { start_time: b.start_time, finish_time: b.finish_time, workers: [] }
+      houseGroups[house][key].workers.push(wn)
+    })
+  })
+  const activeHouses = [...HOUSE_ORDER, 'Unknown'].filter(h => houseGroups[h])
+  const houseTimeGroups = house => Object.values(houseGroups[house] || {})
+    .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))
+    .map(g => ({ ...g, workers: [...g.workers].sort((a, b) => parseInt(a) - parseInt(b)) }))
+
   const dateLabel = now.toLocaleDateString(LOCALE_MAP[lang] || 'en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
   const timeLabel = now.toLocaleTimeString(LOCALE_MAP[lang] || 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
@@ -111,48 +129,52 @@ export default function BoardPage() {
 
         <div style={{ padding: '28px 40px' }}>
 
-        {/* House color legend */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '28px', background: '#fff', border: '1px solid #e8e8e3', borderRadius: '12px', padding: '14px 18px' }}>
-          <span style={{ fontSize: '11px', fontWeight: '800', color: '#888', textTransform: 'uppercase', letterSpacing: '0.8px', marginRight: '4px', alignSelf: 'center' }}>{t('board.houses')}</span>
-          {HOUSE_ORDER.map(house => (
-            <span key={house} style={{ background: GROUP_COLORS[house].bg, color: GROUP_COLORS[house].text, border: `1px solid ${GROUP_COLORS[house].border}`, display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '700' }}>
-              {house}
-            </span>
-          ))}
-        </div>
-
-        {/* Batches */}
-        {batches.length === 0 ? (
+        {/* Houses, each with all of today's workers grouped and sorted by number */}
+        {activeHouses.length === 0 ? (
           <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '14px', padding: '64px 24px', textAlign: 'center' }}>
             <p style={{ fontSize: '20px', fontWeight: '700', color: '#555' }}>{t('board.noEntries')}</p>
             <p style={{ fontSize: '14px', color: '#999', marginTop: '8px' }}>{t('board.noEntriesDesc')}</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {batches.map(b => {
-              const hasFinish = !!b.finish_time
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {activeHouses.map(house => {
+              const c = GROUP_COLORS[house]
+              const timeGroups = houseTimeGroups(house)
+              const workerCount = timeGroups.reduce((s, g) => s + g.workers.length, 0)
               return (
-                <div key={b.id} style={{ background: '#fff', border: '1px solid #e8e8e3', borderLeft: `5px solid ${hasFinish ? '#2d6a2d' : '#f59e0b'}`, borderRadius: '14px', padding: '18px 22px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '18px' }}>
-                  <div style={{ minWidth: '190px' }}>
-                    <div style={{ fontSize: '22px', fontWeight: '800', fontVariantNumeric: 'tabular-nums' }}>
-                      {b.start_time?.slice(0, 5)}
-                      <span style={{ color: '#bbb', margin: '0 6px' }}>→</span>
-                      {hasFinish ? b.finish_time?.slice(0, 5) : (
-                        <span style={{ fontSize: '13px', fontWeight: '800', color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('board.inProgress')}</span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
-                      {b.worker_numbers?.length} {b.worker_numbers?.length !== 1 ? t('housemaster.workers') : t('housemaster.worker')}
-                      {b.supervisor_name && <> &nbsp;·&nbsp; {b.supervisor_name}</>}
-                    </div>
+                <div key={house}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <span style={{ width: '14px', height: '14px', borderRadius: '4px', background: c.border, display: 'inline-block' }} />
+                    <h2 style={{ fontSize: '22px', fontWeight: '800', color: c.text }}>{house}</h2>
+                    <span style={{ fontSize: '13px', color: '#888', fontWeight: '600' }}>
+                      {workerCount} {workerCount !== 1 ? t('housemaster.workers') : t('housemaster.worker')}
+                    </span>
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', flex: 1 }}>
-                    {b.worker_numbers?.map(wn => {
-                      const c = GROUP_COLORS[getHouseGroup(wn)]
+                  <div style={{ background: '#fff', border: `1px solid ${c.border}`, borderRadius: '14px', padding: '18px 22px' }}>
+                    {timeGroups.map((g, i) => {
+                      const hasFinish = !!g.finish_time
                       return (
-                        <span key={wn} style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}`, padding: '6px 14px', borderRadius: '9px', fontSize: '16px', fontWeight: '800', letterSpacing: '0.3px' }}>
-                          #{wn}
-                        </span>
+                        <div key={i} style={{
+                          display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px',
+                          paddingBottom: i < timeGroups.length - 1 ? '14px' : 0,
+                          marginBottom: i < timeGroups.length - 1 ? '14px' : 0,
+                          borderBottom: i < timeGroups.length - 1 ? '1px solid #f0f0ec' : 'none'
+                        }}>
+                          <div style={{ minWidth: '150px', fontSize: '18px', fontWeight: '800', fontVariantNumeric: 'tabular-nums' }}>
+                            {g.start_time?.slice(0, 5)}
+                            <span style={{ color: '#bbb', margin: '0 6px' }}>→</span>
+                            {hasFinish ? g.finish_time?.slice(0, 5) : (
+                              <span style={{ fontSize: '12px', fontWeight: '800', color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('board.inProgress')}</span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', flex: 1 }}>
+                            {g.workers.map(wn => (
+                              <span key={wn} style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}`, padding: '6px 14px', borderRadius: '9px', fontSize: '16px', fontWeight: '800', letterSpacing: '0.3px' }}>
+                                #{wn}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       )
                     })}
                   </div>

@@ -252,7 +252,6 @@ export default {
     badge: 'BẢNG',
     navBtn: 'Bảng',
     desc: 'Các nhóm công việc được giám sát ghi lại theo thời gian thực, tất cả các nhà cùng nhau.',
-    houses: 'Các nhà',
     noEntries: 'Chưa có nhóm công việc nào được ghi lại',
     noEntriesDesc: 'Các nhóm công việc sẽ xuất hiện ở đây khi giám sát ghi lại chúng.',
     inProgress: 'Đang diễn ra',
