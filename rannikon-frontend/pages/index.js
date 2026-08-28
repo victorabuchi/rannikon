@@ -1164,7 +1164,6 @@ export default function Home() {
         .footer-link:hover{color:#c9d1d9!important}
         .footer-newsletter-input:focus{outline:none;border-color:#388e3c!important}
         @media(max-width:768px){
-          .features-grid{grid-template-columns:1fr!important}
           .nav-links{display:none!important}
           .footer-cols{flex-direction:column!important;gap:32px!important}
           .role-demo-zoom{zoom:1.3!important}
@@ -1282,16 +1281,16 @@ export default function Home() {
             <p style={{ fontSize: '16px', color: '#666', maxWidth: '440px', margin: '0 auto', lineHeight: '1.6' }}>{t('home.featuresDesc')}</p>
           </div>
 
-          <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
+          <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px' }}>
 
             {/* Workers */}
-            <div className="card-hover" style={{ background: 'linear-gradient(145deg, #fafaf8 0%, #eef6ee 100%)', border: '1px solid #e8e8e3', borderRadius: '20px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.04)' }}>
-              <div style={{ width: '44px', height: '44px', background: '#e8f5e9', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="card-hover" style={{ background: 'linear-gradient(145deg, #fafaf8 0%, #eef6ee 100%)', border: '1px solid #e8e8e3', borderRadius: '24px', padding: '44px', boxShadow: '0 0 90px -25px rgba(45,106,45,0.35), 0 4px 24px rgba(0,0,0,0.04)' }}>
+              <div style={{ width: '56px', height: '56px', background: '#e8f5e9', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
                 </svg>
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px' }}>{t('home.forWorkers')}</h3>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '24px' }}>{t('home.forWorkers')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {workerFeatures.map((f, i) => (
                   <div key={i} className="feature-tab feature-tab-light" onClick={() => setActiveFeatures(s => ({ ...s, worker: i }))}
@@ -1315,13 +1314,13 @@ export default function Home() {
             </div>
 
             {/* Supervisors */}
-            <div className="card-hover" style={{ background: 'linear-gradient(145deg, #1a1a18 0%, #20231f 100%)', border: '1px solid #333', borderRadius: '20px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.18)' }}>
-              <div style={{ width: '44px', height: '44px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="card-hover" style={{ background: 'linear-gradient(145deg, #1a1a18 0%, #20231f 100%)', border: '1px solid #333', borderRadius: '24px', padding: '44px', boxShadow: '0 0 100px -20px rgba(26,58,92,0.55), 0 4px 24px rgba(0,0,0,0.18)' }}>
+              <div style={{ width: '56px', height: '56px', background: 'rgba(255,255,255,0.1)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
                 </svg>
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px', color: '#fff' }}>{t('home.forSupervisors')}</h3>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '24px', color: '#fff' }}>{t('home.forSupervisors')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {supervisorFeatures.map((f, i) => (
                   <div key={i} className="feature-tab feature-tab-dark" onClick={() => setActiveFeatures(s => ({ ...s, supervisor: i }))}
@@ -1342,13 +1341,13 @@ export default function Home() {
             </div>
 
             {/* Admins */}
-            <div className="card-hover" style={{ background: 'linear-gradient(145deg, #fafaf8 0%, #eaf2fb 100%)', border: '1px solid #e8e8e3', borderRadius: '20px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.04)' }}>
-              <div style={{ width: '44px', height: '44px', background: '#e3f2fd', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="card-hover" style={{ background: 'linear-gradient(145deg, #fafaf8 0%, #eaf2fb 100%)', border: '1px solid #e8e8e3', borderRadius: '24px', padding: '44px', boxShadow: '0 0 90px -25px rgba(21,101,192,0.35), 0 4px 24px rgba(0,0,0,0.04)' }}>
+              <div style={{ width: '56px', height: '56px', background: '#e3f2fd', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" />
                 </svg>
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px' }}>{t('home.forAdmins')}</h3>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '24px' }}>{t('home.forAdmins')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {adminFeatures.map((f, i) => (
                   <div key={i} className="feature-tab feature-tab-light" onClick={() => setActiveFeatures(s => ({ ...s, admin: i }))}
@@ -1369,13 +1368,13 @@ export default function Home() {
             </div>
 
             {/* Housemasters */}
-            <div className="card-hover" style={{ background: 'linear-gradient(145deg, #1a1a18 0%, #221a26 100%)', border: '1px solid #333', borderRadius: '20px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.18)' }}>
-              <div style={{ width: '44px', height: '44px', background: 'rgba(123,31,162,0.25)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ce93d8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="card-hover" style={{ background: 'linear-gradient(145deg, #1a1a18 0%, #221a26 100%)', border: '1px solid #333', borderRadius: '24px', padding: '44px', boxShadow: '0 0 100px -20px rgba(123,31,162,0.5), 0 4px 24px rgba(0,0,0,0.18)' }}>
+              <div style={{ width: '56px', height: '56px', background: 'rgba(123,31,162,0.25)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ce93d8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px', color: '#fff' }}>{t('home.forHousemasters')}</h3>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '24px', color: '#fff' }}>{t('home.forHousemasters')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {housemasterFeatures.map((f, i) => (
                   <div key={i} className="feature-tab feature-tab-dark" onClick={() => setActiveFeatures(s => ({ ...s, housemaster: i }))}
@@ -1396,14 +1395,14 @@ export default function Home() {
             </div>
 
             {/* Payroll */}
-            <div className="card-hover" style={{ gridColumn: 'span 2', background: 'linear-gradient(145deg, #fffaf3 0%, #fdf1e0 100%)', border: '1px solid #f3e0c0', borderRadius: '20px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.04)' }}>
-              <div style={{ width: '44px', height: '44px', background: '#fff3e0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="card-hover" style={{ background: 'linear-gradient(145deg, #fffaf3 0%, #fdf1e0 100%)', border: '1px solid #f3e0c0', borderRadius: '24px', padding: '44px', boxShadow: '0 0 90px -25px rgba(180,83,9,0.35), 0 4px 24px rgba(0,0,0,0.04)' }}>
+              <div style={{ width: '56px', height: '56px', background: '#fff3e0', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
                 </svg>
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px' }}>{t('home.forPayroll')}</h3>
-              <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0 16px' }}>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '24px' }}>{t('home.forPayroll')}</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {payrollFeatures.map((f, i) => (
                   <div key={i} className="feature-tab feature-tab-light" onClick={() => setActiveFeatures(s => ({ ...s, payroll: i }))}
                     style={{ padding: '14px', borderRadius: '12px', background: activeFeatures.payroll === i ? '#fff3e0' : 'transparent', marginBottom: '4px', border: activeFeatures.payroll === i ? '1px solid #ffcc80' : '1px solid transparent' }}>
