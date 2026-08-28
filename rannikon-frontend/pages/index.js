@@ -1203,7 +1203,7 @@ export default function Home() {
             </button>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '44px', marginTop: '64px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '28px', flexWrap: 'wrap', maxWidth: '780px', margin: '64px auto 0' }}>
             {[
               {
                 key: 'strawberry', color: '#e5393b', size: 60, offset: 0, delay: '0s',
@@ -1256,6 +1256,73 @@ export default function Home() {
                   </svg>
                 )
               },
+              {
+                key: 'raspberry', color: '#c2185b', size: 54, offset: -10, delay: '2.1s',
+                svg: (
+                  <svg width="54" height="54" viewBox="0 0 64 64">
+                    <path d="M32 16l-4-6 4 2 4-2-4 6z" fill="#4caf50" />
+                    <g fill="#c2185b">
+                      <circle cx="26" cy="24" r="6" /><circle cx="38" cy="24" r="6" />
+                      <circle cx="20" cy="34" r="6" /><circle cx="32" cy="34" r="6" /><circle cx="44" cy="34" r="6" />
+                      <circle cx="26" cy="44" r="6" /><circle cx="38" cy="44" r="6" />
+                      <circle cx="32" cy="52" r="6" />
+                    </g>
+                    <g fill="#fff" opacity="0.3">
+                      <circle cx="24" cy="22" r="1.3" /><circle cx="30" cy="32" r="1.3" /><circle cx="36" cy="42" r="1.3" />
+                    </g>
+                  </svg>
+                )
+              },
+              {
+                key: 'blackcurrant', color: '#4a2c6d', size: 50, offset: 14, delay: '2.6s',
+                svg: (
+                  <svg width="50" height="50" viewBox="0 0 64 64">
+                    <path d="M32 14v16M32 30l-14 6M32 30l14 6M32 30l-10 16M32 30l10 16" stroke="#6a4c93" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                    <g fill="#2c0f3d">
+                      <circle cx="18" cy="32" r="7" /><circle cx="46" cy="32" r="7" />
+                      <circle cx="22" cy="46" r="7" /><circle cx="42" cy="46" r="7" />
+                    </g>
+                  </svg>
+                )
+              },
+              {
+                key: 'redcurrant', color: '#e53935', size: 46, offset: -6, delay: '3.1s',
+                svg: (
+                  <svg width="46" height="46" viewBox="0 0 64 64">
+                    <path d="M32 12v42" stroke="#7cb342" strokeWidth="2" fill="none" strokeLinecap="round" />
+                    <g fill="#e53935">
+                      <circle cx="32" cy="20" r="5" /><circle cx="32" cy="30" r="5.5" /><circle cx="32" cy="41" r="6" /><circle cx="32" cy="52" r="6" />
+                    </g>
+                    <g fill="#fff" opacity="0.35">
+                      <circle cx="30" cy="18" r="1.4" /><circle cx="30" cy="28" r="1.5" /><circle cx="30" cy="39" r="1.6" /><circle cx="30" cy="50" r="1.6" />
+                    </g>
+                  </svg>
+                )
+              },
+              {
+                key: 'rhubarb', color: '#e05a6e', size: 58, offset: 6, delay: '3.6s',
+                svg: (
+                  <svg width="58" height="58" viewBox="0 0 64 64">
+                    <path d="M28 60V24" stroke="#e05a6e" strokeWidth="8" strokeLinecap="round" />
+                    <path d="M36 60V28" stroke="#d1435a" strokeWidth="6" strokeLinecap="round" />
+                    <path d="M32 26c-10-2-16-10-16-18 10 0 16 8 16 14 0-6 6-14 16-14 0 8-6 16-16 18z" fill="#4caf50" />
+                  </svg>
+                )
+              },
+              {
+                key: 'watermelon', color: '#e53935', size: 62, offset: -12, delay: '4.1s',
+                svg: (
+                  <svg width="62" height="62" viewBox="0 0 64 64">
+                    <path d="M8 30c0 18 12 30 24 30s24-12 24-30" fill="#8bc34a" />
+                    <path d="M12 30c0 15 10 25 20 25s20-10 20-25" fill="#fff" />
+                    <path d="M15 30c0 13 8 22 17 22s17-9 17-22" fill="#e53935" />
+                    <g fill="#212121">
+                      <circle cx="24" cy="26" r="1.5" /><circle cx="32" cy="22" r="1.5" /><circle cx="40" cy="26" r="1.5" />
+                      <circle cx="28" cy="34" r="1.5" /><circle cx="36" cy="34" r="1.5" />
+                    </g>
+                  </svg>
+                )
+              },
             ].map(item => (
               <div key={item.key} style={{ marginBottom: item.offset }}>
                 <div className="float-produce" style={{ animationDelay: item.delay, filter: `drop-shadow(0 0 10px ${item.color}99) drop-shadow(0 0 26px ${item.color}66)` }}>
@@ -1282,26 +1349,12 @@ export default function Home() {
             const ActiveDemo = active.Demo
             return (
               <>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '44px' }}>
-                  {showcaseTabs.map((r, i) => (
-                    <button key={r.key} onClick={() => setActiveShowcase(i)} style={{
-                      padding: '10px 22px', borderRadius: '24px',
-                      border: activeShowcase === i ? 'none' : '1px solid #e0e0dc', cursor: 'pointer',
-                      fontSize: '14px', fontWeight: '700', fontFamily: 'inherit',
-                      background: activeShowcase === i ? r.color : '#fff',
-                      color: activeShowcase === i ? '#fff' : '#666',
-                      transition: 'all 0.2s'
-                    }}>
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
-
                 <div key={active.key} className="fade-up" style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center' }}>
                   <h2 style={{ fontSize: 'clamp(24px,3.5vw,36px)', fontWeight: '800', letterSpacing: '-0.6px', marginBottom: '14px', lineHeight: '1.2' }}>{active.title}</h2>
                   <p style={{ fontSize: '16px', color: '#666', lineHeight: '1.7' }}>{active.desc}</p>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '48px' }}>
+
+                <div style={{ position: 'relative', marginTop: '48px', paddingBottom: '30px' }}>
                   <div style={{
                     display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%',
                     background: '#fff', border: '1px solid #e8e8e3', borderRadius: '24px', padding: '44px',
@@ -1311,6 +1364,26 @@ export default function Home() {
                     <div className="role-demo-zoom" style={{ zoom: 2.1 }}>
                       <ActiveDemo />
                     </div>
+                  </div>
+
+                  <div style={{
+                    position: 'absolute', left: '50%', bottom: 0, transform: 'translate(-50%, 50%)',
+                    display: 'flex', justifyContent: 'center', gap: '6px', flexWrap: 'wrap',
+                    background: '#fff', border: '1px solid #e8e8e3', borderRadius: '28px', padding: '6px',
+                    boxShadow: '0 12px 32px rgba(0,0,0,0.12)', width: 'max-content', maxWidth: '92vw'
+                  }}>
+                    {showcaseTabs.map((r, i) => (
+                      <button key={r.key} onClick={() => setActiveShowcase(i)} style={{
+                        padding: '10px 20px', borderRadius: '22px',
+                        border: 'none', cursor: 'pointer',
+                        fontSize: '14px', fontWeight: '700', fontFamily: 'inherit',
+                        background: activeShowcase === i ? r.color : 'transparent',
+                        color: activeShowcase === i ? '#fff' : '#666',
+                        transition: 'all 0.2s', whiteSpace: 'nowrap'
+                      }}>
+                        {r.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </>
