@@ -604,12 +604,6 @@ function PayrollDemo() {
 export default function Home() {
   const router = useRouter()
   const { t } = useLanguage()
-  const [date, setDate] = useState('')
-  const [work, setWork] = useState('')
-  const [start, setStart] = useState('')
-  const [finish, setFinish] = useState('')
-  const [breakMins, setBreakMins] = useState(30)
-  const [res, setRes] = useState(null)
   const [activeFeatures, setActiveFeatures] = useState({ worker: 0, supervisor: 0, admin: 0, housemaster: 0, payroll: 0 })
   const [activeRole, setActiveRole] = useState(0)
   const [activeShowcase, setActiveShowcase] = useState(0)
@@ -626,23 +620,6 @@ export default function Home() {
     }, 3000)
     return () => clearInterval(t)
   }, [])
-
-  function calc() {
-    if (!date || !start || !finish) { alert(t('home.fillRequiredAlert')); return }
-    const totalBreak = Math.max(30, breakMins)
-    const extraBreak = totalBreak - 30
-    const WHITE_WINDOW = 510
-    const workedMins = toMins(finish) - toMins(start)
-    if (workedMins >= WHITE_WINDOW) {
-      const wFinish = addMins(start, WHITE_WINDOW)
-      const oStart = wFinish
-      const oMins = Math.max(0, toMins(finish) - toMins(oStart) - extraBreak)
-      setRes({ date, work, wStart: start, wFinish, oStart, oFinish: finish, wHours: '8:00', oHours: toHHMM(oMins), total: toHHMM(480 + oMins) })
-    } else {
-      const wHours = toHHMM(Math.max(0, workedMins - totalBreak))
-      setRes({ date, work, wStart: start, wFinish: finish, oStart: finish, oFinish: finish, wHours, oHours: '0:00', total: wHours })
-    }
-  }
 
   const workerFeatures = [
     {
@@ -1157,7 +1134,6 @@ export default function Home() {
         .feature-tab-light:hover{background:#f5f5f2!important}
         .feature-tab-dark:hover{background:rgba(255,255,255,0.05)!important}
         .check-pop{animation:popIn 0.25s ease}
-        .calc-inp:focus{border-color:#2d6a2d!important;outline:none;box-shadow:0 0 0 3px rgba(45,106,45,0.12)}
         .card-hover:hover{transform:translateY(-3px);box-shadow:0 16px 48px rgba(0,0,0,0.1)!important}
         .card-hover{transition:all 0.25s}
         .fade-up{animation:fadeUp 0.7s ease both}
@@ -1186,7 +1162,6 @@ export default function Home() {
             {[
               { href: '#features', label: t('home.features') },
               { href: '#how-it-works', label: t('home.howItWorksTitle') },
-              { href: '#calculator', label: t('home.navCalculator') },
             ].map(l => (
               <a key={l.href} href={l.href} style={{ fontSize: '14px', fontWeight: '500', color: '#555', transition: 'color 0.15s' }}
                 onMouseEnter={e => e.target.style.color = '#2d6a2d'} onMouseLeave={e => e.target.style.color = '#555'}>{l.label}</a>
@@ -1220,10 +1195,10 @@ export default function Home() {
             <button className="cta-btn" onClick={() => router.push('/register')} style={{ padding: '13px 26px', background: '#2d6a2d', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', color: '#fff' }}>
               {t('auth.createAnAccount')}
             </button>
-            <a href="#calculator" style={{ padding: '13px 26px', background: '#fff', border: '1px solid #e0e0dc', borderRadius: '10px', fontSize: '15px', fontWeight: '600', color: '#333', display: 'inline-block', transition: 'background 0.15s' }}
+            <button onClick={() => router.push('/login')} style={{ padding: '13px 26px', background: '#fff', border: '1px solid #e0e0dc', borderRadius: '10px', fontSize: '15px', fontWeight: '600', color: '#333', cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.background = '#f5f5f0'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
-              {t('home.tryCalculator')}
-            </a>
+              {t('auth.login')}
+            </button>
           </div>
         </div>
       </section>
@@ -1468,84 +1443,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CALCULATOR */}
-      <section id="calculator" style={{ padding: '80px 24px', background: '#fff' }}>
-        <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-            <h2 style={{ fontSize: 'clamp(22px,4vw,36px)', fontWeight: '800', letterSpacing: '-0.8px', marginBottom: '10px' }}>{t('home.calculatorTitle')}</h2>
-            <p style={{ fontSize: '15px', color: '#666' }}>{t('home.calculatorDesc')}</p>
-          </div>
-          <div style={{ background: '#fafaf8', border: '1px solid #e8e8e3', borderRadius: '20px', padding: '28px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {[
-                { l: t('papers.date'), ph: t('home.datePlaceholder'), v: date, fn: e => setDate(e.target.value) },
-                { l: t('papers.whatWork'), ph: t('home.whatWorkPlaceholderCalc'), v: work, fn: e => setWork(e.target.value) },
-                { l: t('dashboard.actualStartTime'), ph: t('dashboard.startTimePlaceholder'), v: start, fn: e => setStart(e.target.value) },
-                { l: t('dashboard.actualFinishTime'), ph: t('dashboard.finishTimePlaceholder'), v: finish, fn: e => setFinish(e.target.value) },
-              ].map(({ l, ph, v, fn }) => (
-                <div key={l}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#333' }}>{l}</label>
-                  <input className="calc-inp" style={{ width: '100%', padding: '11px 13px', fontSize: '15px', border: '1px solid #ddd', borderRadius: '9px', background: '#fff', fontFamily: 'inherit', transition: 'border-color 0.15s' }} placeholder={ph} value={v} onChange={fn} />
-                </div>
-              ))}
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '7px', color: '#333' }}>{t('home.breakDuration')}</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {[30, 45, 60].map(b => (
-                    <button key={b} type="button" onClick={() => setBreakMins(b)} style={{
-                      flex: 1, padding: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
-                      border: `1.5px solid ${breakMins === b ? '#2d6a2d' : '#ddd'}`,
-                      borderRadius: '9px',
-                      background: breakMins === b ? '#f0fff0' : '#fff',
-                      color: breakMins === b ? '#2d6a2d' : '#777',
-                      transition: 'all 0.15s'
-                    }}>{b} min</button>
-                  ))}
-                </div>
-              </div>
-              <button className="cta-btn" onClick={calc} style={{ width: '100%', padding: '13px', background: '#2d6a2d', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', marginTop: '4px' }}>
-                {t('home.calculateMyHours')}
-              </button>
-            </div>
-
-            {res && (
-              <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ background: '#fff', border: '2px solid #2d6a2d', borderRadius: '14px', padding: '16px' }}>
-                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#2d6a2d', letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '12px' }}>{t('papers.whitePaper')}</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                    {[[t('papers.start'), res.wStart], [t('papers.finish'), res.wFinish], [t('papers.hours'), res.wHours]].map(([l, v]) => (
-                      <div key={l} style={{ textAlign: 'center', background: '#f5f5f2', borderRadius: '8px', padding: '8px 4px' }}>
-                        <div style={{ fontSize: '10px', color: '#888', marginBottom: '3px' }}>{l}</div>
-                        <div style={{ fontSize: '15px', fontWeight: '700' }}>{v}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ background: '#fff3e0', border: '2px solid #e67e22', borderRadius: '14px', padding: '16px' }}>
-                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#b45309', letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '12px' }}>{t('papers.orangePaper')}</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                    {[[t('papers.start'), res.oStart], [t('papers.finish'), res.oFinish], [t('papers.hours'), res.oHours]].map(([l, v]) => (
-                      <div key={l} style={{ textAlign: 'center', background: 'rgba(255,255,255,0.6)', borderRadius: '8px', padding: '8px 4px' }}>
-                        <div style={{ fontSize: '10px', color: '#c08040', marginBottom: '3px' }}>{l}</div>
-                        <div style={{ fontSize: '15px', fontWeight: '700', color: '#b45309' }}>{v}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ background: '#e3f2fd', border: '2px solid #1565c0', borderRadius: '14px', padding: '16px', textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#1565c0', letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '6px' }}>{t('home.totalHoursToday')}</p>
-                  <p style={{ fontSize: '32px', fontWeight: '800', color: '#1565c0', letterSpacing: '-1px' }}>{res.total}</p>
-                </div>
-                <p style={{ fontSize: '12px', color: '#999', textAlign: 'center' }}>
-                  {t('home.wantToSave')}{' '}
-                  <a href="/register" style={{ color: '#2d6a2d', fontWeight: '600' }}>{t('auth.createAnAccount')}</a>
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
       {/* FOOTER */}
       <footer style={{ background: '#0d1117', color: '#e6edf3', padding: '0 24px' }}>
 
@@ -1571,7 +1468,7 @@ export default function Home() {
           {[
             {
               title: t('home.platform'),
-              links: [[t('home.features'), '#features'], [t('home.howItWorksTitle'), '#how-it-works'], [t('home.navCalculator'), '#calculator'], [t('home.timesheets'), '/login'], [t('home.paperForms'), '/login']]
+              links: [[t('home.features'), '#features'], [t('home.howItWorksTitle'), '#how-it-works'], [t('home.timesheets'), '/login'], [t('home.paperForms'), '/login']]
             },
             {
               title: t('home.resources'),
