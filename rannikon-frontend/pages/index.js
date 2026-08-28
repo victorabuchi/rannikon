@@ -1240,12 +1240,6 @@ export default function Home() {
             ))}
           </div>
         </div>
-
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '56px', position: 'relative' }}>
-          <div className="role-demo-zoom" style={{ zoom: 2.1 }}>
-            <AnimatedDemo />
-          </div>
-        </div>
       </section>
 
       {/* ROLE SHOWCASES */}
@@ -1253,7 +1247,8 @@ export default function Home() {
         { key: 'supervisor', badge: t('sup.badge'), badgeColor: '#1a3a5c', badgeBg: '#e8eef5', title: t('home.tourSupervisorTitle'), desc: t('home.tourSupervisorDesc'), Demo: SupervisorDemo, bg: '#fff' },
         { key: 'admin', badge: t('admin.badge'), badgeColor: '#1565c0', badgeBg: '#e3f2fd', title: t('home.tourAdminTitle'), desc: t('home.tourAdminDesc'), Demo: AdminDemo, bg: '#f5f5f0' },
         { key: 'housemaster', badge: t('housemaster.badge'), badgeColor: '#7b1fa2', badgeBg: '#f3e5f5', title: t('home.tourHousemasterTitle'), desc: t('home.tourHousemasterDesc'), Demo: HousemasterDemo, bg: '#fff' },
-        { key: 'payroll', badge: 'PAYROLL', badgeColor: '#b45309', badgeBg: '#fff3e0', title: t('home.tourPayrollTitle'), desc: t('home.tourPayrollDesc'), Demo: PayrollDemo, bg: '#f5f5f0' },
+        { key: 'worker', badge: 'WORKER', badgeColor: '#2d6a2d', badgeBg: '#e8f5e9', title: t('home.tourWorkerTitle'), desc: t('home.tourWorkerDesc'), Demo: AnimatedDemo, bg: '#f5f5f0' },
+        { key: 'payroll', badge: 'PAYROLL', badgeColor: '#b45309', badgeBg: '#fff3e0', title: t('home.tourPayrollTitle'), desc: t('home.tourPayrollDesc'), Demo: PayrollDemo, bg: '#fff' },
       ].map(({ key, badge, badgeColor, badgeBg, title, desc, Demo, bg }) => (
         <section key={key} style={{ padding: '72px 24px', background: bg }}>
           <div style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center' }}>
