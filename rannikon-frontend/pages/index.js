@@ -1127,6 +1127,8 @@ export default function Home() {
         @keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
         @keyframes blinkCursor{0%,100%{opacity:1}50%{opacity:0}}
         @keyframes popIn{from{opacity:0;transform:scale(0.4)}to{opacity:1;transform:scale(1)}}
+        @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+        .float-produce{display:inline-block;animation:floatY 4.5s ease-in-out infinite}
         .nav-btn:hover{background:#f0f0ec!important}
         .cta-btn:hover{background:#235223!important;transform:translateY(-1px)}
         .cta-btn{transition:all 0.2s}
@@ -1200,6 +1202,68 @@ export default function Home() {
               {t('auth.login')}
             </button>
           </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '44px', marginTop: '64px', flexWrap: 'wrap' }}>
+            {[
+              {
+                key: 'strawberry', color: '#e5393b', size: 60, offset: 0, delay: '0s',
+                svg: (
+                  <svg width="60" height="60" viewBox="0 0 64 64">
+                    <path d="M32 22c-11 0-19 9-19 21 0 9 8.5 17 19 17s19-8 19-17c0-12-8-21-19-21z" fill="#e5393b" />
+                    <g fill="#fff" opacity="0.85">
+                      <circle cx="24" cy="35" r="1.6" /><circle cx="32" cy="31" r="1.6" /><circle cx="40" cy="35" r="1.6" />
+                      <circle cx="26" cy="45" r="1.6" /><circle cx="38" cy="45" r="1.6" /><circle cx="32" cy="51" r="1.6" />
+                    </g>
+                    <path d="M32 22l-6-8 6 3 6-3-6 8z" fill="#43a047" />
+                    <path d="M19 20c4.5-3.5 9-3.5 13 0 4-3.5 8.5-3.5 13 0" stroke="#43a047" strokeWidth="3" fill="none" strokeLinecap="round" />
+                  </svg>
+                )
+              },
+              {
+                key: 'pea', color: '#558b2f', size: 68, offset: 18, delay: '0.6s',
+                svg: (
+                  <svg width="68" height="68" viewBox="0 0 64 64">
+                    <g transform="rotate(-16 32 32)">
+                      <rect x="8" y="23" width="48" height="22" rx="11" fill="#7cb342" />
+                      <circle cx="19" cy="34" r="8" fill="#33691e" />
+                      <circle cx="32" cy="34" r="8" fill="#33691e" />
+                      <circle cx="45" cy="34" r="8" fill="#33691e" />
+                    </g>
+                  </svg>
+                )
+              },
+              {
+                key: 'blueberry', color: '#3949ab', size: 52, offset: -6, delay: '1.1s',
+                svg: (
+                  <svg width="52" height="52" viewBox="0 0 64 64">
+                    <circle cx="32" cy="36" r="20" fill="#3949ab" />
+                    <circle cx="25" cy="28" r="5" fill="#7986cb" opacity="0.5" />
+                    <path d="M32 19l1.6 3.8 3.8 1.6-3.8 1.6-1.6 3.8-1.6-3.8-3.8-1.6 3.8-1.6z" fill="#1a237e" />
+                  </svg>
+                )
+              },
+              {
+                key: 'cucumber', color: '#689f38', size: 64, offset: 10, delay: '1.6s',
+                svg: (
+                  <svg width="64" height="64" viewBox="0 0 64 64">
+                    <g transform="rotate(-22 32 32)">
+                      <rect x="5" y="25" width="54" height="18" rx="9" fill="#8bc34a" />
+                      <g fill="#558b2f" opacity="0.75">
+                        <circle cx="15" cy="30" r="1.4" /><circle cx="24" cy="38" r="1.4" /><circle cx="33" cy="30" r="1.4" />
+                        <circle cx="42" cy="38" r="1.4" /><circle cx="51" cy="30" r="1.4" />
+                      </g>
+                    </g>
+                  </svg>
+                )
+              },
+            ].map(item => (
+              <div key={item.key} style={{ marginBottom: item.offset }}>
+                <div className="float-produce" style={{ animationDelay: item.delay, filter: `drop-shadow(0 0 10px ${item.color}99) drop-shadow(0 0 26px ${item.color}66)` }}>
+                  {item.svg}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -1238,8 +1302,15 @@ export default function Home() {
                   <p style={{ fontSize: '16px', color: '#666', lineHeight: '1.7' }}>{active.desc}</p>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', marginTop: '48px' }}>
-                  <div className="role-demo-zoom" style={{ zoom: 2.1 }}>
-                    <ActiveDemo />
+                  <div style={{
+                    display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%',
+                    background: '#fff', border: '1px solid #e8e8e3', borderRadius: '24px', padding: '44px',
+                    boxShadow: `0 0 100px -20px ${active.color}55, 0 4px 24px rgba(0,0,0,0.06)`,
+                    transition: 'box-shadow 0.3s ease'
+                  }}>
+                    <div className="role-demo-zoom" style={{ zoom: 2.1 }}>
+                      <ActiveDemo />
+                    </div>
                   </div>
                 </div>
               </>
