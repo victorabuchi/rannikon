@@ -283,6 +283,7 @@ export default {
     roleSupervisor: 'Supervisor',
     roleHousemaster: 'Housemaster',
     roleAdmin: 'Admin',
+    rolePayroll: 'Payroll',
     sent: 'Sent',
     sendToHousemaster: 'Send to housemaster',
     noLogsForGroup: 'No logs for this group',

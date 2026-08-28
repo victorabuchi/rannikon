@@ -612,6 +612,7 @@ export default function Home() {
   const [res, setRes] = useState(null)
   const [activeFeatures, setActiveFeatures] = useState({ worker: 0, supervisor: 0, admin: 0, housemaster: 0, payroll: 0 })
   const [activeRole, setActiveRole] = useState(0)
+  const [activeShowcase, setActiveShowcase] = useState(0)
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -1228,27 +1229,50 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ROLE SHOWCASES */}
-      {[
-        { key: 'supervisor', badge: t('sup.badge'), badgeColor: '#1a3a5c', badgeBg: '#e8eef5', title: t('home.tourSupervisorTitle'), desc: t('home.tourSupervisorDesc'), Demo: SupervisorDemo, bg: '#fff' },
-        { key: 'admin', badge: t('admin.badge'), badgeColor: '#1565c0', badgeBg: '#e3f2fd', title: t('home.tourAdminTitle'), desc: t('home.tourAdminDesc'), Demo: AdminDemo, bg: '#f5f5f0' },
-        { key: 'housemaster', badge: t('housemaster.badge'), badgeColor: '#7b1fa2', badgeBg: '#f3e5f5', title: t('home.tourHousemasterTitle'), desc: t('home.tourHousemasterDesc'), Demo: HousemasterDemo, bg: '#fff' },
-        { key: 'worker', badge: 'WORKER', badgeColor: '#2d6a2d', badgeBg: '#e8f5e9', title: t('home.tourWorkerTitle'), desc: t('home.tourWorkerDesc'), Demo: AnimatedDemo, bg: '#f5f5f0' },
-        { key: 'payroll', badge: 'PAYROLL', badgeColor: '#b45309', badgeBg: '#fff3e0', title: t('home.tourPayrollTitle'), desc: t('home.tourPayrollDesc'), Demo: PayrollDemo, bg: '#fff' },
-      ].map(({ key, badge, badgeColor, badgeBg, title, desc, Demo, bg }) => (
-        <section key={key} style={{ padding: '72px 24px', background: bg }}>
-          <div style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center' }}>
-            <span style={{ display: 'inline-block', background: badgeBg, color: badgeColor, border: `1px solid ${badgeColor}33`, padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '800', letterSpacing: '0.6px', marginBottom: '16px' }}>{badge}</span>
-            <h2 style={{ fontSize: 'clamp(24px,3.5vw,36px)', fontWeight: '800', letterSpacing: '-0.6px', marginBottom: '14px', lineHeight: '1.2' }}>{title}</h2>
-            <p style={{ fontSize: '16px', color: '#666', lineHeight: '1.7' }}>{desc}</p>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '48px' }}>
-            <div className="role-demo-zoom" style={{ zoom: 2.1 }}>
-              <Demo />
-            </div>
-          </div>
-        </section>
-      ))}
+      {/* ROLE SHOWCASE */}
+      <section style={{ padding: '72px 24px 90px', background: '#fafaf9' }}>
+        <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
+          {(() => {
+            const showcaseTabs = [
+              { key: 'supervisor', label: t('admin.roleSupervisor'), color: '#1a3a5c', title: t('home.tourSupervisorTitle'), desc: t('home.tourSupervisorDesc'), Demo: SupervisorDemo },
+              { key: 'admin', label: t('admin.roleAdmin'), color: '#1565c0', title: t('home.tourAdminTitle'), desc: t('home.tourAdminDesc'), Demo: AdminDemo },
+              { key: 'housemaster', label: t('admin.roleHousemaster'), color: '#7b1fa2', title: t('home.tourHousemasterTitle'), desc: t('home.tourHousemasterDesc'), Demo: HousemasterDemo },
+              { key: 'worker', label: t('admin.roleWorker'), color: '#2d6a2d', title: t('home.tourWorkerTitle'), desc: t('home.tourWorkerDesc'), Demo: AnimatedDemo },
+              { key: 'payroll', label: t('admin.rolePayroll'), color: '#b45309', title: t('home.tourPayrollTitle'), desc: t('home.tourPayrollDesc'), Demo: PayrollDemo },
+            ]
+            const active = showcaseTabs[activeShowcase]
+            const ActiveDemo = active.Demo
+            return (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '44px' }}>
+                  {showcaseTabs.map((r, i) => (
+                    <button key={r.key} onClick={() => setActiveShowcase(i)} style={{
+                      padding: '10px 22px', borderRadius: '24px',
+                      border: activeShowcase === i ? 'none' : '1px solid #e0e0dc', cursor: 'pointer',
+                      fontSize: '14px', fontWeight: '700', fontFamily: 'inherit',
+                      background: activeShowcase === i ? r.color : '#fff',
+                      color: activeShowcase === i ? '#fff' : '#666',
+                      transition: 'all 0.2s'
+                    }}>
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div key={active.key} className="fade-up" style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center' }}>
+                  <h2 style={{ fontSize: 'clamp(24px,3.5vw,36px)', fontWeight: '800', letterSpacing: '-0.6px', marginBottom: '14px', lineHeight: '1.2' }}>{active.title}</h2>
+                  <p style={{ fontSize: '16px', color: '#666', lineHeight: '1.7' }}>{active.desc}</p>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '48px' }}>
+                  <div className="role-demo-zoom" style={{ zoom: 2.1 }}>
+                    <ActiveDemo />
+                  </div>
+                </div>
+              </>
+            )
+          })()}
+        </div>
+      </section>
 
       {/* FEATURES */}
       <section id="features" style={{ padding: '80px 24px', background: '#fff' }}>
