@@ -1232,7 +1232,7 @@ export default function Home() {
             </a>
           </div>
           <div style={{ display: 'flex', gap: '32px', marginTop: '36px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {[['500+', t('home.statWorkers')], ['4', t('home.statPapers')], ['0', t('home.statErrors')]].map(([n, l]) => (
+            {[['500+', t('home.statWorkers')], ['5', t('home.statRoles')], ['0', t('home.statErrors')]].map(([n, l]) => (
               <div key={l}>
                 <div style={{ fontSize: '22px', fontWeight: '800', color: '#2d6a2d', letterSpacing: '-0.5px' }}>{n}</div>
                 <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{l}</div>

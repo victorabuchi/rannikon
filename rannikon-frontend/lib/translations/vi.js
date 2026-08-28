@@ -356,7 +356,6 @@ export default {
     heroDesc: 'Nhập giờ bắt đầu và kết thúc làm việc của bạn. Rannikon sẽ tự động tính toán và điền vào tất cả giấy tờ của bạn: giấy trắng, giấy cam và tóm tắt tuần. Không có lỗi.',
     tryCalculator: 'Thử máy tính',
     statWorkers: 'Công nhân',
-    statPapers: 'Tất cả giấy tờ được điền tự động',
     statErrors: 'Lỗi',
     logWorkHours: 'Ghi giờ làm việc',
     workerNumber: 'Số công nhân',
