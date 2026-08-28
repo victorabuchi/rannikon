@@ -638,20 +638,22 @@ export default function Home() {
     { key: 'payroll', label: t('admin.rolePayroll'), color: '#b45309', title: t('home.tourPayrollTitle'), desc: t('home.tourPayrollDesc'), Demo: PayrollDemo, delays: PAYROLL_DELAYS },
   ]
   const activeShowcaseDef = showcaseTabs[activeShowcase]
-  const showcaseFinished = showcaseStep >= activeShowcaseDef.delays.length - 1
-
-  useEffect(() => {
-    setShowcaseStep(0)
-    setShowcasePlaying(true)
-  }, [activeShowcase])
+  const clampedShowcaseStep = Math.min(showcaseStep, activeShowcaseDef.delays.length - 1)
+  const showcaseFinished = clampedShowcaseStep >= activeShowcaseDef.delays.length - 1
 
   useEffect(() => {
     if (!showcasePlaying) return
     const delays = activeShowcaseDef.delays
-    if (showcaseStep >= delays.length - 1) return
-    const tmr = setTimeout(() => setShowcaseStep(s => Math.min(s + 1, delays.length - 1)), delays[showcaseStep] ?? 1000)
+    if (clampedShowcaseStep >= delays.length - 1) return
+    const tmr = setTimeout(() => setShowcaseStep(s => Math.min(s + 1, delays.length - 1)), delays[clampedShowcaseStep] ?? 1000)
     return () => clearTimeout(tmr)
-  }, [showcasePlaying, showcaseStep, activeShowcase])
+  }, [showcasePlaying, clampedShowcaseStep, activeShowcase])
+
+  function selectShowcase(i) {
+    setActiveShowcase(i)
+    setShowcaseStep(0)
+    setShowcasePlaying(true)
+  }
 
   function toggleShowcasePlay() {
     if (showcaseFinished) {
@@ -1405,7 +1407,7 @@ export default function Home() {
               transition: 'box-shadow 0.3s ease'
             }}>
               <FixedDemoFrame>
-                <activeShowcaseDef.Demo step={showcaseStep} />
+                <activeShowcaseDef.Demo step={clampedShowcaseStep} />
               </FixedDemoFrame>
               <PlayPauseButton playing={showcasePlaying && !showcaseFinished} onClick={toggleShowcasePlay} />
             </div>
@@ -1417,7 +1419,7 @@ export default function Home() {
               boxShadow: '0 12px 32px rgba(0,0,0,0.12)', width: 'max-content', maxWidth: '92vw'
             }}>
               {showcaseTabs.map((r, i) => (
-                <button key={r.key} onClick={() => setActiveShowcase(i)} style={{
+                <button key={r.key} onClick={() => selectShowcase(i)} style={{
                   padding: '10px 20px', borderRadius: '22px',
                   border: 'none', cursor: 'pointer',
                   fontSize: '14px', fontWeight: '700', fontFamily: 'inherit',
