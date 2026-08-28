@@ -610,7 +610,7 @@ export default function Home() {
   const [finish, setFinish] = useState('')
   const [breakMins, setBreakMins] = useState(30)
   const [res, setRes] = useState(null)
-  const [activeFeatures, setActiveFeatures] = useState({ worker: 0, supervisor: 0, admin: 0, housemaster: 0 })
+  const [activeFeatures, setActiveFeatures] = useState({ worker: 0, supervisor: 0, admin: 0, housemaster: 0, payroll: 0 })
   const [activeRole, setActiveRole] = useState(0)
 
   useEffect(() => {
@@ -620,6 +620,7 @@ export default function Home() {
         supervisor: (s.supervisor + 1) % 5,
         admin: (s.admin + 1) % 5,
         housemaster: (s.housemaster + 1) % 4,
+        payroll: (s.payroll + 1) % 4,
       }))
     }, 3000)
     return () => clearInterval(t)
@@ -822,6 +823,45 @@ export default function Home() {
       ),
       title: t('home.hf4Title'),
       desc: t('home.hf4Desc')
+    },
+  ]
+
+  const payrollFeatures = [
+    {
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      ),
+      title: t('home.pf1Title'),
+      desc: t('home.pf1Desc')
+    },
+    {
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+        </svg>
+      ),
+      title: t('home.pf2Title'),
+      desc: t('home.pf2Desc')
+    },
+    {
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      ),
+      title: t('home.pf3Title'),
+      desc: t('home.pf3Desc')
+    },
+    {
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /><line x1="2" y1="20" x2="22" y2="20" />
+        </svg>
+      ),
+      title: t('home.pf4Title'),
+      desc: t('home.pf4Desc')
     },
   ]
 
@@ -1035,6 +1075,59 @@ export default function Home() {
           ),
           t: t('home.hStep4T'),
           d: t('home.hStep4D')
+        },
+      ]
+    },
+    {
+      key: 'payroll',
+      label: t('home.forPayroll'),
+      color: '#b45309',
+      iconBg: '#fff3e0',
+      tabIcon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+        </svg>
+      ),
+      steps: [
+        {
+          n: '01',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          ),
+          t: t('home.pStep1T'),
+          d: t('home.pStep1D')
+        },
+        {
+          n: '02',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+            </svg>
+          ),
+          t: t('home.pStep2T'),
+          d: t('home.pStep2D')
+        },
+        {
+          n: '03',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          ),
+          t: t('home.pStep3T'),
+          d: t('home.pStep3D')
+        },
+        {
+          n: '04',
+          icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /><line x1="2" y1="20" x2="22" y2="20" />
+            </svg>
+          ),
+          t: t('home.pStep4T'),
+          d: t('home.pStep4D')
         },
       ]
     },
@@ -1277,6 +1370,33 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Payroll */}
+            <div className="card-hover" style={{ gridColumn: 'span 2', background: 'linear-gradient(145deg, #fffaf3 0%, #fdf1e0 100%)', border: '1px solid #f3e0c0', borderRadius: '20px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.04)' }}>
+              <div style={{ width: '44px', height: '44px', background: '#fff3e0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.3px', marginBottom: '20px' }}>{t('home.forPayroll')}</h3>
+              <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0 16px' }}>
+                {payrollFeatures.map((f, i) => (
+                  <div key={i} className="feature-tab feature-tab-light" onClick={() => setActiveFeatures(s => ({ ...s, payroll: i }))}
+                    style={{ padding: '14px', borderRadius: '12px', background: activeFeatures.payroll === i ? '#fff3e0' : 'transparent', marginBottom: '4px', border: activeFeatures.payroll === i ? '1px solid #ffcc80' : '1px solid transparent' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: activeFeatures.payroll === i ? '6px' : '0' }}>
+                      <span style={{ color: activeFeatures.payroll === i ? '#b45309' : '#888', flexShrink: 0 }}>{f.icon}</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a18', flex: 1 }}>{f.title}</span>
+                      {activeFeatures.payroll === i && (
+                        <svg className="check-pop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </div>
+                    {activeFeatures.payroll === i && <p style={{ fontSize: '13px', color: '#555', lineHeight: '1.5', paddingLeft: '28px', animation: 'slideIn 0.2s ease' }}>{f.desc}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
@@ -1427,23 +1547,6 @@ export default function Home() {
               </div>
             )}
           </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section style={{ padding: '80px 24px', background: '#2d6a2d', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: '-80px', right: '-80px', width: '400px', height: '400px', background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', bottom: '-60px', left: '-60px', width: '300px', height: '300px', background: 'rgba(255,255,255,0.03)', borderRadius: '50%' }} />
-        <div style={{ maxWidth: '560px', margin: '0 auto', textAlign: 'center', position: 'relative' }}>
-          <h2 style={{ fontSize: 'clamp(22px,4vw,40px)', fontWeight: '800', color: '#fff', letterSpacing: '-0.8px', marginBottom: '14px', lineHeight: '1.1' }}>
-            {t('home.ctaTitle1')}<br />{t('home.ctaTitle2')}
-          </h2>
-          <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.7)', marginBottom: '32px', lineHeight: '1.6' }}>
-            {t('home.ctaDesc')}
-          </p>
-          <button className="cta-btn" onClick={() => router.push('/register')} style={{ padding: '15px 36px', background: '#fff', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', color: '#2d6a2d', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
-            {t('home.createYourAccount')}
-          </button>
         </div>
       </section>
 
