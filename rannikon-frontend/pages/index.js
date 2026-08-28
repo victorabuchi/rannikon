@@ -206,6 +206,401 @@ function AnimatedDemo() {
   )
 }
 
+function BrowserChrome({ url }) {
+  return (
+    <div style={{ background: '#f5f5f3', borderBottom: '1px solid #e0e0dc', padding: '9px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', gap: '5px' }}>
+        {['#ff5f57', '#ffbd2e', '#28c940'].map(c => (
+          <div key={c} style={{ width: '9px', height: '9px', borderRadius: '50%', background: c }} />
+        ))}
+      </div>
+      <div style={{ flex: 1, background: '#ebebea', borderRadius: '5px', padding: '3px 8px', fontSize: '10px', color: '#888', textAlign: 'center' }}>
+        {url}
+      </div>
+    </div>
+  )
+}
+
+function CursorArrow({ pos }) {
+  return (
+    <div style={{
+      position: 'absolute', top: pos.top, left: pos.left, opacity: pos.opacity,
+      transition: 'top 0.38s cubic-bezier(0.25,0.46,0.45,0.94), left 0.38s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.25s',
+      pointerEvents: 'none', zIndex: 10
+    }}>
+      <svg width="18" height="22" viewBox="0 0 18 22">
+        <path d="M1 1L1 17L5 13L8 20L10.5 19L7.5 12L13 12Z" fill="#1a1a1a" stroke="white" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+    </div>
+  )
+}
+
+function BlinkCursor({ color }) {
+  return <span style={{ display: 'inline-block', width: '1.5px', height: '13px', background: color, marginLeft: '1px', verticalAlign: 'text-bottom', animation: 'blinkCursor 1s step-end infinite' }} />
+}
+
+function SupervisorDemo() {
+  const { t } = useLanguage()
+  const [tick, setTick] = useState(0)
+  const step = tick % 12
+
+  useEffect(() => {
+    const delays = [700, 500, 900, 500, 900, 350, 700, 350, 900, 700, 350, 3000]
+    const tm = setTimeout(() => setTick(c => c + 1), delays[step] ?? 1000)
+    return () => clearTimeout(tm)
+  }, [tick])
+
+  const numbersVal = step >= 2 ? '247, 248, 251' : ''
+  const startVal = step >= 4 ? '07:30' : ''
+  const addPress = step === 5
+  const showResults = step >= 6
+  const finishPress = step === 7
+  const finishVal = step >= 8 ? '16:00' : ''
+  const showWorklog = step >= 8
+  const sendPress = step === 10
+  const sent = step >= 11
+
+  const cursorPos = [
+    { top: 0,   left: 0,   opacity: 0 },
+    { top: 112, left: 175, opacity: 1 },
+    { top: 112, left: 175, opacity: 1 },
+    { top: 167, left: 175, opacity: 1 },
+    { top: 167, left: 175, opacity: 1 },
+    { top: 209, left: 140, opacity: 1 },
+    { top: 292, left: 230, opacity: 1 },
+    { top: 292, left: 230, opacity: 1 },
+    { top: 292, left: 230, opacity: 1 },
+    { top: 458, left: 145, opacity: 1 },
+    { top: 458, left: 145, opacity: 1 },
+    { top: 458, left: 145, opacity: 0.3 },
+  ][step]
+
+  return (
+    <div style={{ position: 'relative', width: '300px', flexShrink: 0 }}>
+      <div style={{ background: '#fff', border: '1px solid #e0e0dc', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.13)' }}>
+        <BrowserChrome url="rannikon.com/supervisor" />
+        <div style={{ padding: '18px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', color: '#1a3a5c', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: '14px' }}>
+            {t('sup.addWorkers')}
+          </div>
+
+          <div style={{ marginBottom: '9px' }}>
+            <div style={{ fontSize: '10px', color: '#888', marginBottom: '3px', fontWeight: '500' }}>{t('sup.workerNumbers')}</div>
+            <div style={{
+              border: (step === 1 || step === 2) ? '1.5px solid #1a3a5c' : '1px solid #ddd',
+              borderRadius: '6px', padding: '7px 9px', fontSize: '13px', fontWeight: '600',
+              background: (step === 1 || step === 2) ? '#eef3f8' : '#fff', color: '#333',
+              transition: 'all 0.2s', minHeight: '33px',
+              boxShadow: (step === 1 || step === 2) ? '0 0 0 3px rgba(26,58,92,0.1)' : 'none'
+            }}>
+              {numbersVal}
+              {(step === 1 || step === 2) && <BlinkCursor color="#1a3a5c" />}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '13px' }}>
+            <div style={{ fontSize: '10px', color: '#888', marginBottom: '3px', fontWeight: '500' }}>{t('days.startTime')}</div>
+            <div style={{
+              border: (step === 3 || step === 4) ? '1.5px solid #1a3a5c' : '1px solid #ddd',
+              borderRadius: '6px', padding: '7px 9px', fontSize: '13px', fontWeight: '600',
+              background: (step === 3 || step === 4) ? '#eef3f8' : '#fff', color: '#333',
+              transition: 'all 0.2s', minHeight: '33px',
+              boxShadow: (step === 3 || step === 4) ? '0 0 0 3px rgba(26,58,92,0.1)' : 'none'
+            }}>
+              {startVal}
+              {(step === 3 || step === 4) && <BlinkCursor color="#1a3a5c" />}
+            </div>
+          </div>
+
+          <div style={{
+            background: '#1a3a5c', borderRadius: '7px', padding: '9px', textAlign: 'center',
+            color: '#fff', fontSize: '13px', fontWeight: '700',
+            transform: addPress ? 'scale(0.96)' : 'scale(1)',
+            transition: 'transform 0.12s', opacity: addPress ? 0.8 : 1, cursor: 'pointer'
+          }}>
+            {t('sup.addBatchBtn')}
+          </div>
+
+          <div style={{ overflow: 'hidden', maxHeight: showResults ? '340px' : '0', transition: 'max-height 0.5s ease', marginTop: showResults ? '12px' : '0' }}>
+            <div style={{ background: '#f5f8fb', border: '1px solid #dbe4ec', borderRadius: '8px', padding: '10px 12px', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
+                {['247', '248', '251'].map(n => (
+                  <span key={n} style={{ background: '#e8f5e9', color: '#1b5e20', border: '1px solid #a5d6a7', padding: '2px 8px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' }}>#{n}</span>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700' }}>{t('papers.start')}: <span style={{ color: '#1a3a5c' }}>07:30</span></span>
+                {!finishVal ? (
+                  <span style={{
+                    fontSize: '11px', padding: '3px 10px', borderRadius: '6px', fontWeight: '700', cursor: 'pointer',
+                    background: finishPress ? '#1a3a5c' : '#fff', color: finishPress ? '#fff' : '#1a3a5c',
+                    border: '1px solid #1a3a5c', transform: finishPress ? 'scale(0.95)' : 'scale(1)', transition: 'all 0.15s'
+                  }}>{t('sup.setFinish')}</span>
+                ) : (
+                  <span style={{ fontSize: '12px', fontWeight: '700' }}>{t('papers.finish')}: <span style={{ color: '#b45309' }}>{finishVal}</span></span>
+                )}
+              </div>
+            </div>
+
+            <div style={{ overflow: 'hidden', maxHeight: showWorklog ? '160px' : '0', transition: 'max-height 0.4s ease' }}>
+              <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '8px', overflow: 'hidden', marginBottom: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', background: '#f5f5f0', padding: '5px 8px', fontSize: '9px', fontWeight: '700', color: '#888' }}>
+                  <span>{t('housemaster.workNumberShort')}</span><span>{t('sup.whiteHrs')}</span><span>{t('sup.orangeHrs')}</span>
+                </div>
+                {[['247', '8:00', '0:30'], ['248', '8:00', '0:15'], ['251', '8:00', '0:00']].map(([n, w, o]) => (
+                  <div key={n} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '5px 8px', fontSize: '11px', borderTop: '1px solid #f0f0ec' }}>
+                    <span style={{ fontWeight: '700' }}>#{n}</span><span style={{ color: '#2d6a2d', fontWeight: '600' }}>{w}</span><span style={{ color: '#b45309', fontWeight: '600' }}>{o}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{
+                borderRadius: '7px', padding: '9px', textAlign: 'center', fontSize: '13px', fontWeight: '700',
+                transition: 'all 0.2s',
+                background: sent ? '#e8f5e9' : '#2d6a2d',
+                color: sent ? '#2d6a2d' : '#fff',
+                border: sent ? '1px solid #c8e6c9' : 'none',
+                transform: sendPress ? 'scale(0.96)' : 'scale(1)',
+              }}>
+                {sent ? '✓ ' + t('sup.sentToAdmin') : t('sup.sendToAdmin')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <CursorArrow pos={cursorPos} />
+    </div>
+  )
+}
+
+function AdminDemo() {
+  const { t } = useLanguage()
+  const [tick, setTick] = useState(0)
+  const step = tick % 6
+
+  useEffect(() => {
+    const delays = [900, 500, 350, 900, 350, 3000]
+    const tm = setTimeout(() => setTick(c => c + 1), delays[step] ?? 1000)
+    return () => clearTimeout(tm)
+  }, [tick])
+
+  const g1Press = step === 2
+  const g1Sent = step >= 3
+  const g2Press = step === 4
+  const g2Sent = step >= 5
+
+  const cursorPos = [
+    { top: 0,   left: 0,   opacity: 0 },
+    { top: 108, left: 235, opacity: 1 },
+    { top: 108, left: 235, opacity: 1 },
+    { top: 108, left: 235, opacity: 1 },
+    { top: 205, left: 235, opacity: 1 },
+    { top: 205, left: 235, opacity: 0.3 },
+  ][step]
+
+  const GroupCard = ({ name, colors, workers, sent, press }) => (
+    <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '8px', padding: '10px 12px', marginBottom: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+        <span style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, padding: '2px 8px', borderRadius: '8px', fontSize: '11px', fontWeight: '700' }}>{name}</span>
+        {sent ? (
+          <span style={{ fontSize: '10px', fontWeight: '700', color: '#2d6a2d', display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            {t('admin.sent')}
+          </span>
+        ) : (
+          <span style={{
+            fontSize: '10px', fontWeight: '700', padding: '3px 9px', borderRadius: '6px', cursor: 'pointer',
+            background: press ? '#154d8f' : '#1565c0', color: '#fff', transform: press ? 'scale(0.95)' : 'scale(1)', transition: 'all 0.15s'
+          }}>{t('admin.sendToHousemaster')}</span>
+        )}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        {workers.map(([n, h]) => (
+          <div key={n} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#555' }}>
+            <span style={{ fontWeight: '700', color: '#333' }}>#{n}</span><span>{h}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  return (
+    <div style={{ position: 'relative', width: '300px', flexShrink: 0 }}>
+      <div style={{ background: '#fff', border: '1px solid #e0e0dc', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.13)' }}>
+        <BrowserChrome url="rannikon.com/admin" />
+        <div style={{ padding: '18px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', color: '#1565c0', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: '14px' }}>
+            {t('admin.tabLogs')}
+          </div>
+          <GroupCard name="Kivilinna/Salo" colors={{ bg: '#e8f5e9', text: '#1b5e20', border: '#a5d6a7' }} workers={[['247', '8:00'], ['248', '8:15']]} sent={g1Sent} press={g1Press} />
+          <GroupCard name="Karton Cambodia" colors={{ bg: '#e3f2fd', text: '#0d47a1', border: '#90caf9' }} workers={[['312', '8:00'], ['318', '7:45']]} sent={g2Sent} press={g2Press} />
+        </div>
+      </div>
+      <CursorArrow pos={cursorPos} />
+    </div>
+  )
+}
+
+function HousemasterDemo() {
+  const { t } = useLanguage()
+  const [tick, setTick] = useState(0)
+  const step = tick % 6
+
+  useEffect(() => {
+    const delays = [1200, 1200, 500, 500, 500, 3000]
+    const tm = setTimeout(() => setTick(c => c + 1), delays[step] ?? 1000)
+    return () => clearTimeout(tm)
+  }, [tick])
+
+  const cardIn = step >= 1
+  const pdfPress = step === 3
+  const sharePress = step === 5
+
+  const cursorPos = [
+    { top: 0,   left: 0,   opacity: 0 },
+    { top: 0,   left: 0,   opacity: 0 },
+    { top: 228, left: 50,  opacity: 1 },
+    { top: 228, left: 50,  opacity: 1 },
+    { top: 228, left: 165, opacity: 1 },
+    { top: 228, left: 165, opacity: 0.3 },
+  ][step]
+
+  return (
+    <div style={{ position: 'relative', width: '300px', flexShrink: 0 }}>
+      <div style={{ background: '#fff', border: '1px solid #e0e0dc', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.13)' }}>
+        <BrowserChrome url="rannikon.com/housemaster" />
+        <div style={{ padding: '18px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', color: '#7b1fa2', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: '14px' }}>
+            {t('housemaster.workLogs')}
+          </div>
+
+          {!cardIn ? (
+            <div style={{ textAlign: 'center', padding: '28px 10px', color: '#bbb', fontSize: '12px', border: '1px dashed #e0e0dc', borderRadius: '8px' }}>
+              {t('housemaster.noLogsYet')}
+            </div>
+          ) : (
+            <div className="fade-up" style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '10px', overflow: 'hidden' }}>
+              <div style={{ padding: '10px 12px', borderBottom: '1px solid #f0f0ec' }}>
+                <div style={{ fontSize: '12px', fontWeight: '800', color: '#1a1a18', marginBottom: '2px' }}>Kivilinna/Salo</div>
+                <div style={{ fontSize: '10px', color: '#888' }}>28 Aug 2026 &nbsp;|&nbsp; 3 workers</div>
+              </div>
+              <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '5px', borderBottom: '1px solid #f0f0ec' }}>
+                {[['247', '8:00'], ['248', '8:15'], ['251', '8:00']].map(([n, h]) => (
+                  <div key={n} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                    <span style={{ fontWeight: '700' }}>#{n}</span><span style={{ color: '#2d6a2d', fontWeight: '600' }}>{h}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ padding: '9px 12px', display: 'flex', gap: '6px' }}>
+                <span style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '700', borderRadius: '6px', border: '1px solid #ddd', background: pdfPress ? '#f5f5f0' : '#fff', color: '#333', transform: pdfPress ? 'scale(0.94)' : 'scale(1)', transition: 'all 0.15s' }}>{t('housemaster.pdf')}</span>
+                <span style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '700', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', color: '#333' }}>{t('housemaster.excel')}</span>
+                <span style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '700', borderRadius: '6px', border: '1px solid #ddd', background: sharePress ? '#f5f5f0' : '#fff', color: '#333', transform: sharePress ? 'scale(0.94)' : 'scale(1)', transition: 'all 0.15s' }}>{t('housemaster.share')}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      <CursorArrow pos={cursorPos} />
+    </div>
+  )
+}
+
+function PayrollDemo() {
+  const [tick, setTick] = useState(0)
+  const step = tick % 7
+
+  useEffect(() => {
+    const delays = [1000, 500, 400, 900, 500, 400, 3200]
+    const tm = setTimeout(() => setTick(c => c + 1), delays[step] ?? 1000)
+    return () => clearTimeout(tm)
+  }, [tick])
+
+  const openPress = step === 2
+  const expanded = step >= 3
+  const approvePress = step === 5
+  const approved = step >= 6
+
+  const cursorPos = [
+    { top: 0,   left: 0,   opacity: 0 },
+    { top: 112, left: 225, opacity: 1 },
+    { top: 112, left: 225, opacity: 1 },
+    { top: 112, left: 225, opacity: 1 },
+    { top: 235, left: 70,  opacity: 1 },
+    { top: 235, left: 70,  opacity: 1 },
+    { top: 235, left: 70,  opacity: 0.3 },
+  ][step]
+
+  return (
+    <div style={{ position: 'relative', width: '300px', flexShrink: 0 }}>
+      <div style={{ background: '#fff', border: '1px solid #e0e0dc', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.13)' }}>
+        <BrowserChrome url="rannikon.com/payroll" />
+        <div style={{ padding: '18px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: '10px' }}>
+            Submissions
+          </div>
+
+          <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
+            {['Jun', 'Jul', 'Aug'].map(m => (
+              <span key={m} style={{
+                flex: 1, textAlign: 'center', padding: '5px 0', fontSize: '10px', fontWeight: '700', borderRadius: '6px',
+                background: m === 'Aug' ? '#b45309' : '#f5f5f0', color: m === 'Aug' ? '#fff' : '#888'
+              }}>{m}</span>
+            ))}
+          </div>
+
+          <div style={{ fontSize: '9px', fontWeight: '800', color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '6px' }}>Kivilinna/Salo</div>
+
+          <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '8px', overflow: 'hidden' }}>
+            <div style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: '800', color: '#b45309' }}>#247 <span style={{ color: '#333', fontWeight: '700' }}>Ahmed K.</span></div>
+                <div style={{ fontSize: '10px', color: '#888' }}>White, Orange</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{
+                  fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '8px',
+                  background: approved ? '#e8f5e9' : '#fff3e0', color: approved ? '#2d6a2d' : '#b45309',
+                  border: `1px solid ${approved ? '#a5d6a7' : '#ffcc80'}`, transition: 'all 0.2s'
+                }}>{approved ? 'Approved' : 'Pending'}</span>
+                <span style={{
+                  fontSize: '10px', fontWeight: '700', padding: '3px 9px', borderRadius: '6px', cursor: 'pointer',
+                  border: '1px solid #b45309', color: openPress ? '#fff' : '#b45309', background: openPress ? '#b45309' : '#fff9f0',
+                  transform: openPress ? 'scale(0.94)' : 'scale(1)', transition: 'all 0.15s'
+                }}>{expanded ? 'Close' : 'Open'}</span>
+              </div>
+            </div>
+
+            <div style={{ overflow: 'hidden', maxHeight: expanded ? '150px' : '0', transition: 'max-height 0.4s ease' }}>
+              <div style={{ padding: '0 12px 12px', borderTop: '1px solid #f0f0ec' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '3px', margin: '10px 0' }}>
+                  {['Start', 'Finish', 'Break', 'Hours'].map((l, i) => (
+                    <div key={l} style={{ textAlign: 'center', background: '#f5f5f2', borderRadius: '4px', padding: '4px 2px' }}>
+                      <div style={{ fontSize: '7px', color: '#888' }}>{l}</div>
+                      <div style={{ fontSize: '9px', fontWeight: '700' }}>{['07:30', '16:00', '30 min', '8:00'][i]}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                  {[['Approved', true], ['Rejected', false], ['Needs review', false]].map(([label, isApprove]) => (
+                    <span key={label} style={{
+                      fontSize: '9px', fontWeight: '700', padding: '4px 9px', borderRadius: '5px', cursor: 'pointer',
+                      border: `1px solid ${approved && isApprove ? '#2d6a2d' : '#ddd'}`,
+                      background: approved && isApprove ? '#e8f5e9' : '#fff',
+                      color: approved && isApprove ? '#2d6a2d' : '#666',
+                      transform: approvePress && isApprove ? 'scale(0.92)' : 'scale(1)', transition: 'all 0.15s'
+                    }}>{label}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <CursorArrow pos={cursorPos} />
+    </div>
+  )
+}
+
 export default function Home() {
   const router = useRouter()
   const { t } = useLanguage()
@@ -682,6 +1077,7 @@ export default function Home() {
           .nav-links{display:none!important}
           .hero-visual{display:flex!important;justify-content:center;margin-top:36px}
           .footer-cols{flex-direction:column!important;gap:32px!important}
+          .tour-row{flex-direction:column!important}
         }
         @media(max-width:480px){
           .nav-bar{padding:0 12px!important}
@@ -925,6 +1321,34 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* PRODUCT TOUR */}
+      <section id="product-tour" style={{ padding: '80px 24px', background: '#fff' }}>
+        <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <h2 style={{ fontSize: 'clamp(22px,4vw,40px)', fontWeight: '800', letterSpacing: '-0.8px', marginBottom: '10px' }}>{t('home.tourTitle')}</h2>
+            <p style={{ fontSize: '16px', color: '#666', maxWidth: '480px', margin: '0 auto', lineHeight: '1.6' }}>{t('home.tourDesc')}</p>
+          </div>
+
+          {[
+            { key: 'supervisor', badge: t('sup.badge'), badgeColor: '#1a3a5c', badgeBg: '#e8eef5', title: t('home.tourSupervisorTitle'), desc: t('home.tourSupervisorDesc'), Demo: SupervisorDemo, reverse: false },
+            { key: 'admin', badge: t('admin.badge'), badgeColor: '#1565c0', badgeBg: '#e3f2fd', title: t('home.tourAdminTitle'), desc: t('home.tourAdminDesc'), Demo: AdminDemo, reverse: true },
+            { key: 'housemaster', badge: t('housemaster.badge'), badgeColor: '#7b1fa2', badgeBg: '#f3e5f5', title: t('home.tourHousemasterTitle'), desc: t('home.tourHousemasterDesc'), Demo: HousemasterDemo, reverse: false },
+            { key: 'payroll', badge: 'PAYROLL', badgeColor: '#b45309', badgeBg: '#fff3e0', title: t('home.tourPayrollTitle'), desc: t('home.tourPayrollDesc'), Demo: PayrollDemo, reverse: true },
+          ].map(({ key, badge, badgeColor, badgeBg, title, desc, Demo, reverse }, i) => (
+            <div key={key} className="tour-row" style={{ display: 'flex', flexDirection: reverse ? 'row-reverse' : 'row', alignItems: 'center', gap: '56px', marginBottom: i < 3 ? '88px' : 0, flexWrap: 'wrap' }}>
+              <div style={{ flex: '1', minWidth: '280px' }}>
+                <span style={{ display: 'inline-block', background: badgeBg, color: badgeColor, border: `1px solid ${badgeColor}33`, padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '800', letterSpacing: '0.6px', marginBottom: '16px' }}>{badge}</span>
+                <h3 style={{ fontSize: 'clamp(20px,3vw,28px)', fontWeight: '800', letterSpacing: '-0.4px', marginBottom: '12px', lineHeight: '1.2' }}>{title}</h3>
+                <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.7', maxWidth: '420px' }}>{desc}</p>
+              </div>
+              <div className="tour-visual" style={{ flex: '1', minWidth: '300px', display: 'flex', justifyContent: 'center' }}>
+                <Demo />
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
