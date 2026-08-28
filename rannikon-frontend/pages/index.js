@@ -1165,17 +1165,16 @@ export default function Home() {
         .footer-link:hover{color:#c9d1d9!important}
         .footer-newsletter-input:focus{outline:none;border-color:#388e3c!important}
         @media(max-width:768px){
-          .hero-grid{flex-direction:column!important}
           .features-grid{grid-template-columns:1fr!important}
           .nav-links{display:none!important}
-          .hero-visual{display:flex!important;justify-content:center;margin-top:36px}
           .footer-cols{flex-direction:column!important;gap:32px!important}
-          .tour-row{flex-direction:column!important}
+          .role-demo-zoom{zoom:1.3!important}
         }
         @media(max-width:480px){
           .nav-bar{padding:0 12px!important}
           .nav-actions{gap:6px!important}
           .nav-action-btn{padding:7px 10px!important;font-size:13px!important}
+          .role-demo-zoom{zoom:1!important}
         }
       `}</style>
 
@@ -1212,42 +1211,63 @@ export default function Home() {
         <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '400px', height: '400px', background: 'radial-gradient(circle,rgba(45,106,45,0.07) 0%,transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-40px', left: '-80px', width: '320px', height: '320px', background: 'radial-gradient(circle,rgba(21,101,192,0.05) 0%,transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }} />
 
-        <div className="hero-grid" style={{ maxWidth: '1080px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '56px' }}>
-          <div style={{ flex: '1', minWidth: '280px' }}>
-            <div className="fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: '#e8f5e9', border: '1px solid #c8e6c9', borderRadius: '20px', padding: '5px 14px', marginBottom: '22px' }}>
-              <span className="dot-pulse" style={{ width: '7px', height: '7px', background: '#2d6a2d', borderRadius: '50%', display: 'inline-block' }} />
-              <span style={{ fontSize: '12px', fontWeight: '600', color: '#2d6a2d' }}>{t('home.heroBadge')}</span>
-            </div>
-            <h1 className="fade-up" style={{ fontSize: 'clamp(30px,5vw,54px)', fontWeight: '800', lineHeight: '1.08', letterSpacing: '-1.5px', marginBottom: '18px', animationDelay: '0.1s' }}>
-              {t('home.heroTitleLine1')}<br /><span style={{ color: '#2d6a2d' }}>{t('home.heroTitleLine2')}</span>
-            </h1>
-            <p className="fade-up" style={{ fontSize: '17px', color: '#555', lineHeight: '1.7', marginBottom: '30px', maxWidth: '420px', animationDelay: '0.2s' }}>
-              {t('home.heroDesc')}
-            </p>
-            <div className="fade-up" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', animationDelay: '0.3s' }}>
-              <button className="cta-btn" onClick={() => router.push('/register')} style={{ padding: '13px 26px', background: '#2d6a2d', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', color: '#fff' }}>
-                {t('auth.createAnAccount')}
-              </button>
-              <a href="#calculator" style={{ padding: '13px 26px', background: '#fff', border: '1px solid #e0e0dc', borderRadius: '10px', fontSize: '15px', fontWeight: '600', color: '#333', display: 'inline-block', transition: 'background 0.15s' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#f5f5f0'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
-                {t('home.tryCalculator')}
-              </a>
-            </div>
-            <div style={{ display: 'flex', gap: '32px', marginTop: '36px', flexWrap: 'wrap' }}>
-              {[['500+', t('home.statWorkers')], ['4', t('home.statPapers')], ['0', t('home.statErrors')]].map(([n, l]) => (
-                <div key={l}>
-                  <div style={{ fontSize: '22px', fontWeight: '800', color: '#2d6a2d', letterSpacing: '-0.5px' }}>{n}</div>
-                  <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{l}</div>
-                </div>
-              ))}
-            </div>
+        <div style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center', position: 'relative' }}>
+          <div className="fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: '#e8f5e9', border: '1px solid #c8e6c9', borderRadius: '20px', padding: '5px 14px', marginBottom: '22px' }}>
+            <span className="dot-pulse" style={{ width: '7px', height: '7px', background: '#2d6a2d', borderRadius: '50%', display: 'inline-block' }} />
+            <span style={{ fontSize: '12px', fontWeight: '600', color: '#2d6a2d' }}>{t('home.heroBadge')}</span>
           </div>
+          <h1 className="fade-up" style={{ fontSize: 'clamp(30px,5vw,54px)', fontWeight: '800', lineHeight: '1.08', letterSpacing: '-1.5px', marginBottom: '18px', animationDelay: '0.1s' }}>
+            {t('home.heroTitleLine1')}<br /><span style={{ color: '#2d6a2d' }}>{t('home.heroTitleLine2')}</span>
+          </h1>
+          <p className="fade-up" style={{ fontSize: '17px', color: '#555', lineHeight: '1.7', marginBottom: '30px', animationDelay: '0.2s' }}>
+            {t('home.heroDesc')}
+          </p>
+          <div className="fade-up" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center', animationDelay: '0.3s' }}>
+            <button className="cta-btn" onClick={() => router.push('/register')} style={{ padding: '13px 26px', background: '#2d6a2d', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', color: '#fff' }}>
+              {t('auth.createAnAccount')}
+            </button>
+            <a href="#calculator" style={{ padding: '13px 26px', background: '#fff', border: '1px solid #e0e0dc', borderRadius: '10px', fontSize: '15px', fontWeight: '600', color: '#333', display: 'inline-block', transition: 'background 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#f5f5f0'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+              {t('home.tryCalculator')}
+            </a>
+          </div>
+          <div style={{ display: 'flex', gap: '32px', marginTop: '36px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {[['500+', t('home.statWorkers')], ['4', t('home.statPapers')], ['0', t('home.statErrors')]].map(([n, l]) => (
+              <div key={l}>
+                <div style={{ fontSize: '22px', fontWeight: '800', color: '#2d6a2d', letterSpacing: '-0.5px' }}>{n}</div>
+                <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          <div className="hero-visual" style={{ flex: '1', minWidth: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '56px', position: 'relative' }}>
+          <div className="role-demo-zoom" style={{ zoom: 2.1 }}>
             <AnimatedDemo />
           </div>
         </div>
       </section>
+
+      {/* ROLE SHOWCASES */}
+      {[
+        { key: 'supervisor', badge: t('sup.badge'), badgeColor: '#1a3a5c', badgeBg: '#e8eef5', title: t('home.tourSupervisorTitle'), desc: t('home.tourSupervisorDesc'), Demo: SupervisorDemo, bg: '#fff' },
+        { key: 'admin', badge: t('admin.badge'), badgeColor: '#1565c0', badgeBg: '#e3f2fd', title: t('home.tourAdminTitle'), desc: t('home.tourAdminDesc'), Demo: AdminDemo, bg: '#f5f5f0' },
+        { key: 'housemaster', badge: t('housemaster.badge'), badgeColor: '#7b1fa2', badgeBg: '#f3e5f5', title: t('home.tourHousemasterTitle'), desc: t('home.tourHousemasterDesc'), Demo: HousemasterDemo, bg: '#fff' },
+        { key: 'payroll', badge: 'PAYROLL', badgeColor: '#b45309', badgeBg: '#fff3e0', title: t('home.tourPayrollTitle'), desc: t('home.tourPayrollDesc'), Demo: PayrollDemo, bg: '#f5f5f0' },
+      ].map(({ key, badge, badgeColor, badgeBg, title, desc, Demo, bg }) => (
+        <section key={key} style={{ padding: '72px 24px', background: bg }}>
+          <div style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center' }}>
+            <span style={{ display: 'inline-block', background: badgeBg, color: badgeColor, border: `1px solid ${badgeColor}33`, padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '800', letterSpacing: '0.6px', marginBottom: '16px' }}>{badge}</span>
+            <h2 style={{ fontSize: 'clamp(24px,3.5vw,36px)', fontWeight: '800', letterSpacing: '-0.6px', marginBottom: '14px', lineHeight: '1.2' }}>{title}</h2>
+            <p style={{ fontSize: '16px', color: '#666', lineHeight: '1.7' }}>{desc}</p>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '48px' }}>
+            <div className="role-demo-zoom" style={{ zoom: 2.1 }}>
+              <Demo />
+            </div>
+          </div>
+        </section>
+      ))}
 
       {/* FEATURES */}
       <section id="features" style={{ padding: '80px 24px', background: '#fff' }}>
@@ -1441,34 +1461,6 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* PRODUCT TOUR */}
-      <section id="product-tour" style={{ padding: '80px 24px', background: '#fff' }}>
-        <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
-            <h2 style={{ fontSize: 'clamp(22px,4vw,40px)', fontWeight: '800', letterSpacing: '-0.8px', marginBottom: '10px' }}>{t('home.tourTitle')}</h2>
-            <p style={{ fontSize: '16px', color: '#666', maxWidth: '480px', margin: '0 auto', lineHeight: '1.6' }}>{t('home.tourDesc')}</p>
-          </div>
-
-          {[
-            { key: 'supervisor', badge: t('sup.badge'), badgeColor: '#1a3a5c', badgeBg: '#e8eef5', title: t('home.tourSupervisorTitle'), desc: t('home.tourSupervisorDesc'), Demo: SupervisorDemo, reverse: false },
-            { key: 'admin', badge: t('admin.badge'), badgeColor: '#1565c0', badgeBg: '#e3f2fd', title: t('home.tourAdminTitle'), desc: t('home.tourAdminDesc'), Demo: AdminDemo, reverse: true },
-            { key: 'housemaster', badge: t('housemaster.badge'), badgeColor: '#7b1fa2', badgeBg: '#f3e5f5', title: t('home.tourHousemasterTitle'), desc: t('home.tourHousemasterDesc'), Demo: HousemasterDemo, reverse: false },
-            { key: 'payroll', badge: 'PAYROLL', badgeColor: '#b45309', badgeBg: '#fff3e0', title: t('home.tourPayrollTitle'), desc: t('home.tourPayrollDesc'), Demo: PayrollDemo, reverse: true },
-          ].map(({ key, badge, badgeColor, badgeBg, title, desc, Demo, reverse }, i) => (
-            <div key={key} className="tour-row" style={{ display: 'flex', flexDirection: reverse ? 'row-reverse' : 'row', alignItems: 'center', gap: '56px', marginBottom: i < 3 ? '88px' : 0, flexWrap: 'wrap' }}>
-              <div style={{ flex: '1', minWidth: '280px' }}>
-                <span style={{ display: 'inline-block', background: badgeBg, color: badgeColor, border: `1px solid ${badgeColor}33`, padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '800', letterSpacing: '0.6px', marginBottom: '16px' }}>{badge}</span>
-                <h3 style={{ fontSize: 'clamp(20px,3vw,28px)', fontWeight: '800', letterSpacing: '-0.4px', marginBottom: '12px', lineHeight: '1.2' }}>{title}</h3>
-                <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.7', maxWidth: '420px' }}>{desc}</p>
-              </div>
-              <div className="tour-visual" style={{ flex: '1', minWidth: '300px', display: 'flex', justifyContent: 'center' }}>
-                <Demo />
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 

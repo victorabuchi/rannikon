@@ -491,8 +491,6 @@ export default {
     press: 'Press',
     sitemap: 'Sitemap',
     forPayroll: 'For payroll',
-    tourTitle: 'See every role in action',
-    tourDesc: 'From the first minute of work to the final payroll approval — every step is automatic.',
     tourSupervisorTitle: 'Supervisors record time in seconds',
     tourSupervisorDesc: 'Add a batch of workers with one shared start time, set their finish time with a single tap, and send the full day’s worklog to admin — no paperwork.',
     tourAdminTitle: 'Admins route logs to the right house',
