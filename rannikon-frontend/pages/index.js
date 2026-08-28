@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useLanguage } from '@/lib/i18n'
@@ -23,17 +23,11 @@ const SCENARIOS = [
   { start: '09:15', finish: '22:00', breakMins: 60 },
 ]
 
-function AnimatedDemo() {
-  const { t } = useLanguage()
-  const [tick, setTick] = useState(0)
-  const step = tick % 9
-  const scenarioIdx = Math.floor(tick / 9) % 3
+const WORKER_DELAYS = [700, 500, 1100, 500, 1100, 420, 280, 400, 3200]
 
-  useEffect(() => {
-    const delays = [700, 500, 1100, 500, 1100, 420, 280, 400, 3200]
-    const t = setTimeout(() => setTick(c => c + 1), delays[step] ?? 1000)
-    return () => clearTimeout(t)
-  }, [tick])
+function AnimatedDemo({ step = 0 }) {
+  const { t } = useLanguage()
+  const scenarioIdx = 0
 
   const sc = SCENARIOS[scenarioIdx]
   const extraBreak = sc.breakMins - 30
@@ -239,16 +233,10 @@ function BlinkCursor({ color }) {
   return <span style={{ display: 'inline-block', width: '1.5px', height: '13px', background: color, marginLeft: '1px', verticalAlign: 'text-bottom', animation: 'blinkCursor 1s step-end infinite' }} />
 }
 
-function SupervisorDemo() {
-  const { t } = useLanguage()
-  const [tick, setTick] = useState(0)
-  const step = tick % 12
+const SUPERVISOR_DELAYS = [700, 500, 900, 500, 900, 350, 700, 350, 900, 700, 350, 3000]
 
-  useEffect(() => {
-    const delays = [700, 500, 900, 500, 900, 350, 700, 350, 900, 700, 350, 3000]
-    const tm = setTimeout(() => setTick(c => c + 1), delays[step] ?? 1000)
-    return () => clearTimeout(tm)
-  }, [tick])
+function SupervisorDemo({ step = 0 }) {
+  const { t } = useLanguage()
 
   const numbersVal = step >= 2 ? '247, 248, 251' : ''
   const startVal = step >= 4 ? '07:30' : ''
@@ -373,16 +361,10 @@ function SupervisorDemo() {
   )
 }
 
-function AdminDemo() {
-  const { t } = useLanguage()
-  const [tick, setTick] = useState(0)
-  const step = tick % 6
+const ADMIN_DELAYS = [900, 500, 350, 900, 350, 3000]
 
-  useEffect(() => {
-    const delays = [900, 500, 350, 900, 350, 3000]
-    const tm = setTimeout(() => setTick(c => c + 1), delays[step] ?? 1000)
-    return () => clearTimeout(tm)
-  }, [tick])
+function AdminDemo({ step = 0 }) {
+  const { t } = useLanguage()
 
   const g1Press = step === 2
   const g1Sent = step >= 3
@@ -441,16 +423,10 @@ function AdminDemo() {
   )
 }
 
-function HousemasterDemo() {
-  const { t } = useLanguage()
-  const [tick, setTick] = useState(0)
-  const step = tick % 6
+const HOUSEMASTER_DELAYS = [1200, 1200, 500, 500, 500, 3000]
 
-  useEffect(() => {
-    const delays = [1200, 1200, 500, 500, 500, 3000]
-    const tm = setTimeout(() => setTick(c => c + 1), delays[step] ?? 1000)
-    return () => clearTimeout(tm)
-  }, [tick])
+function HousemasterDemo({ step = 0 }) {
+  const { t } = useLanguage()
 
   const cardIn = step >= 1
   const pdfPress = step === 3
@@ -505,16 +481,9 @@ function HousemasterDemo() {
   )
 }
 
-function PayrollDemo() {
-  const [tick, setTick] = useState(0)
-  const step = tick % 7
+const PAYROLL_DELAYS = [1000, 500, 400, 900, 500, 400, 3200]
 
-  useEffect(() => {
-    const delays = [1000, 500, 400, 900, 500, 400, 3200]
-    const tm = setTimeout(() => setTick(c => c + 1), delays[step] ?? 1000)
-    return () => clearTimeout(tm)
-  }, [tick])
-
+function PayrollDemo({ step = 0 }) {
   const openPress = step === 2
   const expanded = step >= 3
   const approvePress = step === 5
@@ -601,12 +570,97 @@ function PayrollDemo() {
   )
 }
 
+function FixedDemoFrame({ children }) {
+  const outerRef = useRef(null)
+  const innerRef = useRef(null)
+  const [scale, setScale] = useState(1)
+
+  useLayoutEffect(() => {
+    const outer = outerRef.current
+    const inner = innerRef.current
+    if (!outer || !inner) return
+    const measure = () => {
+      const ow = outer.clientWidth
+      const oh = outer.clientHeight
+      const iw = inner.scrollWidth
+      const ih = inner.scrollHeight
+      if (!iw || !ih || !ow || !oh) return
+      setScale(Math.min(ow / iw, oh / ih))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(outer)
+    ro.observe(inner)
+    return () => ro.disconnect()
+  }, [])
+
+  return (
+    <div ref={outerRef} className="fixed-demo-frame" style={{ position: 'relative', overflow: 'hidden', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div ref={innerRef} style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function PlayPauseButton({ playing, onClick }) {
+  return (
+    <button onClick={onClick} aria-label={playing ? 'Pause animation' : 'Play animation'} style={{
+      position: 'absolute', right: '16px', bottom: '16px', width: '38px', height: '38px', borderRadius: '50%',
+      background: 'rgba(26,26,24,0.72)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', color: '#fff', zIndex: 5, transition: 'background 0.15s'
+    }}
+      onMouseEnter={e => e.currentTarget.style.background = 'rgba(26,26,24,0.9)'}
+      onMouseLeave={e => e.currentTarget.style.background = 'rgba(26,26,24,0.72)'}>
+      {playing ? (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="5" height="16" rx="1" /><rect x="14" y="4" width="5" height="16" rx="1" /></svg>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l14 8-14 8V4z" /></svg>
+      )}
+    </button>
+  )
+}
+
 export default function Home() {
   const router = useRouter()
   const { t } = useLanguage()
   const [activeFeatures, setActiveFeatures] = useState({ worker: 0, supervisor: 0, admin: 0, housemaster: 0, payroll: 0 })
   const [activeRole, setActiveRole] = useState(0)
   const [activeShowcase, setActiveShowcase] = useState(0)
+  const [showcaseStep, setShowcaseStep] = useState(0)
+  const [showcasePlaying, setShowcasePlaying] = useState(true)
+
+  const showcaseTabs = [
+    { key: 'supervisor', label: t('admin.roleSupervisor'), color: '#1a3a5c', title: t('home.tourSupervisorTitle'), desc: t('home.tourSupervisorDesc'), Demo: SupervisorDemo, delays: SUPERVISOR_DELAYS },
+    { key: 'admin', label: t('admin.roleAdmin'), color: '#1565c0', title: t('home.tourAdminTitle'), desc: t('home.tourAdminDesc'), Demo: AdminDemo, delays: ADMIN_DELAYS },
+    { key: 'housemaster', label: t('admin.roleHousemaster'), color: '#7b1fa2', title: t('home.tourHousemasterTitle'), desc: t('home.tourHousemasterDesc'), Demo: HousemasterDemo, delays: HOUSEMASTER_DELAYS },
+    { key: 'worker', label: t('admin.roleWorker'), color: '#2d6a2d', title: t('home.tourWorkerTitle'), desc: t('home.tourWorkerDesc'), Demo: AnimatedDemo, delays: WORKER_DELAYS },
+    { key: 'payroll', label: t('admin.rolePayroll'), color: '#b45309', title: t('home.tourPayrollTitle'), desc: t('home.tourPayrollDesc'), Demo: PayrollDemo, delays: PAYROLL_DELAYS },
+  ]
+  const activeShowcaseDef = showcaseTabs[activeShowcase]
+  const showcaseFinished = showcaseStep >= activeShowcaseDef.delays.length - 1
+
+  useEffect(() => {
+    setShowcaseStep(0)
+    setShowcasePlaying(true)
+  }, [activeShowcase])
+
+  useEffect(() => {
+    if (!showcasePlaying) return
+    const delays = activeShowcaseDef.delays
+    if (showcaseStep >= delays.length - 1) return
+    const tmr = setTimeout(() => setShowcaseStep(s => Math.min(s + 1, delays.length - 1)), delays[showcaseStep] ?? 1000)
+    return () => clearTimeout(tmr)
+  }, [showcasePlaying, showcaseStep, activeShowcase])
+
+  function toggleShowcasePlay() {
+    if (showcaseFinished) {
+      setShowcaseStep(0)
+      setShowcasePlaying(true)
+    } else {
+      setShowcasePlaying(p => !p)
+    }
+  }
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -1139,18 +1193,19 @@ export default function Home() {
         .card-hover:hover{transform:translateY(-3px);box-shadow:0 16px 48px rgba(0,0,0,0.1)!important}
         .card-hover{transition:all 0.25s}
         .fade-up{animation:fadeUp 0.7s ease both}
-        .footer-link:hover{color:#c9d1d9!important}
-        .footer-newsletter-input:focus{outline:none;border-color:#388e3c!important}
+        .footer-link:hover{color:#2d6a2d!important}
+        .footer-newsletter-input:focus{outline:none;border-color:#2d6a2d!important}
+        .fixed-demo-frame{height:520px}
         @media(max-width:768px){
           .nav-links{display:none!important}
           .footer-cols{flex-direction:column!important;gap:32px!important}
-          .role-demo-zoom{zoom:1.3!important}
+          .fixed-demo-frame{height:420px}
         }
         @media(max-width:480px){
           .nav-bar{padding:0 12px!important}
           .nav-actions{gap:6px!important}
           .nav-action-btn{padding:7px 10px!important;font-size:13px!important}
-          .role-demo-zoom{zoom:1!important}
+          .fixed-demo-frame{height:360px}
         }
       `}</style>
 
@@ -1337,58 +1392,44 @@ export default function Home() {
       {/* ROLE SHOWCASE */}
       <section style={{ padding: '72px 24px 90px', background: '#fafaf9' }}>
         <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
-          {(() => {
-            const showcaseTabs = [
-              { key: 'supervisor', label: t('admin.roleSupervisor'), color: '#1a3a5c', title: t('home.tourSupervisorTitle'), desc: t('home.tourSupervisorDesc'), Demo: SupervisorDemo },
-              { key: 'admin', label: t('admin.roleAdmin'), color: '#1565c0', title: t('home.tourAdminTitle'), desc: t('home.tourAdminDesc'), Demo: AdminDemo },
-              { key: 'housemaster', label: t('admin.roleHousemaster'), color: '#7b1fa2', title: t('home.tourHousemasterTitle'), desc: t('home.tourHousemasterDesc'), Demo: HousemasterDemo },
-              { key: 'worker', label: t('admin.roleWorker'), color: '#2d6a2d', title: t('home.tourWorkerTitle'), desc: t('home.tourWorkerDesc'), Demo: AnimatedDemo },
-              { key: 'payroll', label: t('admin.rolePayroll'), color: '#b45309', title: t('home.tourPayrollTitle'), desc: t('home.tourPayrollDesc'), Demo: PayrollDemo },
-            ]
-            const active = showcaseTabs[activeShowcase]
-            const ActiveDemo = active.Demo
-            return (
-              <>
-                <div key={active.key} className="fade-up" style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center' }}>
-                  <h2 style={{ fontSize: 'clamp(24px,3.5vw,36px)', fontWeight: '800', letterSpacing: '-0.6px', marginBottom: '14px', lineHeight: '1.2' }}>{active.title}</h2>
-                  <p style={{ fontSize: '16px', color: '#666', lineHeight: '1.7' }}>{active.desc}</p>
-                </div>
+          <div key={activeShowcaseDef.key} className="fade-up" style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center' }}>
+            <h2 style={{ fontSize: 'clamp(24px,3.5vw,36px)', fontWeight: '800', letterSpacing: '-0.6px', marginBottom: '14px', lineHeight: '1.2' }}>{activeShowcaseDef.title}</h2>
+            <p style={{ fontSize: '16px', color: '#666', lineHeight: '1.7' }}>{activeShowcaseDef.desc}</p>
+          </div>
 
-                <div style={{ position: 'relative', marginTop: '48px', paddingBottom: '30px' }}>
-                  <div style={{
-                    display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%',
-                    background: '#fff', border: '1px solid #e8e8e3', borderRadius: '24px', padding: '44px',
-                    boxShadow: `0 0 100px -20px ${active.color}55, 0 4px 24px rgba(0,0,0,0.06)`,
-                    transition: 'box-shadow 0.3s ease'
-                  }}>
-                    <div className="role-demo-zoom" style={{ zoom: 2.1 }}>
-                      <ActiveDemo />
-                    </div>
-                  </div>
+          <div style={{ position: 'relative', marginTop: '48px', paddingBottom: '30px' }}>
+            <div style={{
+              position: 'relative', width: '100%',
+              background: '#fff', border: '1px solid #e8e8e3', borderRadius: '24px', padding: '32px',
+              boxShadow: `0 0 100px -20px ${activeShowcaseDef.color}55, 0 4px 24px rgba(0,0,0,0.06)`,
+              transition: 'box-shadow 0.3s ease'
+            }}>
+              <FixedDemoFrame>
+                <activeShowcaseDef.Demo step={showcaseStep} />
+              </FixedDemoFrame>
+              <PlayPauseButton playing={showcasePlaying && !showcaseFinished} onClick={toggleShowcasePlay} />
+            </div>
 
-                  <div style={{
-                    position: 'absolute', left: '50%', bottom: 0, transform: 'translate(-50%, 50%)',
-                    display: 'flex', justifyContent: 'center', gap: '6px', flexWrap: 'wrap',
-                    background: '#fff', border: '1px solid #e8e8e3', borderRadius: '28px', padding: '6px',
-                    boxShadow: '0 12px 32px rgba(0,0,0,0.12)', width: 'max-content', maxWidth: '92vw'
-                  }}>
-                    {showcaseTabs.map((r, i) => (
-                      <button key={r.key} onClick={() => setActiveShowcase(i)} style={{
-                        padding: '10px 20px', borderRadius: '22px',
-                        border: 'none', cursor: 'pointer',
-                        fontSize: '14px', fontWeight: '700', fontFamily: 'inherit',
-                        background: activeShowcase === i ? r.color : 'transparent',
-                        color: activeShowcase === i ? '#fff' : '#666',
-                        transition: 'all 0.2s', whiteSpace: 'nowrap'
-                      }}>
-                        {r.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )
-          })()}
+            <div style={{
+              position: 'absolute', left: '50%', bottom: 0, transform: 'translate(-50%, 50%)',
+              display: 'flex', justifyContent: 'center', gap: '6px', flexWrap: 'wrap',
+              background: '#fff', border: '1px solid #e8e8e3', borderRadius: '28px', padding: '6px',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.12)', width: 'max-content', maxWidth: '92vw'
+            }}>
+              {showcaseTabs.map((r, i) => (
+                <button key={r.key} onClick={() => setActiveShowcase(i)} style={{
+                  padding: '10px 20px', borderRadius: '22px',
+                  border: 'none', cursor: 'pointer',
+                  fontSize: '14px', fontWeight: '700', fontFamily: 'inherit',
+                  background: activeShowcase === i ? r.color : 'transparent',
+                  color: activeShowcase === i ? '#fff' : '#666',
+                  transition: 'all 0.2s', whiteSpace: 'nowrap'
+                }}>
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1588,27 +1629,27 @@ export default function Home() {
       </section>
 
       {/* FOOTER */}
-      <footer style={{ background: '#0d1117', color: '#e6edf3', padding: '0 24px' }}>
+      <footer style={{ background: '#f5f5f0', color: '#1a1a18', padding: '0 24px', borderTop: '1px solid #e8e8e3' }}>
 
         {/* Newsletter */}
-        <div style={{ maxWidth: '1080px', margin: '0 auto', borderBottom: '1px solid #21262d', padding: '48px 0 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '24px' }}>
+        <div style={{ maxWidth: '1080px', margin: '0 auto', borderBottom: '1px solid #e0e0dc', padding: '48px 0 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '24px' }}>
           <div>
-            <p style={{ fontSize: '14px', fontWeight: '600', color: '#e6edf3', marginBottom: '6px' }}>{t('home.newsletterTitle')}</p>
-            <p style={{ fontSize: '13px', color: '#7d8590', maxWidth: '340px', lineHeight: '1.6' }}>{t('home.newsletterDesc')}</p>
+            <p style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a18', marginBottom: '6px' }}>{t('home.newsletterTitle')}</p>
+            <p style={{ fontSize: '13px', color: '#666', maxWidth: '340px', lineHeight: '1.6' }}>{t('home.newsletterDesc')}</p>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <input
               type="email"
               placeholder={t('home.enterEmail')}
               className="footer-newsletter-input"
-              style={{ padding: '8px 14px', fontSize: '13px', border: '1px solid #30363d', borderRadius: '6px', background: '#161b22', color: '#e6edf3', width: '220px', fontFamily: 'inherit' }}
+              style={{ padding: '8px 14px', fontSize: '13px', border: '1px solid #ddd', borderRadius: '6px', background: '#fff', color: '#1a1a18', width: '220px', fontFamily: 'inherit' }}
             />
-            <button style={{ padding: '8px 16px', background: '#238636', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>{t('home.subscribe')}</button>
+            <button style={{ padding: '8px 16px', background: '#2d6a2d', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>{t('home.subscribe')}</button>
           </div>
         </div>
 
         {/* Link columns */}
-        <div className="footer-cols" style={{ maxWidth: '1080px', margin: '0 auto', borderBottom: '1px solid #21262d', padding: '40px 0', display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
+        <div className="footer-cols" style={{ maxWidth: '1080px', margin: '0 auto', borderBottom: '1px solid #e0e0dc', padding: '40px 0', display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
           {[
             {
               title: t('home.platform'),
@@ -1628,11 +1669,11 @@ export default function Home() {
             },
           ].map(col => (
             <div key={col.title} style={{ flex: '1', minWidth: '140px' }}>
-              <p style={{ fontSize: '12px', fontWeight: '600', color: '#e6edf3', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{col.title}</p>
+              <p style={{ fontSize: '12px', fontWeight: '700', color: '#1a1a18', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{col.title}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
                 {col.links.map(([label, href]) => (
-                  <a key={label} href={href} className="footer-link" style={{ fontSize: '13px', color: '#7d8590', transition: 'color 0.15s' }}
-                    onMouseEnter={e => e.target.style.color = '#c9d1d9'} onMouseLeave={e => e.target.style.color = '#7d8590'}>
+                  <a key={label} href={href} className="footer-link" style={{ fontSize: '13px', color: '#666', transition: 'color 0.15s' }}
+                    onMouseEnter={e => e.target.style.color = '#2d6a2d'} onMouseLeave={e => e.target.style.color = '#666'}>
                     {label}
                   </a>
                 ))}
@@ -1643,23 +1684,23 @@ export default function Home() {
 
         {/* Bottom row */}
         <div style={{ maxWidth: '1080px', margin: '0 auto', padding: '24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <p style={{ fontSize: '12px', color: '#7d8590' }}>
+          <p style={{ fontSize: '12px', color: '#888' }}>
             {'© ' + new Date().getFullYear() + ' Rannikon Puutarha · '}
-            <a href="/terms" style={{ color: '#7d8590' }} onMouseEnter={e => e.target.style.color = '#c9d1d9'} onMouseLeave={e => e.target.style.color = '#7d8590'}>{t('footer.terms')}</a>
+            <a href="/terms" style={{ color: '#888' }} onMouseEnter={e => e.target.style.color = '#2d6a2d'} onMouseLeave={e => e.target.style.color = '#888'}>{t('footer.terms')}</a>
             {' · '}
-            <a href="/privacy" style={{ color: '#7d8590' }} onMouseEnter={e => e.target.style.color = '#c9d1d9'} onMouseLeave={e => e.target.style.color = '#7d8590'}>{t('footer.privacy')}</a>
+            <a href="/privacy" style={{ color: '#888' }} onMouseEnter={e => e.target.style.color = '#2d6a2d'} onMouseLeave={e => e.target.style.color = '#888'}>{t('footer.privacy')}</a>
             {' · '}
-            <a href="#" style={{ color: '#7d8590' }} onMouseEnter={e => e.target.style.color = '#c9d1d9'} onMouseLeave={e => e.target.style.color = '#7d8590'}>{t('home.sitemap')}</a>
+            <a href="#" style={{ color: '#888' }} onMouseEnter={e => e.target.style.color = '#2d6a2d'} onMouseLeave={e => e.target.style.color = '#888'}>{t('home.sitemap')}</a>
           </p>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
             {/* Facebook */}
-            <a href="#" style={{ color: '#7d8590', transition: 'color 0.15s', display: 'flex' }} onMouseEnter={e => e.currentTarget.style.color = '#c9d1d9'} onMouseLeave={e => e.currentTarget.style.color = '#7d8590'}>
+            <a href="#" style={{ color: '#888', transition: 'color 0.15s', display: 'flex' }} onMouseEnter={e => e.currentTarget.style.color = '#2d6a2d'} onMouseLeave={e => e.currentTarget.style.color = '#888'}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M22 12a10 10 0 10-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.78-3.89 1.09 0 2.23.2 2.23.2v2.45h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0022 12z" />
               </svg>
             </a>
             {/* Instagram */}
-            <a href="#" style={{ color: '#7d8590', transition: 'color 0.15s', display: 'flex' }} onMouseEnter={e => e.currentTarget.style.color = '#c9d1d9'} onMouseLeave={e => e.currentTarget.style.color = '#7d8590'}>
+            <a href="#" style={{ color: '#888', transition: 'color 0.15s', display: 'flex' }} onMouseEnter={e => e.currentTarget.style.color = '#2d6a2d'} onMouseLeave={e => e.currentTarget.style.color = '#888'}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
               </svg>
