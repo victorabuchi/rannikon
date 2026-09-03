@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx'
 import { useLanguage } from '@/lib/i18n'
 import LanguageSelector from '@/components/LanguageSelector'
 import PagesMenu from '@/components/PagesMenu'
+import RequestStatusBadge from '@/components/RequestStatusBadge'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const VALID = ['09:00','09:15','09:30','09:45']
@@ -139,6 +140,14 @@ export default function Dashboard() {
   const [mySubsLoaded, setMySubsLoaded] = useState(false)
   const [selfVerifyResult, setSelfVerifyResult] = useState(null)
   const [selfVerifying, setSelfVerifying] = useState(false)
+  const [myRequests, setMyRequests] = useState([])
+  const [myRequestsLoaded, setMyRequestsLoaded] = useState(false)
+  const [reqType, setReqType] = useState('holiday')
+  const [reqReason, setReqReason] = useState('')
+  const [reqStart, setReqStart] = useState('')
+  const [reqEnd, setReqEnd] = useState('')
+  const [reqSubmitting, setReqSubmitting] = useState(false)
+  const [reqError, setReqError] = useState('')
 
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/login'); return }
@@ -252,6 +261,35 @@ export default function Dashboard() {
       setMySubmissions(res.data.submissions)
     } catch (err) {
       console.error('Failed to load submissions')
+    }
+  }
+
+  async function loadMyRequests() {
+    setMyRequestsLoaded(true)
+    try {
+      const res = await api.get('/api/leave-requests/mine')
+      setMyRequests(res.data.requests)
+    } catch (err) {
+      console.error('Failed to load requests')
+    }
+  }
+
+  async function submitRequest() {
+    setReqError('')
+    if (!reqStart || !reqEnd) { setReqError(t('requests.invalidDates')); return }
+    if (new Date(reqStart) > new Date(reqEnd)) { setReqError(t('requests.invalidDates')); return }
+    setReqSubmitting(true)
+    try {
+      await api.post('/api/leave-requests', { request_type: reqType, reason: reqReason, start_date: reqStart, end_date: reqEnd })
+      setReqReason('')
+      setReqStart('')
+      setReqEnd('')
+      setReqType('holiday')
+      await loadMyRequests()
+    } catch (err) {
+      setReqError(err.response?.data?.error || t('requests.submitFailed'))
+    } finally {
+      setReqSubmitting(false)
     }
   }
 
@@ -1057,8 +1095,8 @@ export default function Dashboard() {
 
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '12px 16px 16px' }}>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: '200px' }}>
               <button onClick={() => { if (month === 1) { setMonth(12); setYear(y => y-1) } else setMonth(m => m-1) }} style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '6px', background: '#fff', cursor: 'pointer', fontSize: '16px', flexShrink: 0 }}>{'<'}</button>
               <div style={{ fontWeight: '700', fontSize: '16px', textAlign: 'center', whiteSpace: 'nowrap', flex: 1 }}>{t('months')[month-1]} {year}</div>
               <button onClick={() => { if (month === 12) { setMonth(1); setYear(y => y+1) } else setMonth(m => m+1) }} style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '6px', background: '#fff', cursor: 'pointer', fontSize: '16px', flexShrink: 0 }}>{'>'}</button>
@@ -1066,6 +1104,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
               <button onClick={() => setView('list')} style={{ padding: '7px 13px', background: view === 'list' ? '#2d6a2d' : '#fff', color: view === 'list' ? '#fff' : '#333', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>{t('dashboard.daysTab')}</button>
               <button onClick={() => { setView('papers'); if (!mySubsLoaded) loadMySubmissions() }} style={{ padding: '7px 13px', background: view === 'papers' ? '#2d6a2d' : '#fff', color: view === 'papers' ? '#fff' : '#333', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>{t('dashboard.papersLabel')}</button>
+              <button onClick={() => { setView('requests'); if (!myRequestsLoaded) loadMyRequests() }} style={{ padding: '7px 13px', background: view === 'requests' ? '#2d6a2d' : '#fff', color: view === 'requests' ? '#fff' : '#333', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}>{t('requests.tabLabel')}</button>
             </div>
           </div>
 
@@ -1361,6 +1400,73 @@ export default function Dashboard() {
               )}
             </div>
             </>
+          )}
+
+          {view === 'requests' && (
+            <div>
+              <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '10px', overflow: 'hidden', marginBottom: '20px' }}>
+                <div style={{ background: '#2d6a2d', padding: '14px 18px' }}>
+                  <p style={{ color: '#fff', fontWeight: '800', fontSize: '14px', margin: 0 }}>{t('requests.newRequest')}</p>
+                </div>
+                <div style={{ padding: '18px' }}>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                    <div style={{ flex: '1', minWidth: '160px' }}>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#555' }}>{t('requests.typeLabel')}</label>
+                      <select value={reqType} onChange={e => setReqType(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', fontFamily: 'inherit', background: '#fff', boxSizing: 'border-box' }}>
+                        <option value="holiday">{t('requests.typeHoliday')}</option>
+                        <option value="break">{t('requests.typeBreak')}</option>
+                        <option value="leave">{t('requests.typeLeave')}</option>
+                        <option value="other">{t('requests.typeOther')}</option>
+                      </select>
+                    </div>
+                    <div style={{ flex: '1', minWidth: '140px' }}>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#555' }}>{t('requests.startDate')}</label>
+                      <input type="date" value={reqStart} onChange={e => setReqStart(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    </div>
+                    <div style={{ flex: '1', minWidth: '140px' }}>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#555' }}>{t('requests.endDate')}</label>
+                      <input type="date" value={reqEnd} onChange={e => setReqEnd(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#555' }}>{t('requests.reasonLabel')}</label>
+                    <textarea value={reqReason} onChange={e => setReqReason(e.target.value)} rows={2} placeholder={t('requests.reasonPlaceholder')}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #ccc', borderRadius: '6px', fontSize: '13px', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
+                  </div>
+                  {reqError && (
+                    <div style={{ background: '#fdecea', border: '1px solid #ffc1c0', color: '#c0392b', borderRadius: '8px', padding: '8px 12px', marginBottom: '12px', fontSize: '13px' }}>
+                      {reqError}
+                    </div>
+                  )}
+                  <button onClick={submitRequest} disabled={reqSubmitting}
+                    style={{ padding: '10px 24px', background: reqSubmitting ? '#aaa' : '#2d6a2d', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '700', cursor: reqSubmitting ? 'not-allowed' : 'pointer' }}>
+                    {reqSubmitting ? t('requests.submitting') : t('requests.submit')}
+                  </button>
+                </div>
+              </div>
+
+              <p style={{ fontSize: '12px', fontWeight: '700', color: '#555', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('requests.myRequests')}</p>
+              {myRequests.length === 0 ? (
+                <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '10px', padding: '24px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '14px', fontWeight: '600', color: '#888' }}>{t('requests.noRequestsYet')}</p>
+                  <p style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>{t('requests.noRequestsYetDesc')}</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {myRequests.map(r => (
+                    <div key={r.id} style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '8px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: '700', fontSize: '13px', textTransform: 'capitalize' }}>{t('requests.type' + r.request_type.charAt(0).toUpperCase() + r.request_type.slice(1))}</span>
+                      <span style={{ fontSize: '12px', color: '#666' }}>{r.start_date} → {r.end_date}</span>
+                      {r.reason && <span style={{ fontSize: '12px', color: '#888', flex: '1', minWidth: '120px' }}>{r.reason}</span>}
+                      <RequestStatusBadge status={r.status} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
         </div>

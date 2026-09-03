@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx'
 import { useLanguage } from '@/lib/i18n'
 import LanguageSelector from '@/components/LanguageSelector'
 import PagesMenu from '@/components/PagesMenu'
+import RequestStatusBadge from '@/components/RequestStatusBadge'
 
 const LOCALE_MAP = { en: 'en-GB', uk: 'uk-UA', km: 'km-KH', vi: 'vi-VN', ne: 'ne-NP' }
 
@@ -164,6 +165,10 @@ export default function HousemasterPage() {
   const [me, setMe] = useState(null)
   const [worklogs, setWorklogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState('worklogs')
+  const [requests, setRequests] = useState([])
+  const [requestsLoaded, setRequestsLoaded] = useState(false)
+  const [forwardingId, setForwardingId] = useState(null)
 
   useEffect(() => {
     api.get('/api/auth/me').then(res => {
@@ -205,6 +210,31 @@ export default function HousemasterPage() {
     }
   }
 
+  async function loadRequests() {
+    setRequestsLoaded(true)
+    try {
+      const res = await api.get('/api/leave-requests/housemaster')
+      setRequests(res.data.requests || [])
+    } catch {}
+  }
+
+  async function forwardRequest(id) {
+    setForwardingId(id)
+    try {
+      await api.post(`/api/leave-requests/${id}/forward`)
+      setRequests(prev => prev.filter(r => r.id !== id))
+    } catch {
+      alert(t('requests.submitFailed'))
+    } finally {
+      setForwardingId(null)
+    }
+  }
+
+  function handleTabChange(next) {
+    setTab(next)
+    if (next === 'requests' && !requestsLoaded) loadRequests()
+  }
+
   if (loading || !me) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif' }}>
@@ -228,6 +258,10 @@ export default function HousemasterPage() {
         .btn-green:hover { background: #235223; }
         .btn-outline { background: #fff; color: #333; border: 1px solid #ddd !important; }
         .btn-outline:hover { background: #f5f5f0; }
+        .tab-btn { padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid #ddd; font-family: inherit; transition: all 0.15s; white-space: nowrap; }
+        .tab-active { background: #2d6a2d; color: #fff; border-color: #2d6a2d; }
+        .tab-inactive { background: #fff; color: #555; }
+        .tab-inactive:hover { background: #f5f5f0; }
         @media (max-width: 600px) { .hm-badge { display: none !important; } }
       `}</style>
 
@@ -254,21 +288,67 @@ export default function HousemasterPage() {
 
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px 16px' }}>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
-          <div>
-            <h1 style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '-0.4px', marginBottom: '2px' }}>{t('housemaster.workLogs')}</h1>
-            <p style={{ fontSize: '13px', color: '#888' }}>{t('housemaster.workLogsSentDesc')}</p>
-          </div>
-          <button className="btn btn-outline" onClick={loadWorklogs} style={{ fontSize: '12px' }}>{t('housemaster.refresh')}</button>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          {[['worklogs', t('housemaster.tabWorklogs')], ['requests', t('housemaster.tabRequests')]].map(([tabKey, l]) => (
+            <button key={tabKey} className={`tab-btn ${tab === tabKey ? 'tab-active' : 'tab-inactive'}`} onClick={() => handleTabChange(tabKey)}>{l}</button>
+          ))}
         </div>
 
-        {worklogs.length === 0 ? (
-          <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '14px', padding: '48px 24px', textAlign: 'center' }}>
-            <p style={{ fontSize: '15px', color: '#888', fontWeight: '500' }}>{t('housemaster.noLogsYet')}</p>
-            <p style={{ fontSize: '13px', color: '#bbb', marginTop: '6px' }}>{t('housemaster.noLogsDesc')}</p>
-          </div>
-        ) : (
-          worklogs.map(wl => <WorklogCard key={wl.id} wl={wl} onDelete={deleteWorklog} />)
+        {tab === 'worklogs' && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
+              <div>
+                <h1 style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '-0.4px', marginBottom: '2px' }}>{t('housemaster.workLogs')}</h1>
+                <p style={{ fontSize: '13px', color: '#888' }}>{t('housemaster.workLogsSentDesc')}</p>
+              </div>
+              <button className="btn btn-outline" onClick={loadWorklogs} style={{ fontSize: '12px' }}>{t('housemaster.refresh')}</button>
+            </div>
+
+            {worklogs.length === 0 ? (
+              <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '14px', padding: '48px 24px', textAlign: 'center' }}>
+                <p style={{ fontSize: '15px', color: '#888', fontWeight: '500' }}>{t('housemaster.noLogsYet')}</p>
+                <p style={{ fontSize: '13px', color: '#bbb', marginTop: '6px' }}>{t('housemaster.noLogsDesc')}</p>
+              </div>
+            ) : (
+              worklogs.map(wl => <WorklogCard key={wl.id} wl={wl} onDelete={deleteWorklog} />)
+            )}
+          </>
+        )}
+
+        {tab === 'requests' && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
+              <div>
+                <h1 style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '-0.4px', marginBottom: '2px' }}>{t('housemaster.tabRequests')}</h1>
+              </div>
+              <button className="btn btn-outline" onClick={loadRequests} style={{ fontSize: '12px' }}>{t('housemaster.refresh')}</button>
+            </div>
+
+            {requests.length === 0 ? (
+              <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '14px', padding: '48px 24px', textAlign: 'center' }}>
+                <p style={{ fontSize: '15px', color: '#888', fontWeight: '500' }}>{t('requests.noPendingRequests')}</p>
+                <p style={{ fontSize: '13px', color: '#bbb', marginTop: '6px' }}>{t('requests.noPendingRequestsDesc')}</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {requests.map(r => (
+                  <div key={r.id} style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: '14px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1', minWidth: '200px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '800', marginBottom: '2px' }}>#{r.work_number} {r.full_name}</div>
+                      <div style={{ fontSize: '12px', color: '#888' }}>
+                        <span style={{ textTransform: 'capitalize', fontWeight: '600', color: '#555' }}>{t('requests.type' + r.request_type.charAt(0).toUpperCase() + r.request_type.slice(1))}</span>
+                        &nbsp;·&nbsp;{r.start_date} → {r.end_date}
+                        {r.reason && <>&nbsp;·&nbsp;{r.reason}</>}
+                      </div>
+                    </div>
+                    <button className="btn btn-green" disabled={forwardingId === r.id} onClick={() => forwardRequest(r.id)} style={{ fontSize: '12px' }}>
+                      {forwardingId === r.id ? t('requests.forwarding') : t('requests.forward')}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
       </div>

@@ -65,3 +65,21 @@ CREATE TABLE IF NOT EXISTS timesheet_entries (
   updated_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(worker_id, entry_date)
 );
+
+-- Worker leave/holiday/break requests: worker submits -> housemaster forwards -> admin decides
+CREATE TABLE IF NOT EXISTS leave_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  worker_id UUID REFERENCES workers(id) ON DELETE CASCADE,
+  house_group TEXT,
+  request_type TEXT NOT NULL,
+  reason TEXT,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  status TEXT DEFAULT 'pending_housemaster',
+  forwarded_by UUID REFERENCES workers(id),
+  forwarded_at TIMESTAMPTZ,
+  decided_by UUID REFERENCES workers(id),
+  decided_at TIMESTAMPTZ,
+  decision_note TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);

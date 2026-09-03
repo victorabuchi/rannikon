@@ -90,6 +90,13 @@ export default function AdminPage() {
   const [invitations, setInvitations] = useState([])
   const [invLoading, setInvLoading] = useState(false)
 
+  // Leave requests
+  const [pendingRequests, setPendingRequests] = useState([])
+  const [approvingId, setApprovingId] = useState(null)
+  const [rejectTarget, setRejectTarget] = useState(null)
+  const [rejectNote, setRejectNote] = useState('')
+  const [rejecting, setRejecting] = useState(false)
+
   useEffect(() => {
     api.get('/api/auth/me').then(res => {
       const w = res.data.worker
@@ -97,6 +104,7 @@ export default function AdminPage() {
       setMe(w)
       loadStats()
       loadWorkers()
+      loadPendingRequests()
     }).catch(() => {
       const w = getWorker()
       if (!w) { router.push('/login'); return }
@@ -104,6 +112,7 @@ export default function AdminPage() {
       setMe(w)
       loadStats()
       loadWorkers()
+      loadPendingRequests()
     })
   }, [])
 
@@ -112,6 +121,40 @@ export default function AdminPage() {
       const res = await api.get('/api/admin/stats')
       setStats(res.data)
     } catch {}
+  }
+
+  async function loadPendingRequests() {
+    try {
+      const res = await api.get('/api/leave-requests/admin')
+      setPendingRequests(res.data.requests || [])
+    } catch {}
+  }
+
+  async function approveRequest(id) {
+    setApprovingId(id)
+    try {
+      await api.post(`/api/leave-requests/${id}/decide`, { decision: 'approved' })
+      setPendingRequests(prev => prev.filter(r => r.id !== id))
+    } catch {
+      alert(t('requests.submitFailed'))
+    } finally {
+      setApprovingId(null)
+    }
+  }
+
+  async function confirmReject() {
+    if (!rejectTarget) return
+    setRejecting(true)
+    try {
+      await api.post(`/api/leave-requests/${rejectTarget.id}/decide`, { decision: 'rejected', note: rejectNote })
+      setPendingRequests(prev => prev.filter(r => r.id !== rejectTarget.id))
+      setRejectTarget(null)
+      setRejectNote('')
+    } catch {
+      alert(t('requests.submitFailed'))
+    } finally {
+      setRejecting(false)
+    }
   }
 
   async function loadWorkers() {
@@ -316,7 +359,12 @@ export default function AdminPage() {
 
         {/* TAB NAV */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          {[['workers', t('admin.tabWorkers')], ['logs', t('admin.tabLogs')], ['invitations', t('admin.tabInvitations')]].map(([tabKey, l]) => (
+          {[
+            ['workers', t('admin.tabWorkers')],
+            ['logs', t('admin.tabLogs')],
+            ['invitations', t('admin.tabInvitations')],
+            ['requests', pendingRequests.length ? `${t('admin.tabRequests')} (${pendingRequests.length})` : t('admin.tabRequests')],
+          ].map(([tabKey, l]) => (
             <button key={tabKey} className={`tab-btn ${tab === tabKey ? 'tab-active' : 'tab-inactive'}`} onClick={() => handleTabChange(tabKey)}>{l}</button>
           ))}
         </div>
@@ -528,6 +576,49 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* REQUESTS TAB */}
+        {tab === 'requests' && (
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #f0f0ec', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '15px', fontWeight: '700' }}>{t('admin.tabRequests')}</h2>
+              <button className="btn btn-outline" onClick={loadPendingRequests} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('housemaster.refresh')}</button>
+            </div>
+            {pendingRequests.length === 0 ? (
+              <p style={{ padding: '32px', color: '#888', textAlign: 'center' }}>{t('requests.noPendingRequests')}</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {pendingRequests.map(r => (
+                  <div key={r.id} style={{ padding: '14px 20px', borderBottom: '1px solid #f0f0ec', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1', minWidth: '220px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '800' }}>#{r.work_number} {r.full_name}</span>
+                        <GroupPill group={r.worker_house_group} />
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#888' }}>
+                        <span style={{ textTransform: 'capitalize', fontWeight: '600', color: '#555' }}>{t('requests.type' + r.request_type.charAt(0).toUpperCase() + r.request_type.slice(1))}</span>
+                        &nbsp;·&nbsp;{r.start_date} → {r.end_date}
+                        {r.reason && <>&nbsp;·&nbsp;{r.reason}</>}
+                        {r.forwarded_by_name && <>&nbsp;·&nbsp;{t('requests.forwardedBy')}: {r.forwarded_by_name}</>}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="btn btn-green" disabled={approvingId === r.id} onClick={() => approveRequest(r.id)} style={{ fontSize: '12px' }}>
+                        {t('requests.approve')}
+                      </button>
+                      <button
+                        onClick={() => { setRejectTarget(r); setRejectNote('') }}
+                        style={{ padding: '8px 16px', fontSize: '12px', fontWeight: '600', borderRadius: '8px', cursor: 'pointer', border: '1px solid #f5c2c2', background: '#fff', color: '#c0392b', fontFamily: 'inherit' }}
+                      >
+                        {t('requests.reject')}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
 
       {/* DELETE MODAL */}
@@ -625,6 +716,34 @@ export default function AdminPage() {
                 <button className="btn btn-green" style={{ width: '100%' }} onClick={resetInviteModal}>{t('admin.done')}</button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* REJECT REQUEST MODAL */}
+      {rejectTarget && (
+        <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget && !rejecting) setRejectTarget(null) }}>
+          <div className="modal">
+            <h3 style={{ fontSize: '17px', fontWeight: '800', marginBottom: '12px', color: '#c0392b' }}>
+              {t('requests.rejectTitle')}
+            </h3>
+            <p style={{ fontSize: '13px', color: '#555', marginBottom: '14px' }}>
+              #{rejectTarget.work_number} {rejectTarget.full_name} — {rejectTarget.start_date} → {rejectTarget.end_date}
+            </p>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>{t('requests.rejectNoteLabel')}</label>
+              <textarea value={rejectNote} onChange={e => setRejectNote(e.target.value)} rows={3} placeholder={t('requests.rejectNotePlaceholder')} style={{ ...inp, resize: 'vertical' }} />
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn btn-outline" onClick={() => setRejectTarget(null)} disabled={rejecting} style={{ flex: 1 }}>{t('sup.cancel')}</button>
+              <button
+                onClick={confirmReject}
+                disabled={rejecting}
+                style={{ flex: 1, padding: '10px', background: rejecting ? '#aaa' : '#c0392b', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '700', cursor: rejecting ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+              >
+                {rejecting ? t('requests.rejecting') : t('requests.reject')}
+              </button>
+            </div>
           </div>
         </div>
       )}
