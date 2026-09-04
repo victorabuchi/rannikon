@@ -1,6 +1,7 @@
 'use strict'
 
 const db = require('../db/index')
+const { getWorkerAbsenceStatuses } = require('../lib/absence')
 
 const HOUSE_GROUPS = [
   'Kivilinna/Salo',
@@ -155,6 +156,21 @@ module.exports = async function adminRoutes(fastify) {
        LEFT JOIN workers w ON w.id = i.invited_by ORDER BY i.created_at DESC LIMIT 50`
     )
     return reply.send({ invitations: result.rows })
+  })
+
+  fastify.delete('/api/admin/invitations/:id', { onRequest: [isAdmin] }, async (request, reply) => {
+    await db.query('DELETE FROM invitations WHERE id = $1', [request.params.id])
+    return reply.send({ success: true })
+  })
+
+  fastify.delete('/api/admin/invitations', { onRequest: [isAdmin] }, async (request, reply) => {
+    await db.query('DELETE FROM invitations')
+    return reply.send({ success: true })
+  })
+
+  fastify.get('/api/admin/absence-flags', { onRequest: [isAdmin] }, async (request, reply) => {
+    const statuses = await getWorkerAbsenceStatuses()
+    return reply.send({ flags: statuses.filter(s => s.level === 'flagged'), warnings: statuses.filter(s => s.level === 'warning') })
   })
 
   fastify.get('/api/admin/supervisor-logs/:date', { onRequest: [isAdmin] }, async (request, reply) => {

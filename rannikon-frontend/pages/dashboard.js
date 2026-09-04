@@ -148,6 +148,7 @@ export default function Dashboard() {
   const [reqEnd, setReqEnd] = useState('')
   const [reqSubmitting, setReqSubmitting] = useState(false)
   const [reqError, setReqError] = useState('')
+  const [absenceStatus, setAbsenceStatus] = useState(null)
 
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/login'); return }
@@ -161,6 +162,13 @@ export default function Dashboard() {
       })
       .catch(() => setWorker(getWorker()))
   }, [month, year])
+
+  useEffect(() => {
+    if (!isLoggedIn()) return
+    api.get('/api/leave-requests/my-absence-status')
+      .then(res => setAbsenceStatus(res.data.status))
+      .catch(() => {})
+  }, [])
 
   async function loadEntries() {
     try {
@@ -1089,6 +1097,30 @@ export default function Dashboard() {
             <button onClick={() => { setWorkNumInput(''); setWorkNumError(''); setWorkNumModal(true) }}
               style={{ padding: '5px 14px', background: '#b45309', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               {t('dashboard.setWorkNumber')}
+            </button>
+          </div>
+        )}
+
+        {/* Absence warning banner — shown once a worker has 5+ consecutive absent days on file with no leave request */}
+        {absenceStatus && (
+          <div style={{
+            background: absenceStatus.level === 'flagged' ? '#fdecea' : '#fff3e0',
+            borderBottom: `1px solid ${absenceStatus.level === 'flagged' ? '#f5c6c6' : '#fde0b0'}`,
+            padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={absenceStatus.level === 'flagged' ? '#c0392b' : '#b45309'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span style={{ fontSize: '13px', color: absenceStatus.level === 'flagged' ? '#c0392b' : '#b45309', fontWeight: '600' }}>
+                {absenceStatus.level === 'flagged'
+                  ? t('requests.absenceFlaggedBanner').replace('{days}', absenceStatus.consecutive_days)
+                  : t('requests.absenceWarningBanner').replace('{days}', absenceStatus.consecutive_days)}
+              </span>
+            </div>
+            <button onClick={() => { setView('requests'); if (!myRequestsLoaded) loadMyRequests() }}
+              style={{ padding: '5px 14px', background: absenceStatus.level === 'flagged' ? '#c0392b' : '#b45309', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              {t('requests.newRequest')}
             </button>
           </div>
         )}

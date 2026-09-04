@@ -97,6 +97,11 @@ export default function AdminPage() {
   const [rejectNote, setRejectNote] = useState('')
   const [rejecting, setRejecting] = useState(false)
 
+  // Absence flags
+  const [absenceFlags, setAbsenceFlags] = useState([])
+  const [absenceWarnings, setAbsenceWarnings] = useState([])
+  const [absenceLoading, setAbsenceLoading] = useState(false)
+
   useEffect(() => {
     api.get('/api/auth/me').then(res => {
       const w = res.data.worker
@@ -105,6 +110,7 @@ export default function AdminPage() {
       loadStats()
       loadWorkers()
       loadPendingRequests()
+      loadAbsenceFlags()
     }).catch(() => {
       const w = getWorker()
       if (!w) { router.push('/login'); return }
@@ -113,8 +119,20 @@ export default function AdminPage() {
       loadStats()
       loadWorkers()
       loadPendingRequests()
+      loadAbsenceFlags()
     })
   }, [])
+
+  async function loadAbsenceFlags() {
+    setAbsenceLoading(true)
+    try {
+      const res = await api.get('/api/admin/absence-flags')
+      setAbsenceFlags(res.data.flags || [])
+      setAbsenceWarnings(res.data.warnings || [])
+    } catch {} finally {
+      setAbsenceLoading(false)
+    }
+  }
 
   async function loadStats() {
     try {
@@ -186,6 +204,25 @@ export default function AdminPage() {
       setInvitations(res.data.invitations || [])
     } catch {} finally {
       setInvLoading(false)
+    }
+  }
+
+  async function deleteInvitation(id) {
+    try {
+      await api.delete('/api/admin/invitations/' + id)
+      setInvitations(prev => prev.filter(i => i.id !== id))
+    } catch {
+      alert(t('admin.deleteFailed'))
+    }
+  }
+
+  async function clearAllInvitations() {
+    if (!confirm(t('admin.clearAllInvitationsConfirm'))) return
+    try {
+      await api.delete('/api/admin/invitations')
+      setInvitations([])
+    } catch {
+      alert(t('admin.deleteFailed'))
     }
   }
 
@@ -364,6 +401,7 @@ export default function AdminPage() {
             ['logs', t('admin.tabLogs')],
             ['invitations', t('admin.tabInvitations')],
             ['requests', pendingRequests.length ? `${t('admin.tabRequests')} (${pendingRequests.length})` : t('admin.tabRequests')],
+            ['absences', absenceFlags.length ? `${t('admin.tabAbsences')} (${absenceFlags.length})` : t('admin.tabAbsences')],
           ].map(([tabKey, l]) => (
             <button key={tabKey} className={`tab-btn ${tab === tabKey ? 'tab-active' : 'tab-inactive'}`} onClick={() => handleTabChange(tabKey)}>{l}</button>
           ))}
@@ -532,9 +570,14 @@ export default function AdminPage() {
         {/* INVITATIONS TAB */}
         {tab === 'invitations' && (
           <div className="card" style={{ padding: 0 }}>
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid #f0f0ec', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #f0f0ec', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <h2 style={{ fontSize: '15px', fontWeight: '700' }}>{t('admin.pendingInvitations')}</h2>
-              <button className="btn btn-outline" onClick={loadInvitations} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('housemaster.refresh')}</button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {invitations.length > 0 && (
+                  <button onClick={clearAllInvitations} style={{ padding: '5px 12px', fontSize: '12px', fontWeight: '600', borderRadius: '8px', cursor: 'pointer', border: '1px solid #f5c2c2', background: '#fff', color: '#c0392b', fontFamily: 'inherit' }}>{t('admin.clearAll')}</button>
+                )}
+                <button className="btn btn-outline" onClick={loadInvitations} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('housemaster.refresh')}</button>
+              </div>
             </div>
             {invLoading ? (
               <p style={{ padding: '24px', color: '#888', textAlign: 'center' }}>{t('common.loading')}</p>
@@ -549,11 +592,12 @@ export default function AdminPage() {
                       <th>{t('admin.invitedBy')}</th>
                       <th>{t('admin.created')}</th>
                       <th>{t('admin.status')}</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
                     {invitations.length === 0 && (
-                      <tr><td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: '#888' }}>{t('admin.noInvitationsYet')}</td></tr>
+                      <tr><td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: '#888' }}>{t('admin.noInvitationsYet')}</td></tr>
                     )}
                     {invitations.map(inv => (
                       <tr key={inv.id}>
@@ -566,6 +610,11 @@ export default function AdminPage() {
                           <span style={{ background: inv.accepted ? '#e8f5e9' : '#fff3e0', color: inv.accepted ? '#2d6a2d' : '#b45309', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '700', border: `1px solid ${inv.accepted ? '#a5d6a7' : '#ffcc80'}` }}>
                             {inv.accepted ? t('admin.accepted') : t('sup.pending')}
                           </span>
+                        </td>
+                        <td>
+                          <button onClick={() => deleteInvitation(inv.id)} title={t('sup.remove')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', padding: '2px' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -615,6 +664,66 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ABSENCES TAB */}
+        {tab === 'absences' && (
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #f0f0ec', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ fontSize: '15px', fontWeight: '700' }}>{t('admin.tabAbsences')}</h2>
+                <p style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>{t('admin.absencesDesc')}</p>
+              </div>
+              <button className="btn btn-outline" onClick={loadAbsenceFlags} style={{ fontSize: '12px', padding: '5px 12px' }}>{t('housemaster.refresh')}</button>
+            </div>
+
+            {absenceLoading ? (
+              <p style={{ padding: '32px', color: '#888', textAlign: 'center' }}>{t('common.loading')}</p>
+            ) : (absenceFlags.length === 0 && absenceWarnings.length === 0) ? (
+              <p style={{ padding: '32px', color: '#888', textAlign: 'center' }}>{t('admin.noAbsenceConcerns')}</p>
+            ) : (
+              <>
+                {absenceFlags.length > 0 && (
+                  <div>
+                    <div style={{ padding: '10px 20px', background: '#fdecea', fontSize: '11px', fontWeight: '700', color: '#c0392b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('admin.flagged')}</div>
+                    {absenceFlags.map(a => (
+                      <div key={a.worker_id} style={{ padding: '14px 20px', borderBottom: '1px solid #f0f0ec', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                        <div style={{ flex: '1', minWidth: '220px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: '800' }}>#{a.work_number} {a.full_name}</span>
+                            <GroupPill group={a.house_group} />
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#888' }}>{t('admin.absentSince')} {a.since_date}</div>
+                        </div>
+                        <span style={{ background: '#fdecea', color: '#c0392b', border: '1px solid #f5c6c6', padding: '4px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                          {a.consecutive_days} {t('admin.daysAbsent')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {absenceWarnings.length > 0 && (
+                  <div>
+                    <div style={{ padding: '10px 20px', background: '#fff3e0', fontSize: '11px', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('admin.warning')}</div>
+                    {absenceWarnings.map(a => (
+                      <div key={a.worker_id} style={{ padding: '14px 20px', borderBottom: '1px solid #f0f0ec', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                        <div style={{ flex: '1', minWidth: '220px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: '800' }}>#{a.work_number} {a.full_name}</span>
+                            <GroupPill group={a.house_group} />
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#888' }}>{t('admin.absentSince')} {a.since_date}</div>
+                        </div>
+                        <span style={{ background: '#fff3e0', color: '#b45309', border: '1px solid #ffcc80', padding: '4px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                          {a.consecutive_days} {t('admin.daysAbsent')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

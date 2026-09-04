@@ -1,6 +1,7 @@
 'use strict'
 
 const db = require('../db/index')
+const { getWorkerAbsenceStatuses } = require('../lib/absence')
 
 const REQUEST_TYPES = ['holiday', 'break', 'leave', 'other']
 
@@ -208,6 +209,13 @@ module.exports = async function leaveRequestRoutes(fastify) {
     }
 
     return reply.send({ success: true })
+  })
+
+  // Worker: check whether they currently have an absence warning/flag
+  fastify.get('/api/leave-requests/my-absence-status', { onRequest: [fastify.authenticate] }, async (request, reply) => {
+    const statuses = await getWorkerAbsenceStatuses()
+    const mine = statuses.find(s => s.worker_id === request.user.id) || null
+    return reply.send({ status: mine })
   })
 
 }
