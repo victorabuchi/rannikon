@@ -102,3 +102,69 @@ INSERT INTO worker_directory (worker_number, full_name, house_group)
   WHERE worker_name IS NOT NULL AND worker_name != ''
   ORDER BY worker_number, created_at DESC
   ON CONFLICT (worker_number) DO NOTHING;
+
+-- Full 0-999 roster backfill: every possible worker number gets a directory
+-- row tagged with its house group, blank name, even numbers with no account
+-- yet, so the supervisor picker always shows the complete range per house.
+INSERT INTO worker_directory (worker_number, full_name, house_group)
+  SELECT n::text, '', CASE
+    WHEN n BETWEEN 100 AND 199 THEN 'Kivilinna/Salo'
+    WHEN n BETWEEN 200 AND 299 THEN 'Karton Cambodia'
+    WHEN n BETWEEN 300 AND 399 THEN 'Karton International'
+    WHEN n BETWEEN 400 AND 499 THEN 'Vassila'
+    WHEN n BETWEEN 500 AND 599 THEN 'Suppala'
+    WHEN n >= 600 THEN 'Salo/Turku'
+    ELSE 'Unknown'
+  END
+  FROM generate_series(0, 999) AS n
+  ON CONFLICT (worker_number) DO NOTHING;
+
+-- Real names transcribed from the Karton International paper attendance
+-- sheet. Only fills in a name where the directory entry is still blank, so
+-- it never clobbers a name already known from a real login account.
+INSERT INTO worker_directory (worker_number, full_name, house_group) VALUES
+  ('300', 'Anish Neupane', 'Karton International'),
+  ('303', 'Kim Tien Lu', 'Karton International'),
+  ('304', 'Thi Duc Hoan', 'Karton International'),
+  ('308', 'Pradip Bhandari', 'Karton International'),
+  ('310', 'Manisha Karki', 'Karton International'),
+  ('313', 'Rojina Basnet', 'Karton International'),
+  ('314', 'Arun Roka', 'Karton International'),
+  ('315', 'Devika Rai', 'Karton International'),
+  ('316', 'Thi Anh Hong Le', 'Karton International'),
+  ('317', 'Thi Bang Pham', 'Karton International'),
+  ('318', 'Pham Thai An Cao', 'Karton International'),
+  ('319', 'Shradda Bhattarai', 'Karton International'),
+  ('326', 'Leslie Funcham', 'Karton International'),
+  ('329', 'Badal Ghimere', 'Karton International'),
+  ('330', 'Anisha Giri', 'Karton International'),
+  ('331', 'Deba Jephthan Akam', 'Karton International'),
+  ('332', 'Bamila Jedidah Pacis', 'Karton International'),
+  ('333', 'Alonge Folashade', 'Karton International'),
+  ('334', 'Victor Abuchi', 'Karton International'),
+  ('336', 'Aashish Nepali', 'Karton International'),
+  ('337', 'Gajendra Subba', 'Karton International'),
+  ('346', 'Durga BK', 'Karton International'),
+  ('347', 'Bharat Kumar', 'Karton International'),
+  ('348', 'Bui Huu Hanh', 'Karton International'),
+  ('349', 'Le Thi Mai', 'Karton International'),
+  ('353', 'Pham Thi Tuoi', 'Karton International'),
+  ('355', 'Sharoj Kumar Shaj', 'Karton International'),
+  ('358', 'Binita Rai', 'Karton International'),
+  ('359', 'Akinrinola Thomas', 'Karton International')
+  ON CONFLICT (worker_number) DO UPDATE SET full_name = EXCLUDED.full_name
+    WHERE worker_directory.full_name = '' OR worker_directory.full_name IS NULL;
+
+-- Backfill house_group for legacy rows seeded before house_group existed on
+-- their source record (numeric worker numbers only; temp G-xxxxxx
+-- registration numbers have no fixed house and are left alone).
+UPDATE worker_directory SET house_group = CASE
+    WHEN worker_number::int BETWEEN 100 AND 199 THEN 'Kivilinna/Salo'
+    WHEN worker_number::int BETWEEN 200 AND 299 THEN 'Karton Cambodia'
+    WHEN worker_number::int BETWEEN 300 AND 399 THEN 'Karton International'
+    WHEN worker_number::int BETWEEN 400 AND 499 THEN 'Vassila'
+    WHEN worker_number::int BETWEEN 500 AND 599 THEN 'Suppala'
+    WHEN worker_number::int >= 600 THEN 'Salo/Turku'
+    ELSE 'Unknown'
+  END
+  WHERE house_group IS NULL AND worker_number ~ '^[0-9]+$';
