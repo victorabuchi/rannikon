@@ -30,7 +30,7 @@ function getHouseGroup(wn) {
   if (n >= 300 && n <= 399) return 'Karton International'
   if (n >= 400 && n <= 499) return 'Vassila'
   if (n >= 500 && n <= 599) return 'Suppala'
-  if (n >= 600) return 'Salo/Turku'
+  if (n >= 600 && n <= 699) return 'Salo/Turku'
   return 'Unknown'
 }
 
@@ -78,7 +78,6 @@ export default function SupervisorPage() {
   const [workerSearch, setWorkerSearch] = useState('')
   const [selectedWorkers, setSelectedWorkers] = useState([])
   const [newWorkerName, setNewWorkerName] = useState('')
-  const [addingWorker, setAddingWorker] = useState(false)
 
   // Break modal — scoped to a single batch, since break time differs per batch
   const [breakBatchId, setBreakBatchId] = useState(null)
@@ -183,22 +182,13 @@ export default function SupervisorPage() {
     )
   }
 
-  async function addNewWorkerToDirectory() {
+  function addAdHocWorker() {
     const wn = workerSearch.trim()
-    if (!wn || !newWorkerName.trim()) return
-    setAddingWorker(true)
-    try {
-      const res = await api.post('/api/supervisor/directory', { worker_number: wn, full_name: newWorkerName.trim() })
-      const entry = res.data.entry
-      setDirectory(prev => [...prev, entry].sort((a, b) => a.worker_number.localeCompare(b.worker_number)))
-      setSelectedWorkers(prev => [...prev, entry])
-      setWorkerSearch('')
-      setNewWorkerName('')
-    } catch (e) {
-      setBatchError(e.response?.data?.error || t('sup.failedAddBatch'))
-    } finally {
-      setAddingWorker(false)
-    }
+    if (!wn) return
+    const entry = { worker_number: wn, full_name: newWorkerName.trim() }
+    setSelectedWorkers(prev => prev.some(w => w.worker_number === wn) ? prev : [...prev, entry])
+    setWorkerSearch('')
+    setNewWorkerName('')
   }
 
   async function addBatch() {
@@ -649,8 +639,8 @@ export default function SupervisorPage() {
                           <p style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>{t('sup.noMatchAddNew').replace('{number}', workerSearch.trim())}</p>
                           <div style={{ display: 'flex', gap: '6px' }}>
                             <input type="text" style={{ ...inp(), fontSize: '13px' }} placeholder={t('sup.newWorkerNamePlaceholder')} value={newWorkerName} onChange={e => setNewWorkerName(e.target.value)} />
-                            <button className="btn btn-green" onClick={addNewWorkerToDirectory} disabled={addingWorker || !newWorkerName.trim()} style={{ whiteSpace: 'nowrap' }}>
-                              {addingWorker ? t('sup.saving') : t('sup.addBatchBtn')}
+                            <button className="btn btn-green" onClick={addAdHocWorker} style={{ whiteSpace: 'nowrap' }}>
+                              {t('sup.addToBatchBtn')}
                             </button>
                           </div>
                         </div>

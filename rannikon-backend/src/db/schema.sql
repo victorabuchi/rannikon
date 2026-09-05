@@ -113,7 +113,7 @@ INSERT INTO worker_directory (worker_number, full_name, house_group)
     WHEN n BETWEEN 300 AND 399 THEN 'Karton International'
     WHEN n BETWEEN 400 AND 499 THEN 'Vassila'
     WHEN n BETWEEN 500 AND 599 THEN 'Suppala'
-    WHEN n >= 600 THEN 'Salo/Turku'
+    WHEN n BETWEEN 600 AND 699 THEN 'Salo/Turku'
     ELSE 'Unknown'
   END
   FROM generate_series(0, 999) AS n
@@ -164,7 +164,13 @@ UPDATE worker_directory SET house_group = CASE
     WHEN worker_number::int BETWEEN 300 AND 399 THEN 'Karton International'
     WHEN worker_number::int BETWEEN 400 AND 499 THEN 'Vassila'
     WHEN worker_number::int BETWEEN 500 AND 599 THEN 'Suppala'
-    WHEN worker_number::int >= 600 THEN 'Salo/Turku'
+    WHEN worker_number::int BETWEEN 600 AND 699 THEN 'Salo/Turku'
     ELSE 'Unknown'
   END
   WHERE house_group IS NULL AND worker_number ~ '^[0-9]+$';
+
+-- Salo/Turku is capped at 600-699; anything seeded under the old open-ended
+-- 600+ rule for 700-999 (blank placeholders only, never a real account) is
+-- retagged to Unknown.
+UPDATE worker_directory SET house_group = 'Unknown'
+  WHERE house_group = 'Salo/Turku' AND worker_number ~ '^[0-9]+$' AND worker_number::int >= 700;
