@@ -137,15 +137,42 @@ module.exports = async function supervisorRoutes(fastify) {
     )
 
     for (const wn of worker_numbers) {
-      const workerResult = await db.query('SELECT full_name FROM workers WHERE work_number = $1', [wn])
+      const dirResult = await db.query('SELECT full_name FROM worker_directory WHERE worker_number = $1', [wn])
       await db.query(
         `INSERT INTO supervisor_logs (session_id, worker_number, worker_name, house_group, start_time, what_work)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [session_id, wn, workerResult.rows[0]?.full_name || '', getHouseGroup(wn), start_time, what_work || '']
+        [session_id, wn, dirResult.rows[0]?.full_name || '', getHouseGroup(wn), start_time, what_work || '']
       )
     }
 
     return reply.send({ batch: batch.rows[0] })
+  })
+
+  // Known worker roster for the search-and-mark picker
+  fastify.get('/api/supervisor/directory', {
+    onRequest: [requireSupervisor]
+  }, async (request, reply) => {
+    const result = await db.query('SELECT worker_number, full_name, house_group FROM worker_directory ORDER BY worker_number')
+    return reply.send({ directory: result.rows })
+  })
+
+  // Add (or rename) a worker in the roster
+  fastify.post('/api/supervisor/directory', {
+    onRequest: [requireSupervisor]
+  }, async (request, reply) => {
+    const { worker_number, full_name } = request.body || {}
+    if (!worker_number?.trim() || !full_name?.trim()) {
+      return reply.status(400).send({ error: 'worker_number and full_name required' })
+    }
+    const wn = worker_number.trim()
+    const result = await db.query(
+      `INSERT INTO worker_directory (worker_number, full_name, house_group)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (worker_number) DO UPDATE SET full_name = EXCLUDED.full_name
+       RETURNING *`,
+      [wn, full_name.trim(), getHouseGroup(wn)]
+    )
+    return reply.send({ entry: result.rows[0] })
   })
 
   // Record a break for a specific batch (adds to that batch's total — break time differs per batch)

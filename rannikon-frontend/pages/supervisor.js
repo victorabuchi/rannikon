@@ -67,11 +67,18 @@ export default function SupervisorPage() {
 
   // Add batch modal
   const [showBatchModal, setShowBatchModal] = useState(false)
-  const [batchNumbers, setBatchNumbers] = useState('')
   const [batchStart, setBatchStart] = useState('')
   const [batchWork, setBatchWork] = useState('')
   const [batchSaving, setBatchSaving] = useState(false)
   const [batchError, setBatchError] = useState('')
+
+  // Worker picker — search-and-mark from the known worker directory
+  const [directory, setDirectory] = useState([])
+  const [directoryLoaded, setDirectoryLoaded] = useState(false)
+  const [workerSearch, setWorkerSearch] = useState('')
+  const [selectedWorkers, setSelectedWorkers] = useState([])
+  const [newWorkerName, setNewWorkerName] = useState('')
+  const [addingWorker, setAddingWorker] = useState(false)
 
   // Break modal — scoped to a single batch, since break time differs per batch
   const [breakBatchId, setBreakBatchId] = useState(null)
@@ -150,21 +157,64 @@ export default function SupervisorPage() {
     }
   }
 
+  async function loadDirectory() {
+    try {
+      const res = await api.get('/api/supervisor/directory')
+      setDirectory(res.data.directory || [])
+    } catch {} finally {
+      setDirectoryLoaded(true)
+    }
+  }
+
+  function openBatchModal() {
+    setShowBatchModal(true)
+    setSelectedWorkers([])
+    setWorkerSearch('')
+    setNewWorkerName('')
+    setBatchError('')
+    if (!directoryLoaded) loadDirectory()
+  }
+
+  function toggleWorker(entry) {
+    setSelectedWorkers(prev =>
+      prev.some(w => w.worker_number === entry.worker_number)
+        ? prev.filter(w => w.worker_number !== entry.worker_number)
+        : [...prev, entry]
+    )
+  }
+
+  async function addNewWorkerToDirectory() {
+    const wn = workerSearch.trim()
+    if (!wn || !newWorkerName.trim()) return
+    setAddingWorker(true)
+    try {
+      const res = await api.post('/api/supervisor/directory', { worker_number: wn, full_name: newWorkerName.trim() })
+      const entry = res.data.entry
+      setDirectory(prev => [...prev, entry].sort((a, b) => a.worker_number.localeCompare(b.worker_number)))
+      setSelectedWorkers(prev => [...prev, entry])
+      setWorkerSearch('')
+      setNewWorkerName('')
+    } catch (e) {
+      setBatchError(e.response?.data?.error || t('sup.failedAddBatch'))
+    } finally {
+      setAddingWorker(false)
+    }
+  }
+
   async function addBatch() {
     setBatchError('')
-    const nums = batchNumbers.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean)
-    if (!nums.length) { setBatchError(t('sup.enterWorkerNumber')); return }
+    if (!selectedWorkers.length) { setBatchError(t('sup.enterWorkerNumber')); return }
     if (!batchStart) { setBatchError(t('sup.startTimeRequired')); return }
     setBatchSaving(true)
     try {
       await api.post('/api/supervisor/batch', {
         session_id: session.id,
-        worker_numbers: nums,
+        worker_numbers: selectedWorkers.map(w => w.worker_number),
         start_time: batchStart,
         what_work: batchWork
       })
       setShowBatchModal(false)
-      setBatchNumbers(''); setBatchStart(''); setBatchWork('')
+      setSelectedWorkers([]); setBatchStart(''); setBatchWork('')
       await loadBatches(session.id)
       await loadLogs(session.id)
     } catch (e) {
@@ -400,7 +450,7 @@ export default function SupervisorPage() {
                 )}
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button className="btn btn-green" onClick={() => setShowBatchModal(true)}>
+                <button className="btn btn-green" onClick={openBatchModal}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   {t('sup.addWorkers')}
                 </button>
@@ -555,20 +605,85 @@ export default function SupervisorPage() {
       {/* ADD BATCH MODAL */}
       {showBatchModal && (
         <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget) setShowBatchModal(false) }}>
-          <div className="modal">
+          <div className="modal" style={{ maxWidth: '480px' }}>
             <h3 style={{ fontSize: '17px', fontWeight: '800', marginBottom: '18px' }}>{t('sup.addWorkers')}</h3>
+
             <div style={{ marginBottom: '14px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>{t('sup.workerNumbers')}</label>
-              <textarea
-                style={{ ...inp(), height: '80px', resize: 'none', fontSize: '14px' }}
-                placeholder={t('sup.workerNumbersPlaceholder')}
-                value={batchNumbers}
-                onChange={e => setBatchNumbers(e.target.value)}
+              <input
+                type="text"
+                style={inp()}
+                placeholder={t('sup.searchWorkerPlaceholder')}
+                value={workerSearch}
+                onChange={e => setWorkerSearch(e.target.value)}
               />
+
+              {selectedWorkers.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                  {selectedWorkers.map(w => (
+                    <span key={w.worker_number} onClick={() => toggleWorker(w)} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#e8f5e9', color: '#1b5e20',
+                      border: '1px solid #a5d6a7', padding: '3px 8px 3px 10px', borderRadius: '14px', fontSize: '12px', fontWeight: '700', cursor: 'pointer'
+                    }}>
+                      #{w.worker_number} {w.full_name}
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px', marginTop: '8px' }}>
+                {!directoryLoaded ? (
+                  <p style={{ padding: '14px', fontSize: '13px', color: '#888', textAlign: 'center' }}>{t('common.loading')}</p>
+                ) : (() => {
+                  const q = workerSearch.trim().toLowerCase()
+                  const matches = q
+                    ? directory.filter(d => d.worker_number.toLowerCase().startsWith(q) || d.full_name.toLowerCase().includes(q))
+                    : directory
+
+                  if (!matches.length) {
+                    const exactExists = directory.some(d => d.worker_number.toLowerCase() === q)
+                    if (q && !exactExists) {
+                      return (
+                        <div style={{ padding: '12px' }}>
+                          <p style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>{t('sup.noMatchAddNew').replace('{number}', workerSearch.trim())}</p>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <input type="text" style={{ ...inp(), fontSize: '13px' }} placeholder={t('sup.newWorkerNamePlaceholder')} value={newWorkerName} onChange={e => setNewWorkerName(e.target.value)} />
+                            <button className="btn btn-green" onClick={addNewWorkerToDirectory} disabled={addingWorker || !newWorkerName.trim()} style={{ whiteSpace: 'nowrap' }}>
+                              {addingWorker ? t('sup.saving') : t('sup.addBatchBtn')}
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    }
+                    return <p style={{ padding: '14px', fontSize: '13px', color: '#888', textAlign: 'center' }}>{t('sup.noWorkersInDirectory')}</p>
+                  }
+
+                  return matches.map(d => {
+                    const isSelected = selectedWorkers.some(w => w.worker_number === d.worker_number)
+                    return (
+                      <div key={d.worker_number} onClick={() => toggleWorker(d)} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '9px 12px', cursor: 'pointer',
+                        background: isSelected ? '#e8f5e9' : '#fff', borderBottom: '1px solid #f5f5f0'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                          <span style={{ fontWeight: '700', fontSize: '13px', flexShrink: 0 }}>#{d.worker_number}</span>
+                          <span style={{ fontSize: '13px', color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.full_name}</span>
+                          <GroupPill group={getHouseGroup(d.worker_number)} />
+                        </div>
+                        {isSelected && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2d6a2d" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12" /></svg>
+                        )}
+                      </div>
+                    )
+                  })
+                })()}
+              </div>
               <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-                {batchNumbers.split(/[\s,;]+/).filter(Boolean).length} {t('sup.workersEntered')}
+                {selectedWorkers.length} {t('sup.workersEntered')}
               </div>
             </div>
+
             <div style={{ marginBottom: '14px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>{t('days.startTime')}</label>
               <input style={inp()} placeholder={t('sup.startTimePlaceholder')} value={batchStart} onChange={e => setBatchStart(e.target.value)} />
@@ -578,21 +693,6 @@ export default function SupervisorPage() {
               <input type="text" style={inp()} placeholder={t('sup.whatWorkPlaceholder')} value={batchWork} onChange={e => setBatchWork(e.target.value)} />
             </div>
             {batchError && <div style={{ color: '#c0392b', fontSize: '13px', marginBottom: '12px' }}>{batchError}</div>}
-
-            {/* Preview of groups */}
-            {batchNumbers.trim() && (
-              <div style={{ marginBottom: '16px', padding: '10px 12px', background: '#f5f5f0', borderRadius: '8px' }}>
-                <div style={{ fontSize: '11px', fontWeight: '700', color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{t('sup.groupsDetected')}</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {batchNumbers.split(/[\s,;]+/).filter(Boolean).map(wn => (
-                    <div key={wn} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ fontWeight: '700', fontSize: '13px' }}>#{wn}</span>
-                      <GroupPill group={getHouseGroup(wn)} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <div style={{ display: 'flex', gap: '8px' }}>
               <button className="btn btn-outline" onClick={() => { setShowBatchModal(false); setBatchError('') }} style={{ flex: 1 }}>{t('sup.cancel')}</button>

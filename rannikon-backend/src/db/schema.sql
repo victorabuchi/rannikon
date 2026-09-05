@@ -83,3 +83,22 @@ CREATE TABLE IF NOT EXISTS leave_requests (
   decision_note TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Known worker roster (number -> name), used to power the supervisor's
+-- search-and-mark worker picker. Grows as supervisors encounter workers not
+-- yet listed. Seeded once from any workers with a login account.
+CREATE TABLE IF NOT EXISTS worker_directory (
+  worker_number TEXT PRIMARY KEY,
+  full_name TEXT NOT NULL,
+  house_group TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+INSERT INTO worker_directory (worker_number, full_name, house_group)
+  SELECT work_number, full_name, house_group FROM workers
+  WHERE full_name IS NOT NULL AND full_name != ''
+  ON CONFLICT (worker_number) DO NOTHING;
+INSERT INTO worker_directory (worker_number, full_name, house_group)
+  SELECT DISTINCT ON (worker_number) worker_number, worker_name, house_group FROM supervisor_logs
+  WHERE worker_name IS NOT NULL AND worker_name != ''
+  ORDER BY worker_number, created_at DESC
+  ON CONFLICT (worker_number) DO NOTHING;
